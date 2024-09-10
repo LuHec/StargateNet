@@ -1,8 +1,8 @@
 using Riptide;
 
-namespace LHNetwork.ClientCode
+namespace StargateNet
 {
-    public class ClientNetworkInstance : NetworkInstance
+    public class ClientNetworkGalaxy : NetworkGalaxy
     {
         public override bool IsServer => false;
         public override bool IsClient => true;
@@ -12,7 +12,7 @@ namespace LHNetwork.ClientCode
         
         public Client Client { private set; get; }
 
-        public ClientNetworkInstance(string serverIP, ushort port)
+        public ClientNetworkGalaxy(string serverIP, ushort port)
         {
             ServerIP = serverIP;
             Port = port;
@@ -33,6 +33,14 @@ namespace LHNetwork.ClientCode
             Client.Connect($"{ServerIP}:{Port}");
         }
 
+        public override void SendMessage()
+        {
+            Message message = Message.Create(MessageSendMode.Unreliable, (ushort)ServerToClientId.sync);
+            message.AddString("Hello");
+
+            Client.Send(message);
+        }
+        
         public override void OnQuit()
         {
             Client.Disconnect();
