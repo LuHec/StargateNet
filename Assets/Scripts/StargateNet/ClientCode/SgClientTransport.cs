@@ -2,7 +2,7 @@ using Riptide;
 
 namespace StargateNet
 {
-    public class ClientNetworkGalaxy : NetworkGalaxy
+    public class SgClientTransport : SgTransport
     {
         public override bool IsServer => false;
         public override bool IsClient => true;
@@ -12,18 +12,18 @@ namespace StargateNet
         
         public Client Client { private set; get; }
 
-        public ClientNetworkGalaxy(string serverIP, ushort port)
+        public SgClientTransport(string serverIP, ushort port)
         {
             ServerIP = serverIP;
             Port = port;
         }
         
-        public override void NetworkStart()
+        public override void TransportStart()
         {
             Client = new Client();
         }
 
-        public override void NetworkUpdate()
+        public override void TransportUpdate()
         {
             Client.Update();
         }

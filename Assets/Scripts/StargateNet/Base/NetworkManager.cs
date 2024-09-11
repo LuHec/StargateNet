@@ -30,51 +30,21 @@ namespace StargateNet
 
         [Header("Client")] [SerializeField] private string toServerIp;
 
-        private NetworkGalaxy _networkGalaxy;
-
-        public bool IsServer => _networkGalaxy.IsServer;
-        public bool IsClient => _networkGalaxy.IsClient;
-
-        private bool isStart = false;
-
         private void Awake()
         {
             Singleton = this;
         }
 
-        public void NetworkStart()
+        public void StartAsServer()
         {
-            // 暂时先这么测试，编辑器服务端，打包后是客户端
-#if UNITY_EDITOR
-            _networkGalaxy = new ServerNetworkGalaxy(serverPort, maxClientCount);
-#else
-        _networkInstance = new ClientNetworkInstance(toServerIp,serverPort);
-#endif
-            RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
-
-            _networkGalaxy.NetworkStart();
-            isStart = true;
+            SgNetwork.StartAsServer(serverPort, maxClientCount);
         }
 
-        public void Connect()
+        public void StartAsClient()
         {
-            _networkGalaxy.Connect();
+            SgNetwork.StartAsClient(toServerIp, serverPort);
         }
-    
-        private void FixedUpdate()
-        {
-            if (isStart)
-            {
-                if (_networkGalaxy == null) throw new Exception("NetworkInstance has not been initialized!");
-                _networkGalaxy.NetworkUpdate();
-            }
-        }
-
-        private void OnApplicationQuit()
-        {
-            _networkGalaxy.OnQuit();
-        }
-    
+        
     
         private NetworkManager()
         {

@@ -3,9 +3,8 @@ using UnityEngine;
 
 namespace StargateNet
 {
-    public class ServerNetworkGalaxy : NetworkGalaxy
+    public class SgServerTransport : SgTransport
     {
-        public override int CurrentTick { get; protected set; }
         public override bool IsServer => true;
         public override bool IsClient => false;
 
@@ -13,25 +12,20 @@ namespace StargateNet
         public ushort MaxClientCount { private set; get; }
         public Server Server { private set; get; }
 
-        public ServerNetworkGalaxy(ushort port, ushort maxClientCount)
+        public SgServerTransport(ushort port, ushort maxClientCount)
         {
             Port = port;
             MaxClientCount = maxClientCount;
         }
 
-        public override void NetworkStart()
+        public override void TransportStart()
         {
             Server = new Server();
         }
 
-        public override void NetworkUpdate()
+        public override void TransportUpdate()
         {
             Server.Update();
-            CurrentTick++;
-            if (CurrentTick % 200 == 0)
-            {
-                SendMessage();
-            }
         }
 
         public override void Connect()

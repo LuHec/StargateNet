@@ -1,4 +1,5 @@
 using System;
+using Riptide.Utils;
 using UnityEngine;
 
 namespace StargateNet
@@ -29,45 +30,49 @@ namespace StargateNet
             }
         }
 
-        public void StartAsServer(ushort port, ushort maxClientCount)
+        public static void StartAsServer(ushort port, ushort maxClientCount)
         {
-            _networkGalaxy = new ServerNetworkGalaxy(port, maxClientCount);
+            SgNetwork.Instance._networkGalaxy = new NetworkGalaxy();
             SgNetwork.Launch(StartMode.Server);
         }
 
-        public void StartAsClient(string ip, ushort port)
+        public static void StartAsClient(string ip, ushort port)
         {
-            _networkGalaxy = new ClientNetworkGalaxy(ip, port);
+            SgNetwork.Instance._networkGalaxy = new NetworkGalaxy();
             SgNetwork.Launch(StartMode.Client);
         }
-        
+
         private void OnApplicationQuit()
         {
-            _networkGalaxy.OnQuit();
+            _networkGalaxy.Transport.OnQuit();
         }
 
         public static void Launch(StartMode startMode)
         {
-            SgNetwork.Instance._networkGalaxy.NetworkStart();
-            SgNetwork.Instance._networkGalaxy.Connect();
+            SgNetwork.Instance.Launch();
+            SgNetwork.Instance._networkGalaxy.Transport.TransportStart();
+            SgNetwork.Instance._networkGalaxy.Transport.Connect();
+        }
+
+        public void Launch()
+        {
+            RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
         }
 
         private void Update()
         {
             if (_networkGalaxy != null && _started)
             {
-                _networkGalaxy.NetworkUpdate();
+                _networkGalaxy.Transport.TransportUpdate();
             }
         }
 
         private void LateUpdate()
         {
-            
         }
 
         private void FixedUpdate()
         {
-            
         }
     }
 }

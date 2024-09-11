@@ -3,23 +3,20 @@ namespace StargateNet
     /// <summary>
     ///  Network Engine, client and server run in same way
     /// </summary>
-    public abstract class NetworkGalaxy
+    public class NetworkGalaxy
     {
         public SgNetEngine Engine { private set; get; }
-        public virtual int CurrentTick { get; protected set; }
-        public virtual bool IsServer => false;
-    
-        public virtual bool IsClient => true;
-    
-        public abstract void NetworkStart();
-    
-        public abstract void NetworkUpdate();
+        public SgTransport Transport { private set; get; }
 
-        public abstract void Connect();
+        public NetworkGalaxy()
+        {
+            Transport = transport;
+        }
 
-        public abstract void SendMessage();
-    
-        public abstract void OnQuit();
+        public void Init(SgTransport transport)
+        {
+            Engine = new SgNetEngine();
+        }
     }
 }
 
