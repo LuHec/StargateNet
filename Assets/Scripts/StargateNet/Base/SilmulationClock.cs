@@ -14,26 +14,26 @@ namespace StargateNet
 
         internal SimulationClock(SgNetEngine engine, Action action)
         {
-            _engine = engine;
-            _action = action;
-            _scaledFixedDelta = 1 / engine.ConfigData.tickRate;
-            _realScaledFixedDelta = _scaledFixedDelta;
+            this._engine = engine;
+            this._action = action;
+            this._scaledFixedDelta = 1 / engine.ConfigData.tickRate;
+            this._realScaledFixedDelta = _scaledFixedDelta;
         }
 
         public void PreUpdate()
         {
-            _deltaTime = _engine.LastDeltaTime / _engine.LastTimeScale;
-            _accumulator += (double)_deltaTime;
-            Time += _deltaTime;
+            this._deltaTime = this._engine.LastDeltaTime / this._engine.LastTimeScale;
+            this._accumulator += (double)this._deltaTime;
+            this.Time += this._deltaTime;
         }
 
         public void Update()
         {
             // 10次只是一个阈值，用来限制处理低帧率的次数。在60tick的情况下，得低于6帧才会在一帧内处理10次
-            for (int i = 0; i < 10 && _accumulator > _realScaledFixedDelta; i++)
+            for (int i = 0; i < 10 && this._accumulator > this._realScaledFixedDelta; i++)
             {
-                _accumulator -= _realScaledFixedDelta;
-                _action?.Invoke();
+                this._accumulator -= this._realScaledFixedDelta;
+                this._action?.Invoke();
             }
         }
     }

@@ -1,3 +1,6 @@
+using System;
+using UnityEngine;
+
 namespace StargateNet
 {
     /// <summary>
@@ -6,17 +9,28 @@ namespace StargateNet
     public class NetworkGalaxy
     {
         public SgNetEngine Engine { private set; get; }
-        public SgTransport Transport { private set; get; }
 
         public NetworkGalaxy()
         {
-            Transport = transport;
         }
 
-        public void Init(SgTransport transport)
+        public void Init(StartMode startMode, SgNetConfigData configData)
         {
-            Engine = new SgNetEngine();
+            this.Engine = new SgNetEngine();
+            this.Engine.Start(startMode, configData);
+        }
+
+        public void Connect(string ip, ushort port)
+        {
+            if (this.Engine.IsServer)
+                throw new Exception("Can't call Connect by server!");
+
+            this.Engine.Connect(ip, port);
+        }
+
+        public void NetworkUpdate()
+        {
+            this.Engine.Update(Time.deltaTime, Time.timeScale);
         }
     }
 }
-

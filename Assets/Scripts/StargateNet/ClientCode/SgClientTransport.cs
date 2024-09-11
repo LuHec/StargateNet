@@ -9,28 +9,24 @@ namespace StargateNet
 
         public string ServerIP { private set; get; }
         public ushort Port { private set; get; }
-        
-        public Client Client { private set; get; }
 
-        public SgClientTransport(string serverIP, ushort port)
-        {
-            ServerIP = serverIP;
-            Port = port;
-        }
+        public Client Client { private set; get; }
         
-        public override void TransportStart()
+        public void Connect(string serverIP, ushort port)
         {
-            Client = new Client();
+            this.ServerIP = serverIP;
+            this.Port = port;
+            this.Client.Connect($"{ServerIP}:{Port}");
+        }
+
+        public override void TransportCreate()
+        {
+            this.Client = new Client();
         }
 
         public override void TransportUpdate()
         {
-            Client.Update();
-        }
-
-        public override void Connect()
-        {
-            Client.Connect($"{ServerIP}:{Port}");
+            this.Client.Update();
         }
 
         public override void SendMessage()
@@ -38,12 +34,12 @@ namespace StargateNet
             Message message = Message.Create(MessageSendMode.Unreliable, (ushort)ServerToClientId.sync);
             message.AddString("Hello");
 
-            Client.Send(message);
+            this.Client.Send(message);
         }
-        
+
         public override void OnQuit()
         {
-            Client.Disconnect();
+            this.Client.Disconnect();
         }
     }
 }

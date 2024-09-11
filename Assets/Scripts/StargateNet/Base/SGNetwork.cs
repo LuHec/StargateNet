@@ -30,40 +30,36 @@ namespace StargateNet
             }
         }
 
-        public static void StartAsServer(ushort port, ushort maxClientCount)
+        public static NetworkGalaxy StartAsServer(ushort port, ushort maxClientCount)
         {
             SgNetwork.Instance._networkGalaxy = new NetworkGalaxy();
-            SgNetwork.Launch(StartMode.Server);
+            return SgNetwork.Launch(StartMode.Server);
         }
 
-        public static void StartAsClient(string ip, ushort port)
+        public static NetworkGalaxy StartAsClient(string ip, ushort port)
         {
             SgNetwork.Instance._networkGalaxy = new NetworkGalaxy();
-            SgNetwork.Launch(StartMode.Client);
+            return SgNetwork.Launch(StartMode.Client);
         }
 
         private void OnApplicationQuit()
         {
-            _networkGalaxy.Transport.OnQuit();
+            
         }
 
-        public static void Launch(StartMode startMode)
+        public static NetworkGalaxy Launch(StartMode startMode)
         {
-            SgNetwork.Instance.Launch();
-            SgNetwork.Instance._networkGalaxy.Transport.TransportStart();
-            SgNetwork.Instance._networkGalaxy.Transport.Connect();
+            SgNetwork.Instance._networkGalaxy = new NetworkGalaxy();
+            SgNetwork.Instance._networkGalaxy.Init(startMode, new SgNetConfigData(){tickRate = 33.3f});
+            return SgNetwork.Instance._networkGalaxy;
         }
-
-        public void Launch()
-        {
-            RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
-        }
+        
 
         private void Update()
         {
-            if (_networkGalaxy != null && _started)
+            if (this._networkGalaxy != null && this._started)
             {
-                _networkGalaxy.Transport.TransportUpdate();
+                this._networkGalaxy.Engine.Update(Time.deltaTime, Time.timeScale);
             }
         }
 

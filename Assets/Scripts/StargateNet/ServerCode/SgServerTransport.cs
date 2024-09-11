@@ -12,25 +12,21 @@ namespace StargateNet
         public ushort MaxClientCount { private set; get; }
         public Server Server { private set; get; }
 
-        public SgServerTransport(ushort port, ushort maxClientCount)
+        public override void TransportCreate()
         {
-            Port = port;
-            MaxClientCount = maxClientCount;
+            this.Server = new Server();
         }
 
-        public override void TransportStart()
+        public void StartServer(ushort port, ushort maxClientCount)
         {
-            Server = new Server();
+            this.Port = port;
+            this.MaxClientCount = maxClientCount;
+            this.Server.Start(port, maxClientCount);
         }
 
         public override void TransportUpdate()
         {
-            Server.Update();
-        }
-
-        public override void Connect()
-        {
-            Server.Start(Port, MaxClientCount);
+            this.Server.Update();
         }
 
         public override void SendMessage()
@@ -38,7 +34,7 @@ namespace StargateNet
             Message message = Message.Create(MessageSendMode.Unreliable, (ushort)ServerToClientId.sync);
             message.AddString("Hello");
 
-            Server.SendToAll(message);
+            this.Server.SendToAll(message);
         }
         
         [MessageHandler((ushort)ServerToClientId.sync)]
@@ -50,7 +46,7 @@ namespace StargateNet
 
         public override void OnQuit()
         {
-            Server.Stop();
+            this.Server.Stop();
         }
     }
 }

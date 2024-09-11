@@ -1,3 +1,4 @@
+using Riptide.Utils;
 using UnityEngine;
 
 namespace StargateNet
@@ -11,29 +12,52 @@ namespace StargateNet
         internal SgNetConfigData ConfigData { get; private set; }
         internal bool IsRunning { get; private set; }
 
-        private SgTransport _transport;
+        internal SgTransport Transport { get; private set; }
+
+        internal bool IsServer => Transport.IsServer;
+        internal bool IsClient => Transport.IsClient;
 
         public SgNetEngine()
         {
         }
 
-        public void Start(SgTransport transport, SgNetConfigData sgNetConfigData)
+        public void Start(StartMode startMode, SgNetConfigData sgNetConfigData)
         {
-            ConfigData = sgNetConfigData;
-            _transport = transport;
-            _timer = new SimulationClock(this, Step);
-            IsRunning = true;
+            RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
+            this.ConfigData = sgNetConfigData;
+            this._timer = new SimulationClock(this, Step);
+            if (startMode == StartMode.Server)
+            {
+                this.Transport = new SgServerTransport();
+            }
+            else
+            {
+                this.Transport = new SgClientTransport();
+            }
+            this.IsRunning = true;
+        }
+
+        public void ServerStart(ushort port, ushort maxClient)
+        {
+            if (!this.IsRunning) return;
+            ((SgServerTransport)this.Transport).StartServer(port, maxClient);
+        }
+
+        public void Connect(string ip, ushort port)
+        {
+            if (!this.IsRunning) return;
+            ((SgClientTransport)this.Transport).Connect(ip, port);
         }
 
         public void Update(float deltaTime, float timeScale)
         {
-            if (!IsRunning) return;
+            if (!this.IsRunning) return;
 
-            LastDeltaTime = deltaTime;
-            LastTimeScale = timeScale;
+            this.LastDeltaTime = deltaTime;
+            this.LastTimeScale = timeScale;
 
-            _timer.PreUpdate();
-            _timer.Update();
+            this._timer.PreUpdate();
+            this._timer.Update();
         }
 
         /// <summary>
@@ -45,7 +69,7 @@ namespace StargateNet
 
         private void Step()
         {
-            Debug.Log($"IsClient:{_transport.IsClient}:{LastDeltaTime}" );
+            Debug.Log($"IsClient:{Transport.IsClient}:{LastDeltaTime}" );
         }
     }
 }
