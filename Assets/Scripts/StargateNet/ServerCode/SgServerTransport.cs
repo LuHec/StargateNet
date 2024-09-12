@@ -17,13 +17,14 @@ namespace StargateNet
         public SgServerTransport(SgNetConfigData configData) : base(configData)
         {
             this.Server = new Server();
+            this.Server.MessageReceived += this.OnReceiveMessage;
         }
 
         public void StartServer(ushort port, ushort maxClientCount)
         {
             this.Port = port;
             this.MaxClientCount = maxClientCount;
-            this.Server.Start(port, maxClientCount);
+            this.Server.Start(port, maxClientCount, useMessageHandlers:false);
             RiptideLogger.Log(LogType.Debug, "Server Start");
         }
 
@@ -36,14 +37,13 @@ namespace StargateNet
         {
             Message message = Message.Create(MessageSendMode.Unreliable, (ushort)Protocol.ToClient);
             message.AddString(str);
-
             this.Server.SendToAll(message);
         }
-
-        [MessageHandler((ushort)Protocol.ToServer)]
-        public static void MessageReceiver(Message message)
+        
+        private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
-            RiptideLogger.Log(LogType.Debug, message.GetString());
+            var msg = args.Message;
+            RiptideLogger.Log(LogType.Debug, $"id:{args.MessageId}:" + msg.GetString());
         }
         
         public override void Disconnect()

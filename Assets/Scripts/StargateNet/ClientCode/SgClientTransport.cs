@@ -17,15 +17,16 @@ namespace StargateNet
         public SgClientTransport(SgNetConfigData configData) : base(configData)
         {
             this.Client = new Client();
-            Client.ConnectionFailed += this.OnConnectionFailed;
-            Client.Connected += this.OnConnected;
+            this.Client.ConnectionFailed += this.OnConnectionFailed;
+            this.Client.Connected += this.OnConnected;
+            this.Client.MessageReceived += this.OnReceiveMessage;
         }
 
         public void Connect(string serverIP, ushort port)
         {
             this.ServerIP = serverIP;
             this.Port = port;
-            this.Client.Connect($"{ServerIP}:{Port}");
+            this.Client.Connect($"{ServerIP}:{Port}", useMessageHandlers: false);
             RiptideLogger.Log(LogType.Info, "Client Connecting");
         }
 
@@ -38,14 +39,7 @@ namespace StargateNet
         {
             Message message = Message.Create(MessageSendMode.Unreliable, (ushort)Protocol.ToServer);
             message.AddString(str);
-
             this.Client.Send(message);
-        }
-
-        [MessageHandler((ushort)Protocol.ToClient)]
-        public static void MessageReceiver(Message message)
-        {
-            RiptideLogger.Log(LogType.Debug, message.GetString());
         }
 
         public override void Disconnect()
@@ -61,6 +55,12 @@ namespace StargateNet
         private void OnConnectionFailed(object sender, ConnectionFailedEventArgs args)
         {
             RiptideLogger.Log(LogType.Debug, "Client Connect Failed");
+        }
+
+        private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
+        {
+            var msg = args.Message;
+            RiptideLogger.Log(LogType.Debug, $"id:{args.MessageId}:" + msg.GetString());
         }
     }
 }
