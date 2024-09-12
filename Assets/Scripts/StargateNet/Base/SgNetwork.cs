@@ -86,7 +86,7 @@ namespace StargateNet
         {
             if (this._sgNetworkGalaxy != null && this._started)
             {
-                this._sgNetworkGalaxy.Engine.Update(Time.deltaTime, Time.timeScale);
+                this._sgNetworkGalaxy.Engine.NetworkUpdate(Time.deltaTime, Time.timeScale);
             }
         }
 

@@ -34,12 +34,18 @@ namespace StargateNet
             this.Client.Update();
         }
 
-        public override void SendMessage()
+        public override void SendMessage(string str)
         {
-            Message message = Message.Create(MessageSendMode.Unreliable, (ushort)ServerToClientId.sync);
-            message.AddString("Hello");
+            Message message = Message.Create(MessageSendMode.Unreliable, (ushort)Protocol.ToServer);
+            message.AddString(str);
 
             this.Client.Send(message);
+        }
+
+        [MessageHandler((ushort)Protocol.ToClient)]
+        public static void MessageReceiver(Message message)
+        {
+            RiptideLogger.Log(LogType.Debug, message.GetString());
         }
 
         public override void Disconnect()

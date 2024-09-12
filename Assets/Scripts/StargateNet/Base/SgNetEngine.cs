@@ -37,6 +37,7 @@ namespace StargateNet
             {
                 this.Transport = new SgClientTransport(sgNetConfigData);
             }
+
             this.IsRunning = true;
         }
 
@@ -52,17 +53,18 @@ namespace StargateNet
             ((SgClientTransport)this.Transport).Connect(ip, port);
         }
 
-        public void Update(float deltaTime, float timeScale)
+        public void NetworkUpdate(float deltaTime, float timeScale)
         {
             if (!this.IsRunning) return;
 
             this.LastDeltaTime = deltaTime;
             this.LastTimeScale = timeScale;
-            
+
             this.Transport.NetworkUpdate();
-            
+
             this._timer.PreUpdate();
             this._timer.Update();
+            this.Render();
         }
 
         /// <summary>
@@ -74,7 +76,8 @@ namespace StargateNet
 
         private void Step()
         {
-            RiptideLogger.Log(LogType.Debug, $"IsClient:{Transport.IsClient}:{LastDeltaTime}");
+            string message = this.IsServer ? "Server" : "Client";
+            this.Transport.SendMessage($"From {message} At {this._timer.Time}");
         }
     }
 }

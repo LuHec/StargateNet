@@ -30,7 +30,7 @@ namespace StargateNet
 
         public void NetworkUpdate()
         {
-            this.Engine.Update(Time.deltaTime, Time.timeScale);
+            this.Engine.NetworkUpdate(Time.deltaTime, Time.timeScale);
         }
     }
 }

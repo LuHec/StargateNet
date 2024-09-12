@@ -12,7 +12,7 @@ namespace StargateNet
         
         public abstract void NetworkUpdate();
 
-        public abstract void SendMessage();
+        public abstract void SendMessage(string str);
 
         public abstract void Disconnect();
     }

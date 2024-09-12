@@ -25,4 +25,10 @@ namespace StargateNet
         primaryUse,
         reload,
     }
+
+    public enum Protocol
+    {
+        ToServer = 1,
+        ToClient = 2,
+    }
 }
