@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace StargateNet
 {
-    public class NetworkManager : MonoBehaviour
+    public class GameStarter : MonoBehaviour
     {
         [Header("Server")] [SerializeField] private ushort serverPort;
         [SerializeField] private ushort maxClientCount;
@@ -15,16 +15,16 @@ namespace StargateNet
         
         private void OnGUI()
         {
-            if (!_showConnectBtn && GUI.Button(new Rect(10, 10, 100, 90), "Server"))
+            if (_showConnectBtn && GUI.Button(new Rect(10, 10, 100, 90), "Server"))
             {
                 _showConnectBtn = false;
                 var galaxy = SgNetwork.StartAsServer(serverPort, maxClientCount);
             }
             
-            if (!_showConnectBtn && GUI.Button(new Rect(10, 120, 100, 90), "Server"))
+            if (_showConnectBtn && GUI.Button(new Rect(10, 120, 100, 90), "Client"))
             {
                 _showConnectBtn = false;
-                var galaxy = SgNetwork.StartAsClient(toServerIp, serverPort);
+                var galaxy = SgNetwork.StartAsClient(serverPort);
                 galaxy.Connect(toServerIp, serverPort);
             }
         }

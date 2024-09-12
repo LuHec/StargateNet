@@ -1,5 +1,7 @@
 using Riptide;
+using Riptide.Utils;
 using UnityEngine;
+using LogType = Riptide.Utils.LogType;
 
 namespace StargateNet
 {
@@ -12,7 +14,7 @@ namespace StargateNet
         public ushort MaxClientCount { private set; get; }
         public Server Server { private set; get; }
 
-        public override void TransportCreate()
+        public SgServerTransport(SgNetConfigData configData) : base(configData)
         {
             this.Server = new Server();
         }
@@ -22,9 +24,10 @@ namespace StargateNet
             this.Port = port;
             this.MaxClientCount = maxClientCount;
             this.Server.Start(port, maxClientCount);
+            RiptideLogger.Log(LogType.Debug, "Server Start");
         }
 
-        public override void TransportUpdate()
+        public override void NetworkUpdate()
         {
             this.Server.Update();
         }
@@ -44,7 +47,7 @@ namespace StargateNet
         }
 
 
-        public override void OnQuit()
+        public override void Disconnect()
         {
             this.Server.Stop();
         }

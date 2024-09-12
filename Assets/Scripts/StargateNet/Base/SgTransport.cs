@@ -5,12 +5,15 @@ namespace StargateNet
         public virtual bool IsServer => false;
         public virtual bool IsClient => false;
 
-        public abstract void TransportCreate();
-
-        public abstract void TransportUpdate();
+        public SgTransport(SgNetConfigData configData)
+        {
+            
+        }
+        
+        public abstract void NetworkUpdate();
 
         public abstract void SendMessage();
 
-        public abstract void OnQuit();
+        public abstract void Disconnect();
     }
 }

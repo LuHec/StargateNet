@@ -1,4 +1,6 @@
+using System;
 using Riptide;
+using Riptide.Utils;
 
 namespace StargateNet
 {
@@ -11,20 +13,23 @@ namespace StargateNet
         public ushort Port { private set; get; }
 
         public Client Client { private set; get; }
-        
+
+        public SgClientTransport(SgNetConfigData configData) : base(configData)
+        {
+            this.Client = new Client();
+            Client.ConnectionFailed += this.OnConnectionFailed;
+            Client.Connected += this.OnConnected;
+        }
+
         public void Connect(string serverIP, ushort port)
         {
             this.ServerIP = serverIP;
             this.Port = port;
             this.Client.Connect($"{ServerIP}:{Port}");
+            RiptideLogger.Log(LogType.Info, "Client Connecting");
         }
 
-        public override void TransportCreate()
-        {
-            this.Client = new Client();
-        }
-
-        public override void TransportUpdate()
+        public override void NetworkUpdate()
         {
             this.Client.Update();
         }
@@ -37,9 +42,19 @@ namespace StargateNet
             this.Client.Send(message);
         }
 
-        public override void OnQuit()
+        public override void Disconnect()
         {
             this.Client.Disconnect();
+        }
+
+        private void OnConnected(object sender, EventArgs e)
+        {
+            RiptideLogger.Log(LogType.Debug, "Client Connected");
+        }
+
+        private void OnConnectionFailed(object sender, ConnectionFailedEventArgs args)
+        {
+            RiptideLogger.Log(LogType.Debug, "Client Connect Failed");
         }
     }
 }

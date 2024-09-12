@@ -1,5 +1,6 @@
 using Riptide.Utils;
 using UnityEngine;
+using LogType = Riptide.Utils.LogType;
 
 namespace StargateNet
 {
@@ -21,18 +22,20 @@ namespace StargateNet
         {
         }
 
-        public void Start(StartMode startMode, SgNetConfigData sgNetConfigData)
+        public void Start(StartMode startMode, SgNetConfigData sgNetConfigData, ushort port)
         {
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
             this.ConfigData = sgNetConfigData;
             this._timer = new SimulationClock(this, Step);
             if (startMode == StartMode.Server)
             {
-                this.Transport = new SgServerTransport();
+                SgServerTransport serverTransport = new SgServerTransport(sgNetConfigData);
+                serverTransport.StartServer(port, sgNetConfigData.maxClientCount);
+                this.Transport = serverTransport;
             }
             else
             {
-                this.Transport = new SgClientTransport();
+                this.Transport = new SgClientTransport(sgNetConfigData);
             }
             this.IsRunning = true;
         }
@@ -55,7 +58,9 @@ namespace StargateNet
 
             this.LastDeltaTime = deltaTime;
             this.LastTimeScale = timeScale;
-
+            
+            this.Transport.NetworkUpdate();
+            
             this._timer.PreUpdate();
             this._timer.Update();
         }
@@ -69,7 +74,7 @@ namespace StargateNet
 
         private void Step()
         {
-            Debug.Log($"IsClient:{Transport.IsClient}:{LastDeltaTime}" );
+            RiptideLogger.Log(LogType.Debug, $"IsClient:{Transport.IsClient}:{LastDeltaTime}");
         }
     }
 }

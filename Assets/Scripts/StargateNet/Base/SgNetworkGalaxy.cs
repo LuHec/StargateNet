@@ -6,18 +6,18 @@ namespace StargateNet
     /// <summary>
     ///  Network Engine, client and server run in same way
     /// </summary>
-    public class NetworkGalaxy
+    public class SgNetworkGalaxy
     {
         public SgNetEngine Engine { private set; get; }
 
-        public NetworkGalaxy()
+        public SgNetworkGalaxy()
         {
         }
 
-        public void Init(StartMode startMode, SgNetConfigData configData)
+        public void Init(StartMode startMode, SgNetConfigData configData, ushort port)
         {
             this.Engine = new SgNetEngine();
-            this.Engine.Start(startMode, configData);
+            this.Engine.Start(startMode, configData, port);
         }
 
         public void Connect(string ip, ushort port)
