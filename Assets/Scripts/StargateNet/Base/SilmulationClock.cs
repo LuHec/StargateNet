@@ -6,13 +6,13 @@ namespace StargateNet
     {
         internal double Time { get; private set; }
         private Action _action;
-        private SgNetEngine _engine;
+        private SgNetworkEngine _engine;
         private float _deltaTime;                   // update delta time(not fixed)
         private float _scaledFixedDelta;            // ms/frame
         private float _realScaledFixedDelta;        // scaled ms/frame
         private double _accumulator;                // 累计的帧时间，消耗该时间可以tick一次
 
-        internal SimulationClock(SgNetEngine engine, Action action)
+        internal SimulationClock(SgNetworkEngine engine, Action action)
         {
             this._engine = engine;
             this._action = action;

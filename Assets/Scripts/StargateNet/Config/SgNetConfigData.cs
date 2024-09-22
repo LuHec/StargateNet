@@ -4,5 +4,6 @@ namespace StargateNet
     {
         public float tickRate; // fps
         public ushort maxClientCount;
+        public bool runAsHeadless;
     }
 }

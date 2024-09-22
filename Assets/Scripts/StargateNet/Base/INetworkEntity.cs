@@ -4,6 +4,6 @@ namespace StargateNet
     {
         INetworkScript[] NetworkScripts { get; }
 
-        void Initialize(SgNetEngine engine);
+        void Initialize(SgNetworkEngine engine);
     }
 }

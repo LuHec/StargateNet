@@ -8,7 +8,8 @@ namespace StargateNet
     /// </summary>
     public class SgNetworkGalaxy
     {
-        public SgNetEngine Engine { private set; get; }
+        public SgNetworkEngine Engine { private set; get; }
+        public SgNetConfigData ConfigData { private set; get; }
 
         public SgNetworkGalaxy()
         {
@@ -16,7 +17,7 @@ namespace StargateNet
 
         public void Init(StartMode startMode, SgNetConfigData configData, ushort port)
         {
-            this.Engine = new SgNetEngine();
+            this.Engine = new SgNetworkEngine();
             this.Engine.Start(startMode, configData, port);
         }
 
@@ -30,7 +31,10 @@ namespace StargateNet
 
         public void NetworkUpdate()
         {
-            this.Engine.NetworkUpdate(Time.deltaTime, Time.timeScale);
+            this.Engine.Update(Time.deltaTime, Time.timeScale);
+            if (this.ConfigData.runAsHeadless)
+                return;
+            this.Engine.Render();
         }
     }
 }

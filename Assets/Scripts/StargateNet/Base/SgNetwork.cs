@@ -81,12 +81,14 @@ namespace StargateNet
             SgNetwork.Instance._started = true;
         }
 
-
+        /// <summary>
+        /// Run SgNetwork Logic
+        /// </summary>
         private void Update()
         {
             if (this._sgNetworkGalaxy != null && this._started)
             {
-                this._sgNetworkGalaxy.Engine.NetworkUpdate(Time.deltaTime, Time.timeScale);
+                this._sgNetworkGalaxy.NetworkUpdate();
             }
         }
 

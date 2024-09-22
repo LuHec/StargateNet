@@ -2,8 +2,8 @@ namespace StargateNet
 {
     public sealed class Entity
     {
-        public SgNetEngine engine;
+        public SgNetworkEngine engine;
         public INetworkEntity entity;
-        
+        public INetworkScript[] scripts;
     }
 }
