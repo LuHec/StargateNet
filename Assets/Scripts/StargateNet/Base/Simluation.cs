@@ -6,6 +6,16 @@ namespace StargateNet
     {
         public SgNetworkEngine engine;
 
+        public Simulation(SgNetworkEngine engine)
+        {
+            this.engine = engine;
+        }
+        
+        public virtual void PreUpdate()
+        {
+            
+        }
+        
         public virtual void PreStep()
         {
             

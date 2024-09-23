@@ -35,13 +35,13 @@ namespace StargateNet
                 SgServerTransport serverTransport = new SgServerTransport(sgNetConfigData);
                 serverTransport.StartServer(port, sgNetConfigData.maxClientCount);
                 this.Transport = serverTransport;
-                this.ServerSimulation = new ServerSimulation();
+                this.ServerSimulation = new ServerSimulation(this);
                 this.Simulation = this.ServerSimulation;
             }
             else
             {
                 this.Transport = new SgClientTransport(sgNetConfigData);
-                this.ClientSimulation = new ClientSimulation();
+                this.ClientSimulation = new ClientSimulation(this);
                 this.Simulation = this.ClientSimulation;
             }
 
@@ -71,6 +71,7 @@ namespace StargateNet
 
             this.LastDeltaTime = deltaTime;
             this.LastTimeScale = timeScale;
+            this.Simulation.PreUpdate();
             this.Transport.NetworkUpdate();
             this.Simulation.ExecuteNetworkUpdate();
             this._timer.PreUpdate();
@@ -91,7 +92,7 @@ namespace StargateNet
         }
 
         /// <summary>
-        /// Called every fixed time, after NetworkUpdate
+        /// Called every fixed time, after Update
         /// </summary>
         private void Step()
         {
