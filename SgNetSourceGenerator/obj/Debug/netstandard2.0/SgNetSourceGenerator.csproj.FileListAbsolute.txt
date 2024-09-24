@@ -1,0 +1,11 @@
+D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\bin\Debug\netstandard2.0\SgNetSourceGenerator.deps.json
+D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\bin\Debug\netstandard2.0\SgNetSourceGenerator.dll
+D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\bin\Debug\netstandard2.0\SgNetSourceGenerator.pdb
+D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\obj\Debug\netstandard2.0\SgNetSourceGenerator.csproj.AssemblyReference.cache
+D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\obj\Debug\netstandard2.0\SgNetSourceGenerator.GeneratedMSBuildEditorConfig.editorconfig
+D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\obj\Debug\netstandard2.0\SgNetSourceGenerator.AssemblyInfoInputs.cache
+D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\obj\Debug\netstandard2.0\SgNetSourceGenerator.AssemblyInfo.cs
+D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\obj\Debug\netstandard2.0\SgNetSourceGenerator.csproj.CoreCompileInputs.cache
+D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\obj\Debug\netstandard2.0\SgNetSourceGenerator.sourcelink.json
+D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\obj\Debug\netstandard2.0\SgNetSourceGenerator.dll
+D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\obj\Debug\netstandard2.0\SgNetSourceGenerator.pdb

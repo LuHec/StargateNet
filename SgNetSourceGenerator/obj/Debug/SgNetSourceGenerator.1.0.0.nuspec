@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>SgNetSourceGenerator</id>
+    <version>1.0.0</version>
+    <authors>SgNetSourceGenerator</authors>
+    <description>Package Description</description>
+    <repository type="git" commit="fea537b715da1aed6dfaa461d856a90f6a143b3c" />
+    <dependencies>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="Microsoft.CodeAnalysis.CSharp" version="3.8.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\bin\Debug\netstandard2.0\SgNetSourceGenerator.dll" target="lib\netstandard2.0\SgNetSourceGenerator.dll" />
+  </files>
+</package>

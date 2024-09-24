@@ -1,0 +1,5 @@
+is_global = true
+build_property.RootNamespace = SgNetSourceGenerator
+build_property.ProjectDir = D:\Unity\LH_LockstepSnapshot_Framework\SgNetSourceGenerator\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
