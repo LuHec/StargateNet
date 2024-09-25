@@ -20,7 +20,7 @@
 //    {
 //        public NetworkedAttribute()
 //        {
-            
+
 //        }
 
 //        public Action onValueChanged;
@@ -70,7 +70,7 @@
 
 //        private string ProcessClass(INamedTypeSymbol classSymbol, List<IFieldSymbol> fields, ISymbol attributeSymbol, ISymbol notifySymbol, GeneratorExecutionContext context)
 //        {
-            
+
 //        }
 
 //        public void ProcessField(StringBuilder source, IFieldSymbol fieldSymbol, ISymbol attributeSymbol)
@@ -111,15 +111,24 @@
 //    }
 //}
 
-//// Armor.Hp   类Armor，字段HP
-//// 二进制字节流，一个包包含所有的snapshot。大的snapshot分小snapshot。ClientId->bitmap
-//// 客户端也有内存排布信息，每个字段的信息都会被存储(包含类信息，字段偏移量)。
-//// 这样反序列化时，客户端只需要查看bitmap，就能用idx找到对应的字段并且去修改。（即同步属性是不分脚本的）
-//// 传输过来的snapshot包含所有的同步物体，因此每个bitmap首部都应该是一个entity id。
-//// 首部：Tick，同步属性的bitmap
-//// 跟随信息：按顺序排布的
+// Armor.Hp   类Armor，字段HP
+// 二进制字节流，一个包包含所有的snapshot。大的snapshot分小snapshot。ClientId->bitmap
+// 客户端也有内存排布信息，每个字段的信息都会被存储(包含类信息，字段偏移量)。
+// 这样反序列化时，客户端只需要查看bitmap，就能用idx找到对应的字段并且去修改。（即同步属性是不分脚本的）
+// 传输过来的snapshot包含所有的同步物体，因此每个bitmap首部都应该是一个entity id。
+// 首部：Tick，同步属性的bitmap
+// 跟随信息：按顺序排布的
 
-//// 需要获取的信息
-//// 总共字段的大小
-//// 每个字段的偏移量和所在类
-//// 生成每个字段的getter和setter，改变字段后自动将bitmap置为1
+// 需要获取的信息
+// 总共字段的大小
+// 每个字段的偏移量和所在类
+// 生成每个字段的getter和setter，改变字段后自动将bitmap置为1
+
+// 代码生成部分：
+// 1.标记的变量：getter setter 排布id 改变的事件
+// 2.生成全局的：bitmap大小(变量数量和实际分配内存的大小)
+// 实时构造部分：
+// 并不是给sync var分配内存，而是通过改变的bitmap去构造snapshot  
+// 每个实体预先分配好的内存，是编译时或者编辑器时就收集好的(可以通过挂载的脚本去动态的构造，暂时先用统一大小的内存来试一试)
+// 1.新建实体：分配定量内存
+// 2.snapshot：根据bitmap来修改构造的大小
