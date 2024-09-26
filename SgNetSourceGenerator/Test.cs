@@ -135,15 +135,8 @@ namespace {classSymbol.ContainingNamespace}
         private {fieldType} _{fieldName};
         public {fieldType} {fieldName}
         {{
-            get => _{fieldName};
-            set
-            {{
-                if (!EqualityComparer<{fieldType}>.Default.Equals(_{fieldName}, value))
-                {{
-                    _{fieldName} = value;
-                    _networkedBitmap.Bitmap |= (1UL << {fieldIndex});
-                }}
-            }}
+            get;
+            set;
         }}
 ");
             }
