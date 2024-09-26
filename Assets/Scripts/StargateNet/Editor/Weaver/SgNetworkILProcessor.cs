@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using StargateNet;
 using Unity.CompilationPipeline.Common.ILPostProcessing;
 
 // ref:https://blog.sge-coretech.com/entry/2024/08/06/165144#Photon-Fusion-%E3%81%AE-RPC
@@ -39,8 +40,10 @@ public class SgNetworkILProcessor : ILPostProcessor
 
         var assembly = AssemblyDefinition.ReadAssembly(new MemoryStream(compiledAssembly.InMemoryAssembly.PeData), readerParameters);
         
+        // 处理程序集，注入代码
         ProcessAssembly(assembly);
         
+        // 重新写回
         byte[] peData;
         byte[] pdbData;
         {
@@ -75,9 +78,47 @@ public class SgNetworkILProcessor : ILPostProcessor
         }
     }
 
+    private static HashSet<MetadataType> networkedableTypes = new HashSet<MetadataType>()
+    {
+        MetadataType.Boolean,
+        MetadataType.Byte,
+        MetadataType.SByte,
+        MetadataType.Int16,
+        MetadataType.UInt16,
+        MetadataType.Int32,
+        MetadataType.UInt32,
+        MetadataType.Int64,
+        MetadataType.UInt64,
+        MetadataType.Single,
+        MetadataType.Double,
+        MetadataType.String,
+    };
+    
     private void ProcessType(TypeDefinition type)
     {
-        throw new NotImplementedException();
+        if(!IsSubClassOfINetworkEntityScript(type)) return;
+        
+        
+    }
+
+    private void ProcessField()
+    {
+        
+    }
+
+    private bool IsSubClassOfINetworkEntityScript(TypeDefinition type)
+    {
+        var cursor = type.BaseType;
+        while (cursor != null)
+        {
+            if (type.FullName == typeof(INetworkEntityScript).FullName)
+            {
+                return true;
+            }
+            cursor = cursor.Resolve().BaseType;
+        }
+
+        return false;
     }
 
     class AssemblyResolver : BaseAssemblyResolver
