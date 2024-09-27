@@ -2,31 +2,43 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Cecil.Rocks;
 using StargateNet;
+using StargateNet.Editor.Weaver.Processors;
+using Unity.CompilationPipeline.Common.Diagnostics;
 using Unity.CompilationPipeline.Common.ILPostProcessing;
 
-// ref:https://blog.sge-coretech.com/entry/2024/08/06/165144#Photon-Fusion-%E3%81%AE-RPC
 public class SgNetworkILProcessor : ILPostProcessor
 {
+    private const string SgNetworkAsmdefName = "Unity.SgNetwork";
+
     public override ILPostProcessor GetInstance() => this;
 
-    public override bool WillProcess(ICompiledAssembly compiledAssembly) => true;
-    
+    public override bool WillProcess(ICompiledAssembly compiledAssembly)
+    {
+        // 筛选出引用了或者本身就是SgNetwork dll的程序集
+        bool relevant = compiledAssembly.Name == SgNetworkAsmdefName ||
+                        compiledAssembly.References.Any(filePath =>
+                            Path.GetFileNameWithoutExtension(filePath) == SgNetworkAsmdefName);
+
+        return relevant;
+    }
 
     public override ILPostProcessResult Process(ICompiledAssembly compiledAssembly)
     {
         if (!this.WillProcess(compiledAssembly)) return new ILPostProcessResult(null!);
         var loader = new AssemblyResolver();
-        
+
         var folders = new HashSet<string>();
         foreach (var reference in compiledAssembly.References)
             folders.Add(Path.Combine(Environment.CurrentDirectory, Path.GetDirectoryName(reference)));
 
         var folderList = folders.OrderBy(x => x);
         foreach (var folder in folderList) loader.AddSearchDirectory(folder);
-        
+
         var readerParameters = new ReaderParameters
         {
             InMemory = true,
@@ -34,14 +46,17 @@ public class SgNetworkILProcessor : ILPostProcessor
             ReadSymbols = true,
             ReadingMode = ReadingMode.Deferred
         };
-        
+
         // 读入符号表
         readerParameters.SymbolStream = new MemoryStream(compiledAssembly.InMemoryAssembly.PdbData);
 
-        var assembly = AssemblyDefinition.ReadAssembly(new MemoryStream(compiledAssembly.InMemoryAssembly.PeData), readerParameters);
-        
+        var assembly = AssemblyDefinition.ReadAssembly(new MemoryStream(compiledAssembly.InMemoryAssembly.PeData),
+            readerParameters);
+
         // 处理程序集，注入代码
-        ProcessAssembly(assembly);
+        List<DiagnosticMessage> diagnostics = new();
+        // 处理SyncVar标记
+        diagnostics.AddRange(NetworkedAttributeProcessor.ProcessAssembly(assembly));
         
         // 重新写回
         byte[] peData;
@@ -63,64 +78,9 @@ public class SgNetworkILProcessor : ILPostProcessor
             peData = peStream.ToArray();
             pdbData = pdbStream.ToArray();
         }
-        
-        return new ILPostProcessResult(new InMemoryAssembly(peData, pdbData));
-    }
-    
-    private void ProcessAssembly(AssemblyDefinition assembly)
-    {
-        foreach (var module in assembly.Modules)
-        {
-            foreach (var type in module.GetTypes())
-            {
-                ProcessType(type);
-            }
-        }
-    }
 
-    private static HashSet<MetadataType> networkedableTypes = new HashSet<MetadataType>()
-    {
-        MetadataType.Boolean,
-        MetadataType.Byte,
-        MetadataType.SByte,
-        MetadataType.Int16,
-        MetadataType.UInt16,
-        MetadataType.Int32,
-        MetadataType.UInt32,
-        MetadataType.Int64,
-        MetadataType.UInt64,
-        MetadataType.Single,
-        MetadataType.Double,
-        MetadataType.String,
-    };
-    
-    private void ProcessType(TypeDefinition type)
-    {
-        if(!IsSubClassOfINetworkEntityScript(type)) return;
-        
-        
+        return new ILPostProcessResult(new InMemoryAssembly(peData, pdbData), diagnostics);
     }
-
-    private void ProcessField()
-    {
-        
-    }
-
-    private bool IsSubClassOfINetworkEntityScript(TypeDefinition type)
-    {
-        var cursor = type.BaseType;
-        while (cursor != null)
-        {
-            if (type.FullName == typeof(INetworkEntityScript).FullName)
-            {
-                return true;
-            }
-            cursor = cursor.Resolve().BaseType;
-        }
-
-        return false;
-    }
-
     class AssemblyResolver : BaseAssemblyResolver
     {
     }

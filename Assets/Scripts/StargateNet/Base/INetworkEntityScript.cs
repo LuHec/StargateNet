@@ -1,7 +1,7 @@
 namespace StargateNet
 {
-    public class INetworkEntityScript
+    public interface INetworkEntityScript
     {
-        public unsafe int* state;
+        public unsafe int* State { get; }
     }
 }
