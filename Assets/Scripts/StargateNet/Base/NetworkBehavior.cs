@@ -1,30 +1,33 @@
 namespace StargateNet
 {
-    public class NetworkBehavior : INetworkScript
+    public abstract class NetworkBehavior :  INetworkScript, INetworkEntityScript
     {
-        public void NetworkStart()
+        public unsafe int* networkedBlock;
+        unsafe int* INetworkEntityScript.State => this.networkedBlock;
+        
+        public virtual void NetworkStart()
         {
-            throw new System.NotImplementedException();
+            
         }
 
-        public void NetworkUpdate()
+        public virtual void NetworkUpdate()
         {
-            throw new System.NotImplementedException();
+            
         }
 
-        public void NetworkFixedUpdate()
+        public virtual void NetworkFixedUpdate()
         {
-            throw new System.NotImplementedException();
+            
         }
 
-        public void NetworkRender()
+        public virtual void NetworkRender()
         {
-            throw new System.NotImplementedException();
+            
         }
 
-        public void NetworkDestroy()
+        public virtual void NetworkDestroy()
         {
-            throw new System.NotImplementedException();
+            
         }
     }
 }

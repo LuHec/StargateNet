@@ -15,7 +15,7 @@ namespace StargateNet
         {
             foreach (var entity in simulationList)
             {
-                foreach (var netScript in entity.scripts)
+                foreach (var netScript in entity.entity.NetworkScripts)
                 {
                     netScript.NetworkUpdate();
                 }
@@ -26,7 +26,7 @@ namespace StargateNet
         {
             foreach (var entity in simulationList)
             {
-                foreach (var netScript in entity.scripts)
+                foreach (var netScript in entity.entity.NetworkScripts)
                 {
                     netScript.NetworkRender();
                 }
@@ -37,7 +37,7 @@ namespace StargateNet
         {
             foreach (var entity in simulationList)
             {
-                foreach (var netScript in entity.scripts)
+                foreach (var netScript in entity.entity.NetworkScripts)
                 {
                     netScript.NetworkFixedUpdate();
                 }

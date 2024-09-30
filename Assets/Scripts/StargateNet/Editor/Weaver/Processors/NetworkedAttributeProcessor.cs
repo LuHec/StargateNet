@@ -5,7 +5,7 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Unity.CompilationPipeline.Common.Diagnostics;
 
-namespace StargateNet.Editor.Weaver.Processors
+namespace StargateNet
 {
     public static class NetworkedAttributeProcessor
     {
@@ -30,6 +30,7 @@ namespace StargateNet.Editor.Weaver.Processors
 
         public static List<DiagnosticMessage> ProcessAssembly(AssemblyDefinition assembly)
         {
+            // 先获取Module引用
             bool b1 = false, b2 = false;
             foreach (var module in assembly.Modules)
             {
@@ -46,8 +47,8 @@ namespace StargateNet.Editor.Weaver.Processors
                         _networkBoolDef = type;
                         b2 = true;
                     }
-                    
-                    if(b1 && b2) break;
+
+                    if (b1 && b2) break;
                 }
             }
 
@@ -58,7 +59,10 @@ namespace StargateNet.Editor.Weaver.Processors
                 foreach (var type in module.GetTypes())
                 {
                     var itfDef = GetImplementINetworkEntityScript(type);
-                    if (itfDef != null) diagnostics.AddRange(ProcessType(type, itfDef));
+                    if (itfDef != null)
+                    {
+                        diagnostics.AddRange(ProcessType(type, itfDef));
+                    }
                 }
             }
 
@@ -67,25 +71,16 @@ namespace StargateNet.Editor.Weaver.Processors
 
         private static InterfaceImplementation GetImplementINetworkEntityScript(TypeDefinition type)
         {
-            // 获取目标接口的完整名称
+            // 不能多继承来着，这里bfs毫无意义
             var targetInterfaceFullName = typeof(INetworkEntityScript).FullName;
+            var queue = new Queue<TypeDefinition>();
+            queue.Enqueue(type);
 
-            // 检查当前类型是否实现了目标接口
-            var interfaceImplementations = type.Interfaces;
-            foreach (var interfaceImplementation in interfaceImplementations)
+            while (queue.Count > 0)
             {
-                if (interfaceImplementation.InterfaceType.Resolve().FullName == targetInterfaceFullName)
-                {
-                    return interfaceImplementation;
-                }
-            }
+                var currentType = queue.Dequeue();
+                var interfaceImplementations = currentType.Interfaces;
 
-            // 遍历基类，检查是否实现了目标接口
-            var cursor = type.BaseType;
-            while (cursor != null)
-            {
-                var resolvedBaseType = cursor.Resolve();
-                interfaceImplementations = resolvedBaseType.Interfaces;
                 foreach (var interfaceImplementation in interfaceImplementations)
                 {
                     if (interfaceImplementation.InterfaceType.Resolve().FullName == targetInterfaceFullName)
@@ -94,7 +89,11 @@ namespace StargateNet.Editor.Weaver.Processors
                     }
                 }
 
-                cursor = resolvedBaseType.BaseType;
+                var baseType = currentType.BaseType?.Resolve();
+                if (baseType != null)
+                {
+                    queue.Enqueue(baseType);
+                }
             }
 
             return null;
@@ -178,14 +177,14 @@ namespace StargateNet.Editor.Weaver.Processors
                         getIL.Emit(OpCodes.Add); // 加上偏移量
                         if (IfUnityType(property))
                         {
-                            ProcessIfUnityType(property, getIL); // 如果是Unity类型，通过自定义反序列化的方式取出值
+                            ProcessIfUnityType(property, getIL, module); // 如果是Unity类型，通过自定义反序列化的方式取出值
                             getIL.Emit(OpCodes.Ret); // 返回   
                         }
                         else
                         {
                             // 数据只有4字节的和8字节的(long)
                             getIL.Emit(OpCodes.Conv_I);
-                            ProcessIfPrimitiveType(property, getIL);
+                            ProcessIfPrimitiveType(property, getIL, module);
                             getIL.Emit(OpCodes.Ret); // 返回  
                         }
 
@@ -212,7 +211,8 @@ namespace StargateNet.Editor.Weaver.Processors
             return false;
         }
 
-        private static void ProcessIfUnityType(PropertyDefinition propertyDef, ILProcessor ilProcessor)
+        private static void ProcessIfUnityType(PropertyDefinition propertyDef, ILProcessor ilProcessor,
+            ModuleDefinition moduleDefinition)
         {
             MethodDefinition typeHandler = null;
             switch (propertyDef.PropertyType.FullName)
@@ -233,11 +233,12 @@ namespace StargateNet.Editor.Weaver.Processors
 
             if (typeHandler != null)
             {
-                ilProcessor.Emit(OpCodes.Call, typeHandler.Resolve());
+                ilProcessor.Emit(OpCodes.Call, moduleDefinition.ImportReference(typeHandler.Resolve()));
             }
         }
 
-        private static void ProcessIfPrimitiveType(PropertyDefinition propertyDefinition, ILProcessor ilProcessor)
+        private static void ProcessIfPrimitiveType(PropertyDefinition propertyDefinition, ILProcessor ilProcessor,
+            ModuleDefinition moduleDefinition)
         {
             string fullName = propertyDefinition.PropertyType.FullName;
             if (fullName == typeof(int).FullName || fullName == typeof(uint).FullName)
@@ -247,9 +248,9 @@ namespace StargateNet.Editor.Weaver.Processors
 
             if (fullName == typeof(NetworkBool).FullName)
             {
-                ilProcessor.Emit(OpCodes.Ldobj, _networkBoolDef);
+                ilProcessor.Emit(OpCodes.Ldobj, moduleDefinition.ImportReference(_networkBoolDef));
             }
-            
+
             if (fullName == typeof(long).FullName || fullName == typeof(ulong).FullName)
             {
                 ilProcessor.Emit(OpCodes.Ldind_I8);
