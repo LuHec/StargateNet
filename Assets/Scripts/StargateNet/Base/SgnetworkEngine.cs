@@ -29,7 +29,7 @@ namespace StargateNet
         {
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
             this.ConfigData = sgNetConfigData;
-            this._timer = new SimulationClock(this, Step);
+            this._timer = new SimulationClock(this, FixedUpdate);
             if (startMode == StartMode.Server)
             {
                 SgServerTransport serverTransport = new SgServerTransport(sgNetConfigData);
@@ -94,13 +94,13 @@ namespace StargateNet
         /// <summary>
         /// Called every fixed time, after Update
         /// </summary>
-        private void Step()
+        private void FixedUpdate()
         {
             if (!this.IsRunning)
                 return;
             
             if(this.IsServer || this.IsConnected)
-                this.Simulation.Step();
+                this.Simulation.FixedUpdate();
             
             string message = this.IsServer ? "Server" : "Client";
             this.Transport.SendMessage($"From {message} At {this._timer.Time}");

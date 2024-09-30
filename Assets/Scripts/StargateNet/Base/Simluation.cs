@@ -16,7 +16,7 @@ namespace StargateNet
             
         }
         
-        public virtual void PreStep()
+        public virtual void PreFixedUpdate()
         {
             
         }
@@ -24,9 +24,9 @@ namespace StargateNet
         /// <summary>
         /// Simulate world in fixed update
         /// </summary>
-        public void Step()
+        public void FixedUpdate()
         {
-            this.PreStep();
+            this.PreFixedUpdate();
             // TODO:客户端需要检测当前Tick是否有效(如果没有连接，那此时的Tick是无效的)
             this.ExecuteNetworkFixedUpdate();
         }
