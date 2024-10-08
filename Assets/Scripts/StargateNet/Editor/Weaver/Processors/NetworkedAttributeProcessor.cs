@@ -7,7 +7,7 @@ using Unity.CompilationPipeline.Common.Diagnostics;
 
 namespace StargateNet
 {
-    public static class NetworkedAttributeProcessor
+    public class NetworkedAttributeProcessor
     {
         // 所有大于4字节的类型才能传输
         private static HashSet<string> networkedableTypes = new()
@@ -25,30 +25,25 @@ namespace StargateNet
             // typeof(System.String).FullName,
         };
 
-        private static TypeDefinition _sgNetworkUtilDef = null;
-        private static TypeDefinition _networkBoolDef = null;
+        private  Dictionary<string, TypeDefinition> definitions = new();
 
-        public static List<DiagnosticMessage> ProcessAssembly(AssemblyDefinition assembly)
+        public  List<DiagnosticMessage> ProcessAssembly(AssemblyDefinition assembly,AssemblyDefinition refAssembly)
         {
+            definitions.Clear();
             // 先获取Module引用
-            bool b1 = false, b2 = false;
             foreach (var module in assembly.Modules)
             {
                 foreach (var type in module.GetTypes())
                 {
-                    if (type.FullName == typeof(SgNetworkUtil).FullName)
-                    {
-                        _sgNetworkUtilDef = type;
-                        b1 = true;
-                    }
-
-                    if (type.FullName == typeof(NetworkBool).FullName)
-                    {
-                        _networkBoolDef = type;
-                        b2 = true;
-                    }
-
-                    if (b1 && b2) break;
+                    definitions.TryAdd(type.FullName, type);
+                }
+            }
+            
+            foreach (var module in refAssembly.Modules)
+            {
+                foreach (var type in module.GetTypes())
+                {
+                    definitions.TryAdd(type.FullName, type);
                 }
             }
 
@@ -69,7 +64,7 @@ namespace StargateNet
             return diagnostics;
         }
 
-        private static InterfaceImplementation GetImplementINetworkEntityScript(TypeDefinition type)
+        private  InterfaceImplementation GetImplementINetworkEntityScript(TypeDefinition type)
         {
             // 不能多继承来着，这里bfs毫无意义
             var targetInterfaceFullName = typeof(INetworkEntityScript).FullName;
@@ -99,7 +94,7 @@ namespace StargateNet
             return null;
         }
 
-        private static IEnumerable<DiagnosticMessage> ProcessType(TypeDefinition type,
+        private  IEnumerable<DiagnosticMessage> ProcessType(TypeDefinition type,
             InterfaceImplementation targetInterfaceImp)
         {
             var diagnostics = new List<DiagnosticMessage>();
@@ -146,11 +141,14 @@ namespace StargateNet
                 }
             }
 
-            // 找到变量实际的内存State
-            var targetProperty = targetInterfaceImp.InterfaceType.Resolve().Properties
-                .FirstOrDefault(p => p.Name == "State");
+            // 找到接口的StateBlock
+            var entityProp = targetInterfaceImp.InterfaceType.Resolve().Properties
+                .FirstOrDefault(p => p.Name == "Entity");
+            // 找到接口的Entity
+            var stateBlockProp = targetInterfaceImp.InterfaceType.Resolve().Properties
+                .FirstOrDefault(p => p.Name == "StateBlock");
             Int64 lastFieldSize = 0;
-            if (targetProperty != null)
+            if (stateBlockProp != null && entityProp != null)
             {
                 foreach (var property in type.Properties)
                 {
@@ -168,11 +166,12 @@ namespace StargateNet
                             continue;
                         }
 
+                        // ------------------ 设置getter
                         var module = property.DeclaringType.Module; // 在getter方法前插入将属性值设置为默认值的代码
                         var getIL = property.GetMethod.Body.GetILProcessor(); // 先获取所有的指令，然后清除原先的指令，插入新指令
                         getIL.Body.Instructions.Clear(); // 清除原先的指令
                         getIL.Emit(OpCodes.Ldarg_0); // 加载this
-                        getIL.Emit(OpCodes.Callvirt, module.ImportReference(targetProperty.GetMethod)); // 加载this.State值
+                        getIL.Emit(OpCodes.Callvirt, module.ImportReference(stateBlockProp.GetMethod)); // 加载this.State值
                         getIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
                         getIL.Emit(OpCodes.Add); // 加上偏移量
                         if (IfUnityType(property))
@@ -188,6 +187,23 @@ namespace StargateNet
                             getIL.Emit(OpCodes.Ret); // 返回  
                         }
 
+                        // ------------------ 设置Setter
+                        var setIL = property.SetMethod.Body.GetILProcessor();
+                        setIL.Body.Instructions.Clear();
+                        setIL.Emit(OpCodes.Ldarg_0); // 加载参数1this
+                        setIL.Emit(OpCodes.Ldarga_S, (byte)(property.SetMethod.Parameters.First(arg=>arg.Name == "value").Index)); //加载参数2value地址
+                        setIL.Emit(OpCodes.Conv_U); // 取地址
+                        setIL.Emit(OpCodes.Ldarg_0); // 加载this
+                        setIL.Emit(OpCodes.Callvirt,
+                            module.ImportReference(stateBlockProp.GetMethod)); // 加载参数3StateBlock地址
+                        setIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
+                        setIL.Emit(OpCodes.Add); // 加上偏移量
+                        setIL.Emit(OpCodes.Ldc_I4, (int)(CalculateFieldSize(property.PropertyType) / 4)); // 加载参数4字节数量
+                        setIL.Emit(OpCodes.Call,
+                            module.ImportReference(definitions[typeof(StargateNet.Entity).FullName].Methods
+                                .First(me => me.Name == nameof(Entity.DirtifyData))));
+                        setIL.Emit(OpCodes.Ret); // 返回  
+
                         lastFieldSize += CalculateFieldSize(property.PropertyType);
                     }
                 }
@@ -196,7 +212,7 @@ namespace StargateNet
             return diagnostics;
         }
 
-        private static bool IfUnityType(PropertyDefinition propertyDef)
+        private bool IfUnityType(PropertyDefinition propertyDef)
         {
             switch (propertyDef.PropertyType.FullName)
             {
@@ -211,23 +227,24 @@ namespace StargateNet
             return false;
         }
 
-        private static void ProcessIfUnityType(PropertyDefinition propertyDef, ILProcessor ilProcessor,
+        private void ProcessIfUnityType(PropertyDefinition propertyDef, ILProcessor ilProcessor,
             ModuleDefinition moduleDefinition)
         {
             MethodDefinition typeHandler = null;
+            TypeDefinition sgNetworkUtilDef = definitions[typeof(SgNetworkUtil).FullName];
             switch (propertyDef.PropertyType.FullName)
             {
                 case "UnityEngine.Vector4":
                     typeHandler =
-                        _sgNetworkUtilDef.Methods.First(method => method.Name == nameof(SgNetworkUtil.GetVector4));
+                        sgNetworkUtilDef.Methods.First(method => method.Name == nameof(SgNetworkUtil.GetVector4));
                     break;
                 case "UnityEngine.Vector3":
                     typeHandler =
-                        _sgNetworkUtilDef.Methods.First(method => method.Name == nameof(SgNetworkUtil.GetVector3));
+                        sgNetworkUtilDef.Methods.First(method => method.Name == nameof(SgNetworkUtil.GetVector3));
                     break;
                 case "UnityEngine.Vector2":
                     typeHandler =
-                        _sgNetworkUtilDef.Methods.First(method => method.Name == nameof(SgNetworkUtil.GetVector2));
+                        sgNetworkUtilDef.Methods.First(method => method.Name == nameof(SgNetworkUtil.GetVector2));
                     break;
             }
 
@@ -237,7 +254,7 @@ namespace StargateNet
             }
         }
 
-        private static void ProcessIfPrimitiveType(PropertyDefinition propertyDefinition, ILProcessor ilProcessor,
+        private void ProcessIfPrimitiveType(PropertyDefinition propertyDefinition, ILProcessor ilProcessor,
             ModuleDefinition moduleDefinition)
         {
             string fullName = propertyDefinition.PropertyType.FullName;
@@ -248,7 +265,8 @@ namespace StargateNet
 
             if (fullName == typeof(NetworkBool).FullName)
             {
-                ilProcessor.Emit(OpCodes.Ldobj, moduleDefinition.ImportReference(_networkBoolDef));
+                ilProcessor.Emit(OpCodes.Ldobj,
+                    moduleDefinition.ImportReference(definitions[typeof(NetworkBool).FullName]));
             }
 
             if (fullName == typeof(long).FullName || fullName == typeof(ulong).FullName)
@@ -267,7 +285,7 @@ namespace StargateNet
             }
         }
 
-        private static long CalculateFieldSize(TypeReference typeReference)
+        private long CalculateFieldSize(TypeReference typeReference)
         {
             switch (typeReference.MetadataType)
             {

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SgNetSourceGenerator")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+de2ebfdc6345be58d064898d8cd5356c1d76ecbd")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d463fb198c98f987bc323892e211ccdafd843468")]
 [assembly: System.Reflection.AssemblyProductAttribute("SgNetSourceGenerator")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SgNetSourceGenerator")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

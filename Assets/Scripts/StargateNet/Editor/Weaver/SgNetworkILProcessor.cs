@@ -14,16 +14,17 @@ namespace StargateNet
 {
     public class SgNetworkILProcessor : ILPostProcessor
     {
-        private const string SgNetworkAsmdefName = "Unity.SgNetwork";
+        private const string StargateNetAsmdefName = "Unity.StargateNet";
 
         public override ILPostProcessor GetInstance() => this;
 
         public override bool WillProcess(ICompiledAssembly compiledAssembly)
         {
             // 筛选出引用了或者本身就是SgNetwork dll的程序集
-            bool relevant = compiledAssembly.Name == SgNetworkAsmdefName ||
-                            compiledAssembly.References.Any(filePath =>
-                                Path.GetFileNameWithoutExtension(filePath) == SgNetworkAsmdefName);
+            bool relevant = compiledAssembly.Name == StargateNetAsmdefName || compiledAssembly.References.Any(
+                filePath =>
+                    Path.GetFileNameWithoutExtension(filePath) == StargateNetAsmdefName);
+            relevant &= compiledAssembly.Name != "Assembly-CSharp-Editor";
             return relevant;
         }
 
@@ -49,15 +50,24 @@ namespace StargateNet
 
             // 读入符号表
             readerParameters.SymbolStream = new MemoryStream(compiledAssembly.InMemoryAssembly.PdbData);
-
             // 读入目标程序集定义
             var assembly = AssemblyDefinition.ReadAssembly(new MemoryStream(compiledAssembly.InMemoryAssembly.PeData),
                 readerParameters);
+            // 排除没有引用StargateNet的程序集
+            if (assembly.MainModule.AssemblyReferences.All(refName => refName.Name != StargateNetAsmdefName) &&
+                compiledAssembly.Name != StargateNetAsmdefName)
+                return new ILPostProcessResult(null!);
+            // 载入sgnet程序集
+            AssemblyDefinition refAssembly = assembly;
+            if (compiledAssembly.Name != StargateNetAsmdefName)
+            {
+                refAssembly = loader.Resolve(assembly.MainModule.AssemblyReferences.First(refName => refName.Name == StargateNetAsmdefName));
+            }
 
             // 处理程序集，注入代码
             List<DiagnosticMessage> diagnostics = new();
             // 处理SyncVar标记
-            diagnostics.AddRange(NetworkedAttributeProcessor.ProcessAssembly(assembly));
+            diagnostics.AddRange(new NetworkedAttributeProcessor().ProcessAssembly(assembly, refAssembly));
             // throw new Exception("Break");
             // 重新写回
             byte[] peData;

@@ -1,5 +1,5 @@
 {
-    "name": "Unity.SgNetwork",
+    "name": "Unity.StargateNet",
     "rootNamespace": "",
     "references": [
         "GUID:d9bbc61d820433c42883dc4de8b0e42f"

@@ -1,10 +1,9 @@
+using UnityEngine;
+
 namespace StargateNet
 {
-    public abstract class NetworkBehavior :  INetworkScript, INetworkEntityScript
+    public abstract class NetworkBehavior :  SgBehavior, INetworkScript
     {
-        public unsafe int* networkedBlock;
-        unsafe int* INetworkEntityScript.State => this.networkedBlock;
-        
         public virtual void NetworkStart()
         {
             
