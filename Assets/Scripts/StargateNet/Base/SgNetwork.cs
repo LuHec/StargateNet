@@ -62,7 +62,7 @@ namespace StargateNet
 
         public static SgNetworkGalaxy Launch(StartMode startMode, LaunchConfig launchConfig)
         {
-            if ((UnityEngine.Object)SgNetwork.Instance == (UnityEngine.Object)null)
+            if (SgNetwork.Instance == null)
             {
                 SgNetwork.Init(launchConfig);
             }
