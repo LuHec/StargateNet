@@ -6,6 +6,7 @@ namespace StargateNet
     public unsafe class SgAllocator
     {
         private const int Alignment = 10;
+        // private TLSF64 _tlsf64;
         
         public SgAllocator()
         {
