@@ -434,6 +434,7 @@ public static unsafe class TLSF64
         {
             control->sl_bitmap[i] = 0;
             for (j = 0; j < SL_INDEX_COUNT; ++j)
+                // 初始化，将所有sl的首节点都设置为空
                 get_blocks(control, i)[j] = &control->block_null;
         }
     }
@@ -571,6 +572,7 @@ public static unsafe class TLSF64
             return null;
         }
 
+        // 把地址偏移到block头第一项prev_phys_block之后的位置
         block = offset_to_block(mem, unchecked((ulong)-(nint)block_header_overhead));
         block_set_size(block, pool_bytes);
         block_set_free(block);
@@ -608,7 +610,9 @@ public static unsafe class TLSF64
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void* tlsf_create_with_pool(void* mem, ulong bytes)
     {
+        // 此处得到control_t，但是还没有切分并放入内存
         var tlsf = tlsf_create(mem);
+        // 这里把头部剪掉，传入剩下的内存来切分
         tlsf_add_pool(tlsf, (byte*)mem + tlsf_size(), bytes - tlsf_size());
         return tlsf;
     }
@@ -620,6 +624,7 @@ public static unsafe class TLSF64
     public static void* tlsf_malloc(void* tlsf, ulong size)
     {
         var control = (control_t*)tlsf;
+        // 只有小于32字节时才会进行内存对齐，一个block header的大小是32字节，要保证内存还回来时能够转换成block header
         var adjust = adjust_request_size(size, ALIGN_SIZE);
         var block = block_locate_free(control, adjust);
         return block_prepare_used(control, block, adjust);
