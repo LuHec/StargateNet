@@ -1,30 +1,30 @@
-using UnityEngine;
-
 namespace StargateNet
 {
-    public abstract class StargateBehavior :  SgBehavior, IStargateScript
+    public abstract class StargateBehavior : IStargateNetworkScript, IStargateScript
     {
-        public virtual void NetworkStart()
+        public unsafe int* StateBlock { get; internal set; }
+        public Entity Entity { get; internal set; }
+        public void NetworkStart()
         {
             
         }
 
-        public virtual void NetworkUpdate()
+        public void NetworkUpdate()
         {
             
         }
 
-        public virtual void NetworkFixedUpdate()
+        public void NetworkFixedUpdate()
         {
             
         }
 
-        public virtual void NetworkRender()
+        public void NetworkRender()
         {
             
         }
 
-        public virtual void NetworkDestroy()
+        public void NetworkDestroy()
         {
             
         }

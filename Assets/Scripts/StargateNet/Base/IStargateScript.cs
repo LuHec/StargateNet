@@ -2,10 +2,10 @@ namespace StargateNet
 {
     public interface IStargateScript
     {
-        public void NetworkStart();
-        public void NetworkUpdate();
-        public void NetworkFixedUpdate();
-        public void NetworkRender();
-        public void NetworkDestroy();
+        void NetworkStart();
+        void NetworkUpdate();
+        void NetworkFixedUpdate();
+        void NetworkRender();
+        void NetworkDestroy();
     }
 }
