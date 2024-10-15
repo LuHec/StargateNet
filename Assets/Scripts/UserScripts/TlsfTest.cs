@@ -10,7 +10,7 @@ public unsafe class TlsfTest : MonoBehaviour
 {
     private const int CONTROLT_SIZE = 6536;
     private const int BLOCK_SIZE = 1024 * 2 + CONTROLT_SIZE; // 1024 for tlsf data
-    private const int ADDRESS_ALIGNMENT_TO_TLSF = 16;
+    private const int ADDRESS_ALIGNMENT_TO_TLSF = 8;
     private const int SNAPSHOT_SIZE = 128;
     private void* tlsfBlock;
     private void* snapShot;

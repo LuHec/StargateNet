@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace StargateNet
 {
-    public abstract class NetworkBehavior :  SgBehavior, INetworkScript
+    public abstract class StargateBehavior :  SgBehavior, IStargateScript
     {
         public virtual void NetworkStart()
         {

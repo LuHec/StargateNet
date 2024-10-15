@@ -1,6 +1,6 @@
 namespace StargateNet
 {
-    public interface INetworkScript
+    public interface IStargateScript
     {
         public void NetworkStart();
         public void NetworkUpdate();

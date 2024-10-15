@@ -1,6 +1,6 @@
 namespace StargateNet
 {
-    public interface INetworkEntityScript
+    public interface IStargateNetworkScript
     {
         unsafe int* StateBlock { get; }
         Entity Entity { get; }

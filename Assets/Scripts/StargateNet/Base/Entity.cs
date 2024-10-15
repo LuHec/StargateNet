@@ -8,9 +8,10 @@ namespace StargateNet
     /// </summary>
     public sealed class Entity
     {
-        public SgNetworkEngine engine;
-        public INetworkEntity entity;               // A GameObject which implement INetworkEntity
-        public readonly int entityBlockSize;        // Networked Field Size 
+        internal int networkId;                       // networked entity unique id
+        internal SgNetworkEngine engine;
+        internal INetworkEntity entity;               // A GameObject which implement INetworkEntity
+        internal readonly int entityBlockSize;        // Networked Field Size 
         internal unsafe int* stateBlockPtr;         // Networked Field memory block base address
         internal int[] bitmap;                       // bit dirtymap
 
@@ -45,9 +46,9 @@ namespace StargateNet
             bitmap[groupId] |= 1 << groupOffset;
         }
 
-        public static unsafe void DirtifyData(INetworkEntityScript networkEntityScript, int* newValue, int* address, int byteSize)
+        public static unsafe void DirtifyData(IStargateNetworkScript stargateNetworkScript, int* newValue, int* address, int byteSize)
         {
-            networkEntityScript.Entity.SetData(newValue, address, byteSize);
+            stargateNetworkScript.Entity.SetData(newValue, address, byteSize);
         }
     }
     

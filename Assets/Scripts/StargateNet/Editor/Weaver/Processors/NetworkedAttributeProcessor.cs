@@ -67,7 +67,7 @@ namespace StargateNet
         private  InterfaceImplementation GetImplementINetworkEntityScript(TypeDefinition type)
         {
             // 不能多继承来着，这里bfs毫无意义
-            var targetInterfaceFullName = typeof(INetworkEntityScript).FullName;
+            var targetInterfaceFullName = typeof(IStargateNetworkScript).FullName;
             var queue = new Queue<TypeDefinition>();
             queue.Enqueue(type);
 

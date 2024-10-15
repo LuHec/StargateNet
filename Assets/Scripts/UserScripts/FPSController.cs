@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using StargateNet;
 using UnityEngine;
 
-public class FPSController : NetworkBehavior
+public class FPSController : StargateBehavior
 {
     [Networked] private float Pitch { get; set; }
     [Networked] private Vector3 Movement { get; set; }
