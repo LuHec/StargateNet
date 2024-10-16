@@ -46,6 +46,7 @@ namespace StargateNet
             bitmap[groupId] |= 1 << groupOffset;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void DirtifyData(IStargateNetworkScript stargateNetworkScript, int* newValue, int* address, int byteSize)
         {
             stargateNetworkScript.Entity.SetData(newValue, address, byteSize);

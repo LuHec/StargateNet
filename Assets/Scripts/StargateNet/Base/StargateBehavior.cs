@@ -1,6 +1,8 @@
+using UnityEngine;
+
 namespace StargateNet
 {
-    public abstract class StargateBehavior : IStargateNetworkScript, IStargateScript
+    public abstract class StargateBehavior : MonoBehaviour, IStargateNetworkScript, IStargateScript
     {
         public unsafe int* StateBlock { get; internal set; }
         public Entity Entity { get; internal set; }

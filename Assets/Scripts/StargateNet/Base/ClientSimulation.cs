@@ -2,9 +2,9 @@
 {
     public class ClientSimulation : Simulation
     {
-        internal Tick currentTick = Tick.InvalidTick;
-        internal Tick predictedTick = Tick.InvalidTick;
-        internal Tick authoritativeTick = Tick.InvalidTick;
+        internal Tick currentTick = Tick.InvalidTick;   // 当前帧数
+        internal Tick predictedTick = Tick.InvalidTick; // 将要执行模拟的帧数
+        internal Tick authoritativeTick = Tick.InvalidTick; // 服务器帧数
         
         public ClientSimulation(SgNetworkEngine engine) : base(engine)
         {

@@ -9,27 +9,10 @@ namespace StargateNet
 {
     public class NetworkedAttributeProcessor
     {
-        // 所有大于4字节的类型才能传输
-        private static HashSet<string> networkedableTypes = new()
-        {
-            typeof(StargateNet.NetworkBool).FullName,
-            typeof(System.Int32).FullName,
-            typeof(System.UInt32).FullName,
-            typeof(System.Int64).FullName,
-            typeof(System.UInt64).FullName,
-            typeof(System.Single).FullName,
-            typeof(System.Double).FullName,
-            typeof(UnityEngine.Vector2).FullName,
-            typeof(UnityEngine.Vector3).FullName,
-            typeof(UnityEngine.Vector4).FullName,
-            // typeof(System.String).FullName,
-        };
+        private Dictionary<string, TypeDefinition> definitions = new();
 
-        private  Dictionary<string, TypeDefinition> definitions = new();
-
-        public  List<DiagnosticMessage> ProcessAssembly(AssemblyDefinition assembly,AssemblyDefinition refAssembly)
+        public List<DiagnosticMessage> ProcessAssembly(AssemblyDefinition assembly, AssemblyDefinition refAssembly)
         {
-            definitions.Clear();
             // 先获取Module引用
             foreach (var module in assembly.Modules)
             {
@@ -38,7 +21,7 @@ namespace StargateNet
                     definitions.TryAdd(type.FullName, type);
                 }
             }
-            
+
             foreach (var module in refAssembly.Modules)
             {
                 foreach (var type in module.GetTypes())
@@ -64,7 +47,7 @@ namespace StargateNet
             return diagnostics;
         }
 
-        private  InterfaceImplementation GetImplementINetworkEntityScript(TypeDefinition type)
+        private InterfaceImplementation GetImplementINetworkEntityScript(TypeDefinition type)
         {
             // 不能多继承来着，这里bfs毫无意义
             var targetInterfaceFullName = typeof(IStargateNetworkScript).FullName;
@@ -94,7 +77,7 @@ namespace StargateNet
             return null;
         }
 
-        private  IEnumerable<DiagnosticMessage> ProcessType(TypeDefinition type,
+        private IEnumerable<DiagnosticMessage> ProcessType(TypeDefinition type,
             InterfaceImplementation targetInterfaceImp)
         {
             var diagnostics = new List<DiagnosticMessage>();
@@ -104,7 +87,7 @@ namespace StargateNet
                 if (field.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(NetworkedAttribute)))
                 {
                     // 必须是包含的类型，且必须是Property，因为要修改getter和setter
-                    if (!networkedableTypes.Contains(field.FieldType.FullName))
+                    if (!StargateNetProcessorUtil.NetworkedableTypes.Contains(field.FieldType.FullName))
                     {
                         var message = new DiagnosticMessage
                         {
@@ -148,13 +131,41 @@ namespace StargateNet
             var stateBlockProp = targetInterfaceImp.InterfaceType.Resolve().Properties
                 .FirstOrDefault(p => p.Name == "StateBlock");
             Int64 lastFieldSize = 0;
+
+            // 查找所有的基类，然后计算出总偏移量
+            // 查找基类中的 StateBlockSize 属性
+            if (type.BaseType != null)
+            {
+                var queue = new Queue<TypeDefinition>();
+                queue.Enqueue(type.BaseType.Resolve());
+                while (queue.Count > 0)
+                {
+                    var currentType = queue.Dequeue();
+                    foreach (var prop in currentType.Properties)
+                    {
+                        if (prop.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(NetworkedAttribute)))
+                        {
+                            lastFieldSize += StargateNetProcessorUtil.CalculateFieldSize(prop.PropertyType);
+                        }
+                    }
+
+                    var baseType = currentType.BaseType?.Resolve();
+                    // 在NetworkBehavior处就可以停了，往上不会再有网络变量
+                    if (baseType != null && baseType.FullName != typeof(StargateBehavior).FullName)
+                    {
+                        queue.Enqueue(baseType);
+                    }
+                }
+            }
+
+
             if (stateBlockProp != null && entityProp != null)
             {
                 foreach (var property in type.Properties)
                 {
                     if (property.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(NetworkedAttribute)))
                     {
-                        if (!networkedableTypes.Contains(property.PropertyType.FullName))
+                        if (!StargateNetProcessorUtil.NetworkedableTypes.Contains(property.PropertyType.FullName))
                         {
                             var message = new DiagnosticMessage
                             {
@@ -191,20 +202,23 @@ namespace StargateNet
                         var setIL = property.SetMethod.Body.GetILProcessor();
                         setIL.Body.Instructions.Clear();
                         setIL.Emit(OpCodes.Ldarg_0); // 加载参数1this
-                        setIL.Emit(OpCodes.Ldarga_S, (byte)(property.SetMethod.Parameters.First(arg=>arg.Name == "value").Index)); //加载参数2value地址
+                        setIL.Emit(OpCodes.Ldarga_S,
+                            (byte)(property.SetMethod.Parameters.First(arg => arg.Name == "value")
+                                .Index)); //加载参数2value地址
                         setIL.Emit(OpCodes.Conv_U); // 取地址
                         setIL.Emit(OpCodes.Ldarg_0); // 加载this
                         setIL.Emit(OpCodes.Callvirt,
                             module.ImportReference(stateBlockProp.GetMethod)); // 加载参数3StateBlock地址
                         setIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
                         setIL.Emit(OpCodes.Add); // 加上偏移量
-                        setIL.Emit(OpCodes.Ldc_I4, (int)(CalculateFieldSize(property.PropertyType) / 4)); // 加载参数4字节数量
+                        setIL.Emit(OpCodes.Ldc_I4,
+                            (int)(StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType) / 4)); // 加载参数4字节数量
                         setIL.Emit(OpCodes.Call,
                             module.ImportReference(definitions[typeof(StargateNet.Entity).FullName].Methods
                                 .First(me => me.Name == nameof(Entity.DirtifyData))));
                         setIL.Emit(OpCodes.Ret); // 返回  
 
-                        lastFieldSize += CalculateFieldSize(property.PropertyType);
+                        lastFieldSize += StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
                     }
                 }
             }
@@ -282,40 +296,6 @@ namespace StargateNet
             if (fullName == typeof(double).FullName)
             {
                 ilProcessor.Emit(OpCodes.Ldind_R8);
-            }
-        }
-
-        private long CalculateFieldSize(TypeReference typeReference)
-        {
-            switch (typeReference.MetadataType)
-            {
-                case MetadataType.Int32:
-                    return sizeof(int);
-                case MetadataType.UInt32:
-                    return sizeof(uint);
-                case MetadataType.Int64:
-                    return sizeof(long);
-                case MetadataType.UInt64:
-                    return sizeof(ulong);
-                case MetadataType.Single:
-                    return sizeof(float);
-                case MetadataType.Double:
-                    return sizeof(double);
-            }
-
-            switch (typeReference.FullName)
-            {
-                case "UnityEngine.Vector4":
-                    return 4 * sizeof(float);
-                case "UnityEngine.Vector3":
-                    return 3 * sizeof(float);
-                case "UnityEngine.Vector2":
-                    return 2 * sizeof(float);
-                case "StargateNet.NetworkBool":
-                    return sizeof(int);
-
-                default:
-                    throw new Exception($"Unsported Type:{typeReference.FullName}");
             }
         }
     }

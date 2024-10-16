@@ -11,7 +11,7 @@ namespace StargateNet
     /// </summary>
     public unsafe class StargateAllocator
     {
-        internal Dictionary<int, MemoryPool> pools; // 对于snapshot来说，存储了所有网络物体的syncvar
+        internal Dictionary<int, MemoryPool> pools = new(32); // 对于snapshot来说，存储了所有网络物体的syncvar
         private const int TLSF64_ALIGNMENT = 8;
         private readonly void* _block;
 

@@ -68,7 +68,8 @@ namespace StargateNet
             List<DiagnosticMessage> diagnostics = new();
             // 处理SyncVar标记
             diagnostics.AddRange(new NetworkedAttributeProcessor().ProcessAssembly(assembly, refAssembly));
-            // throw new Exception("Break");
+            // 获取SyncVar大小
+            diagnostics.AddRange(new NetworkBehaviorProcessor().ProcessAssembly(assembly));
             // 重新写回
             byte[] peData;
             byte[] pdbData;
