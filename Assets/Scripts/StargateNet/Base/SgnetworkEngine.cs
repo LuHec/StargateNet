@@ -1,3 +1,4 @@
+using System.Text;
 using Riptide.Utils;
 using UnityEngine;
 using LogType = Riptide.Utils.LogType;
@@ -11,14 +12,16 @@ namespace StargateNet
         internal float LastTimeScale { get; private set; }
         internal SgNetConfigData ConfigData { get; private set; }
         internal bool IsRunning { get; private set; }
-        internal SgTransport Transport { get; private set; }
+        internal SgPeer Peer { get; private set; }
+        internal SgClientPeer ClientPeer { get; private set; }
+        internal SgServerPeer ServerPeer { get; private set; }
         internal InterestManager IM { get; private set; }
         internal Simulation Simulation { get; private set; }
         internal ServerSimulation ServerSimulation { get; private set; }
         internal ClientSimulation ClientSimulation { get; private set; }
         internal bool Simulated { get; private set; }
-        internal bool IsServer => Transport.IsServer;
-        internal bool IsClient => Transport.IsClient;
+        internal bool IsServer => Peer.IsServer;
+        internal bool IsClient => Peer.IsClient;
         internal bool IsConnected { get; private set; }
 
         public SgNetworkEngine()
@@ -32,15 +35,16 @@ namespace StargateNet
             this._timer = new SimulationClock(this, FixedUpdate);
             if (startMode == StartMode.Server)
             {
-                SgServerTransport serverTransport = new SgServerTransport(sgNetConfigData);
-                serverTransport.StartServer(port, sgNetConfigData.maxClientCount);
-                this.Transport = serverTransport;
+                this.ServerPeer = new SgServerPeer(this, sgNetConfigData);
+                this.Peer = this.ServerPeer;
                 this.ServerSimulation = new ServerSimulation(this);
                 this.Simulation = this.ServerSimulation;
+                this.ServerPeer.StartServer(port, sgNetConfigData.maxClientCount);
             }
             else
             {
-                this.Transport = new SgClientTransport(sgNetConfigData);
+                this.ClientPeer = new SgClientPeer(this, sgNetConfigData);
+                this.Peer = this.ClientPeer;
                 this.ClientSimulation = new ClientSimulation(this);
                 this.Simulation = this.ClientSimulation;
             }
@@ -53,13 +57,13 @@ namespace StargateNet
         public void ServerStart(ushort port, ushort maxClient)
         {
             if (!this.IsRunning) return;
-            ((SgServerTransport)this.Transport).StartServer(port, maxClient);
+            this.ServerPeer.StartServer(port, maxClient);
         }
 
         public void Connect(string ip, ushort port)
         {
             if (!this.IsRunning) return;
-            ((SgClientTransport)this.Transport).Connect(ip, port);
+            this.ClientPeer.Connect(ip, port);
         }
 
         /// <summary>
@@ -72,7 +76,7 @@ namespace StargateNet
             this.LastDeltaTime = deltaTime;
             this.LastTimeScale = timeScale;
             this.Simulation.PreUpdate();
-            this.Transport.NetworkUpdate();
+            this.Peer.NetworkUpdate();
             this.Simulation.ExecuteNetworkUpdate();
             this._timer.PreUpdate();
             this._timer.Update();
@@ -98,12 +102,22 @@ namespace StargateNet
         {
             if (!this.IsRunning)
                 return;
-            
-            if(this.IsServer || this.IsConnected)
+
+            if (this.IsServer || this.IsConnected)
                 this.Simulation.FixedUpdate();
-            
+
             string message = this.IsServer ? "Server" : "Client";
-            this.Transport.SendMessage($"From {message} At {this._timer.Time}");
+            this.Peer.SendMessageUnreliable(Encoding.UTF8.GetBytes($"From {message} At {this._timer.Time}"));
+            // 接收是Update的，发snapshot则是帧的
+            Send();
+        }
+
+        private void Send()
+        {
+        }
+
+        private void Recive()
+        {
         }
     }
 }

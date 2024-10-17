@@ -4,7 +4,7 @@ using Riptide.Utils;
 
 namespace StargateNet
 {
-    public class SgClientTransport : SgTransport
+    public class SgClientPeer : SgPeer
     {
         public override bool IsServer => false;
         public override bool IsClient => true;
@@ -14,7 +14,7 @@ namespace StargateNet
 
         public Client Client { private set; get; }
 
-        public SgClientTransport(SgNetConfigData configData) : base(configData)
+        public SgClientPeer(SgNetworkEngine engine, SgNetConfigData configData) : base(engine, configData)
         {
             this.Client = new Client();
             this.Client.ConnectionFailed += this.OnConnectionFailed;
@@ -35,10 +35,10 @@ namespace StargateNet
             this.Client.Update();
         }
 
-        public override void SendMessage(string str)
+        public override void SendMessageUnreliable(byte[] str)
         {
-            Message message = Message.Create(MessageSendMode.Unreliable, (ushort)Protocol.ToServer);
-            message.AddString(str);
+            Message message = Message.Create(MessageSendMode.Unreliable);
+            message.AddBytes(str);
             this.Client.Send(message);
         }
 
