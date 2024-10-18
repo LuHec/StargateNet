@@ -37,7 +37,7 @@ namespace StargateNet
 
         public override void SendMessageUnreliable(byte[] str)
         {
-            Message message = Message.Create(MessageSendMode.Unreliable);
+            Message message = Message.Create(MessageSendMode.Unreliable, (ushort)Protocol.ToServer);
             message.AddBytes(str);
             this.Client.Send(message);
         }

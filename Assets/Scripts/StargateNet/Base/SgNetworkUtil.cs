@@ -5,6 +5,18 @@ namespace StargateNet
 {
     public static class SgNetworkUtil
     {
+        public static unsafe byte[] CopyTobytes(void* data, int size)
+        {
+            byte[] res = new byte[size];
+            byte* byteData = (byte*)data; 
+            for (int i = 0; i < size; i ++)
+            {
+                res[i] = byteData[i];
+            }
+            return res;
+        }
+        
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe Vector4 GetVector4(int* data)
         {

@@ -44,7 +44,8 @@ namespace StargateNet
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
             var msg = args.Message;
-            RiptideLogger.Log(LogType.Debug, $"id:{msg.GetString()}:" + msg.GetString());
+            // msg.BytesInUse
+            RiptideLogger.Log(LogType.Debug, $"id:{args.MessageId}:" + msg.GetString()) ;
         }
         
         public override void Disconnect()
