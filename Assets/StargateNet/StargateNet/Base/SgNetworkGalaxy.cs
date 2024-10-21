@@ -44,12 +44,19 @@ namespace StargateNet
             this.Engine.Render();
         }
 
+        /// <summary>
+        /// 网络物体生成，只有服务端可以调用。
+        /// 对于使用诸如Yooasset的包体管理，也可以使用，只需要提供其加载出的GameObject即可(待求证，不清楚打进包里的id序列化是否还存在)
+        /// 对于dll热更新，只需要把Config也打包进去即可，会通过Config动态加载NetworkObject列表
+        /// </summary>
+        /// <param name="gameObject"></param>
+        /// <exception cref="Exception"></exception>
         public void NetworkSpawn(GameObject gameObject)
         {
             if (Engine.IsClient) throw new Exception("Only Server can spawn network objects");
             if (gameObject.TryGetComponent<NetworkObject>(out NetworkObject networkObject))
             {
-                // 拿到id，判断是服务端还是客户端(但是我认为状态帧同步框架应该让所有涉及同步的部分都由服务端来决定，所以这里应该只由服务端来调用，但是为了扩展，保留一下意见)
+                // 拿到id，判断是服务端还是客户端(状态帧同步框架应该让所有涉及同步的部分都由服务端来决定，所以这里应该只由服务端来调用)
                 // 生成物体，构造Entity，加入IM
                 // 单纯发包/夹在DS中发给客户端
             }
