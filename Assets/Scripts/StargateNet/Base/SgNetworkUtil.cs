@@ -5,6 +5,7 @@ namespace StargateNet
 {
     public static class SgNetworkUtil
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe byte[] CopyTobytes(void* data, int size)
         {
             byte[] res = new byte[size];

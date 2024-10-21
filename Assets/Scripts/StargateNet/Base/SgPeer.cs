@@ -7,7 +7,7 @@ namespace StargateNet
 
         public SgNetworkEngine Engine { get; set; }
 
-        public SgPeer(SgNetworkEngine engine, SgNetConfigData configData)
+        public SgPeer(SgNetworkEngine engine, StargateConfigData configData)
         {
             this.Engine = engine;
         }

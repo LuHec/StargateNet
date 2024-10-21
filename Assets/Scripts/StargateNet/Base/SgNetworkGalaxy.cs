@@ -9,13 +9,13 @@ namespace StargateNet
     public class SgNetworkGalaxy
     {
         public SgNetworkEngine Engine { private set; get; }
-        public SgNetConfigData ConfigData { private set; get; }
+        public StargateConfigData ConfigData { private set; get; }
 
         public SgNetworkGalaxy()
         {
         }
 
-        public void Init(StartMode startMode, SgNetConfigData configData, ushort port)
+        public void Init(StartMode startMode, StargateConfigData configData, ushort port)
         {
             this.Engine = new SgNetworkEngine();
             this.Engine.Start(startMode, configData, port);

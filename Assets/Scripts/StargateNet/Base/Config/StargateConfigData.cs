@@ -1,6 +1,6 @@
 namespace StargateNet
 {
-    public struct SgNetConfigData
+    public struct StargateConfigData
     {
         public float tickRate; // fps
         public ushort maxClientCount;

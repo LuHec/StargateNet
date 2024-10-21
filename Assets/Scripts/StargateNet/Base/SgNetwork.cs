@@ -35,7 +35,7 @@ namespace StargateNet
         {
             return SgNetwork.Launch(StartMode.Server, new LaunchConfig()
             {
-                configData = new SgNetConfigData()
+                configData = new StargateConfigData()
                 {
                     tickRate = 33.3333f,
                     maxClientCount = maxClientCount
@@ -48,7 +48,7 @@ namespace StargateNet
         {
             return SgNetwork.Launch(StartMode.Client, new LaunchConfig()
             {
-                configData = new SgNetConfigData()
+                configData = new StargateConfigData()
                 {
                     tickRate = 33.3333f,
                 },

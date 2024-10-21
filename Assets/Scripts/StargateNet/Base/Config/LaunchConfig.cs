@@ -2,7 +2,7 @@ namespace StargateNet
 {
     public struct LaunchConfig
     {
-        public SgNetConfigData configData;
+        public StargateConfigData configData;
         public ushort port;
     }
 }

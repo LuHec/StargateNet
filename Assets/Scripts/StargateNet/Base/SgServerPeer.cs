@@ -15,7 +15,7 @@ namespace StargateNet
         public ushort MaxClientCount { private set; get; }
         public Server Server { private set; get; }
 
-        public SgServerPeer(SgNetworkEngine engine, SgNetConfigData configData) : base(engine, configData)
+        public SgServerPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
         {
             this.Server = new Server();
             this.Server.MessageReceived += this.OnReceiveMessage;

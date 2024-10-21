@@ -14,7 +14,7 @@ namespace StargateNet
 
         public Client Client { private set; get; }
 
-        public SgClientPeer(SgNetworkEngine engine, SgNetConfigData configData) : base(engine, configData)
+        public SgClientPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
         {
             this.Client = new Client();
             this.Client.ConnectionFailed += this.OnConnectionFailed;
