@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace StargateNet
 {
     public struct StargateConfigData
@@ -5,5 +7,6 @@ namespace StargateNet
         public float tickRate; // fps
         public ushort maxClientCount;
         public bool runAsHeadless;
+        public List<NetworkObject> networkPrefabs;
     }
 }
