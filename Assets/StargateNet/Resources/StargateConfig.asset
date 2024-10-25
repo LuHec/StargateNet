@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcef7b76748c4590a84e4e76e098d6b5, type: 3}
   m_Name: StargateConfig
   m_EditorClassIdentifier: 
-  NetworkObjects: []
+  NetworkObjects:
+  - {fileID: 7095134503880436856, guid: 69e03efa710929f47b22396aa0160455, type: 3}

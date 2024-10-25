@@ -20,7 +20,6 @@ namespace StargateNet
         public SgServerPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
         {
             this.Server = new Server();
-            this.Server.TimeoutTime = 1000;
             this.Server.ClientConnected += this.OnConnect;
             this.Server.MessageReceived += this.OnReceiveMessage;
         }  
