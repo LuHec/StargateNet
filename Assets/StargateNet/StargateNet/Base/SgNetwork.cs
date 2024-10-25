@@ -33,12 +33,15 @@ namespace StargateNet
 
         public static SgNetworkGalaxy StartAsServer(ushort port, ushort maxClientCount)
         {
+            var stargateConfig = Resources.Load<StargateConfig>("StargateConfig");
+            
             return SgNetwork.Launch(StartMode.Server, new LaunchConfig()
             {
                 configData = new StargateConfigData()
                 {
                     tickRate = 33.3333f,
-                    maxClientCount = maxClientCount
+                    maxClientCount = maxClientCount,
+                    networkPrefabs =  stargateConfig.NetworkObjects
                 },
                 port = port,
             });
@@ -46,11 +49,13 @@ namespace StargateNet
 
         public static SgNetworkGalaxy StartAsClient(ushort port)
         {
+            var stargateConfig = Resources.Load<StargateConfig>("StargateConfig");
             return SgNetwork.Launch(StartMode.Client, new LaunchConfig()
             {
                 configData = new StargateConfigData()
                 {
                     tickRate = 33.3333f,
+                    networkPrefabs =  stargateConfig.NetworkObjects
                 },
                 port = port
             });

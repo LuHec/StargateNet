@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace StargateNet
 {
@@ -7,6 +8,6 @@ namespace StargateNet
         public float tickRate; // fps
         public ushort maxClientCount;
         public bool runAsHeadless;
-        public List<NetworkObject> networkPrefabs;
+        public List<GameObject> networkPrefabs;
     }
 }

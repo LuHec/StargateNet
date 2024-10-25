@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using Riptide;
 using Riptide.Utils;
@@ -14,18 +15,21 @@ namespace StargateNet
         public ushort Port { private set; get; }
         public ushort MaxClientCount { private set; get; }
         public Server Server { private set; get; }
+        public Dictionary<ushort, Connection> clientConnections = new();
 
         public SgServerPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
         {
             this.Server = new Server();
+            this.Server.TimeoutTime = 1000;
+            this.Server.ClientConnected += this.OnConnect;
             this.Server.MessageReceived += this.OnReceiveMessage;
-        }
+        }  
 
         public void StartServer(ushort port, ushort maxClientCount)
         {
             this.Port = port;
             this.MaxClientCount = maxClientCount;
-            this.Server.Start(port, maxClientCount, useMessageHandlers:false);
+            this.Server.Start(port, maxClientCount, useMessageHandlers: false);
             RiptideLogger.Log(LogType.Debug, "Server Start");
         }
 
@@ -33,7 +37,7 @@ namespace StargateNet
         {
             this.Server.Update();
         }
-        
+
         public override void SendMessageUnreliable(byte[] data)
         {
             Message message = Message.Create(MessageSendMode.Unreliable, (ushort)Protocol.ToClient);
@@ -41,16 +45,24 @@ namespace StargateNet
             this.Server.SendToAll(message);
         }
         
+        public override void Disconnect()
+        {
+            this.Server.Stop();
+        }
+        
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
             var msg = args.Message;
             // msg.BytesInUse
-            RiptideLogger.Log(LogType.Debug, $"id:{args.MessageId}:" + msg.GetString()) ;
+            RiptideLogger.Log(LogType.Debug, $"id:{args.MessageId}:" + msg.GetString());
         }
-        
-        public override void Disconnect()
+
+        private void OnConnect(object sender, ServerConnectedEventArgs args)
         {
-            this.Server.Stop();
+            if (clientConnections.TryAdd(args.Client.Id, args.Client))
+            {
+                
+            }
         }
     }
 }

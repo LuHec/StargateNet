@@ -2,9 +2,11 @@
 {
     public class ClientSimulation : Simulation
     {
-        internal Tick currentTick = Tick.InvalidTick;   // 当前帧数
-        internal Tick predictedTick = Tick.InvalidTick; // 将要执行模拟的帧数
-        internal Tick authoritativeTick = Tick.InvalidTick; // 服务器帧数
+        internal Tick currentTick = Tick.InvalidTick;   
+        internal Tick predictedTick = Tick.InvalidTick; 
+        internal Tick authoritativeTick = Tick.InvalidTick; 
+        internal RingQueue<StargateAllocator> snapShots = new RingQueue<StargateAllocator>(32); //本地可取的snapshot环形队列，可以获得前32帧的snapshot
+        internal StargateAllocator lastAuthorSnapShots;
         
         public ClientSimulation(SgNetworkEngine engine) : base(engine)
         {

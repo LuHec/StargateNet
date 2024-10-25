@@ -21,10 +21,10 @@ namespace StargateNet
         {
             this.Engine = new SgNetworkEngine();
             this.Engine.Start(startMode, configData, port);
-            NetworkObjectsTable = new Dictionary<int, NetworkObject>();
+            NetworkObjectsTable = new Dictionary<int, NetworkObject>(configData.networkPrefabs.Count);
             for (int i = 0; i < configData.networkPrefabs.Count; i++)
             {
-                NetworkObjectsTable.Add(i, configData.networkPrefabs[i]);
+                NetworkObjectsTable.Add(i, configData.networkPrefabs[i].GetComponent<NetworkObject>());
             }
         }
 

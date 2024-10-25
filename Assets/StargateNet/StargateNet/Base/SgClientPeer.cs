@@ -8,10 +8,8 @@ namespace StargateNet
     {
         public override bool IsServer => false;
         public override bool IsClient => true;
-
         public string ServerIP { private set; get; }
         public ushort Port { private set; get; }
-
         public Client Client { private set; get; }
 
         public SgClientPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
@@ -33,6 +31,7 @@ namespace StargateNet
         public override void NetworkUpdate()
         {
             this.Client.Update();
+            RiptideLogger.Log(LogType.Info, $"{Client.RTT}");
         }
 
         public override void SendMessageUnreliable(byte[] str)
@@ -45,6 +44,10 @@ namespace StargateNet
         public override void Disconnect()
         {
             this.Client.Disconnect();
+        }
+
+        public void Ack()
+        {
         }
 
         private void OnConnected(object sender, EventArgs e)

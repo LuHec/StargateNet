@@ -46,7 +46,7 @@ namespace StargateNet
                 this.ServerPeer.StartServer(port, stargateConfigData.maxClientCount);
             }
             else
-            {
+            { 
                 this.ClientPeer = new SgClientPeer(this, stargateConfigData);
                 this.Peer = this.ClientPeer;
                 this.ClientSimulation = new ClientSimulation(this);
