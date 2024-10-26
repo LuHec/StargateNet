@@ -22,7 +22,7 @@ namespace StargateNet
             this.Server = new Server();
             this.Server.ClientConnected += this.OnConnect;
             this.Server.MessageReceived += this.OnReceiveMessage;
-        }  
+        }
 
         public void StartServer(ushort port, ushort maxClientCount)
         {
@@ -37,30 +37,36 @@ namespace StargateNet
             this.Server.Update();
         }
 
-        public override void SendMessageUnreliable(byte[] data)
+        /// <summary>
+        /// 发送一定的字节，尽量压缩到1400字节左右防止分包。不可靠。
+        /// </summary>
+        /// <param name="clientId">客户端的id</param>
+        /// <param name="data">数据</param>
+        public void SendMessageUnreliable(ushort clientId, byte[] data)
         {
             Message message = Message.Create(MessageSendMode.Unreliable, (ushort)Protocol.ToClient);
             message.AddBytes(data);
-            this.Server.SendToAll(message);
+            this.Server.Send(message, clientConnections[clientId]);
         }
-        
+
         public override void Disconnect()
         {
             this.Server.Stop();
         }
-        
+
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
             var msg = args.Message;
             // msg.BytesInUse
-            RiptideLogger.Log(LogType.Debug, $"id:{args.MessageId}:" + msg.GetString());
+            RiptideLogger.Log(LogType.Debug,
+                $"Server Tick:{this.Engine._simTick}:" +
+                $", From {args.FromConnection.Id} at ClientTick {msg.GetString()}, RTT:{args.FromConnection.RTT}");
         }
 
         private void OnConnect(object sender, ServerConnectedEventArgs args)
         {
             if (clientConnections.TryAdd(args.Client.Id, args.Client))
             {
-                
             }
         }
     }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Riptide.Utils;
@@ -23,7 +24,7 @@ namespace StargateNet
         internal bool Simulated { get; private set; }
         internal bool IsServer => Peer.IsServer;
         internal bool IsClient => Peer.IsClient;
-        internal bool IsConnected { get; private set; }
+        internal bool IsConnected { get; set; }
         internal Dictionary<int, NetworkBehavior> networkBehaviors;
         internal Queue<int> paddingRemoveBehaviors;
         internal Queue<int> paddingAddSet;
@@ -36,7 +37,7 @@ namespace StargateNet
         {
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
             this.ConfigData = stargateConfigData;
-            this._timer = new SimulationClock(this, FixedUpdate);
+            this._timer = new SimulationClock(this, this.FixedUpdate);
             if (startMode == StartMode.Server)
             {
                 this.ServerPeer = new SgServerPeer(this, stargateConfigData);
@@ -97,13 +98,14 @@ namespace StargateNet
         internal void Render()
         {
             if (!IsRunning) return;
-            // Server can also has rendering
+            // Server can also have rendering
             if (this.IsServer || this.IsConnected)
             {
                 this.Simulation.ExecuteNetworkRender();
             }
         }
 
+        public int _simTick = 1; // 是客户端/服务端已经模拟的本地帧数，和同步无关
         /// <summary>
         /// Called every fixed time, after Update
         /// </summary>
@@ -116,8 +118,18 @@ namespace StargateNet
             if (this.IsServer || this.IsConnected)
                 this.Simulation.FixedUpdate();
 
-            string message = this.IsServer ? "Server" : "Client";
-            this.Peer.SendMessageUnreliable(Encoding.UTF8.GetBytes($"From {message} At {this._timer.Time}"));
+            if (this.IsClient && this.IsConnected)
+            {
+                this.ClientPeer.SendMessageUnreliable(Encoding.UTF8.GetBytes((this._simTick ++).ToString()));   
+            }
+            else if(this.IsServer && this.ServerPeer.clientConnections.Count > 0)
+            {
+
+                this.ServerPeer.SendMessageUnreliable(1, Encoding.UTF8.GetBytes((this._simTick).ToString()));
+                if(this.ServerPeer.clientConnections.ContainsKey(2))
+                    this.ServerPeer.SendMessageUnreliable(2, Encoding.UTF8.GetBytes((this._simTick).ToString()));
+                _simTick++;
+            }
             // 接收是Update的，发snapshot则是帧的
             Send();
         }

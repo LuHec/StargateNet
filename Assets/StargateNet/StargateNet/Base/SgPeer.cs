@@ -14,12 +14,6 @@ namespace StargateNet
         
         public abstract void NetworkUpdate();
 
-        /// <summary>
-        /// 发送一定的字节，尽量压缩到1400字节左右防止分包。不可靠。
-        /// </summary>
-        /// <param name="data"></param>
-        public abstract void SendMessageUnreliable(byte[] data);
-
         public abstract void Disconnect();
     }
 }
