@@ -9,5 +9,6 @@ namespace StargateNet
         public ushort maxClientCount;
         public bool runAsHeadless;
         public List<GameObject> networkPrefabs;
+        public int maxPredictedTicks;
     }
 }

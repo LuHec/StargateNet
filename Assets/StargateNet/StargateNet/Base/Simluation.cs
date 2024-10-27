@@ -4,19 +4,19 @@ namespace StargateNet
 {
     public abstract class Simulation
     {
-        public SgNetworkEngine engine;
+        internal SgNetworkEngine engine;
 
-        public Simulation(SgNetworkEngine engine)
+        internal Simulation(SgNetworkEngine engine)
         {
             this.engine = engine;
         }
         
-        public virtual void PreUpdate()
+        internal virtual void PreUpdate()
         {
             
         }
         
-        public virtual void PreFixedUpdate()
+        internal virtual void PreFixedUpdate()
         {
             
         }
@@ -24,26 +24,26 @@ namespace StargateNet
         /// <summary>
         /// Simulate world in fixed update
         /// </summary>
-        public void FixedUpdate()
+        internal void FixedUpdate()
         {
+            // 对于客户端，先在这里处理回滚，然后再模拟下一帧
             this.PreFixedUpdate();
-            // TODO:客户端需要检测当前Tick是否有效(如果没有连接，那此时的Tick是无效的)
             this.ExecuteNetworkFixedUpdate();
         }
         
-        public void ExecuteNetworkUpdate()
+        internal void ExecuteNetworkUpdate()
         {
             if (!this.engine.Simulated) return;
             this.engine.IM.ExecuteNetworkUpdate();
         }
 
-        public void ExecuteNetworkRender()
+        internal void ExecuteNetworkRender()
         {
             if (!this.engine.Simulated) return;
             this.engine.IM.ExecuteNetworkRender();
         }
         
-        public void ExecuteNetworkFixedUpdate()
+        internal void ExecuteNetworkFixedUpdate()
         {
             if (!this.engine.Simulated) return;
             this.engine.IM.ExecuteNetworkFixedUpdate();

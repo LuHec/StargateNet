@@ -9,7 +9,7 @@ namespace StargateNet
 {
     public sealed class SgNetworkEngine
     {
-        private SimulationClock _timer;
+        internal SimulationClock timer;
         internal float LastDeltaTime { get; private set; }
         internal float LastTimeScale { get; private set; }
         internal StargateConfigData ConfigData { get; private set; }
@@ -17,13 +17,13 @@ namespace StargateNet
         internal SgPeer Peer { get; private set; }
         internal SgClientPeer ClientPeer { get; private set; }
         internal SgServerPeer ServerPeer { get; private set; }
+        internal bool IsServer => Peer.IsServer;
+        internal bool IsClient => Peer.IsClient;
         internal InterestManager IM { get; private set; }
         internal Simulation Simulation { get; private set; }
         internal ServerSimulation ServerSimulation { get; private set; }
         internal ClientSimulation ClientSimulation { get; private set; }
         internal bool Simulated { get; private set; }
-        internal bool IsServer => Peer.IsServer;
-        internal bool IsClient => Peer.IsClient;
         internal bool IsConnected { get; set; }
         internal Dictionary<int, NetworkBehavior> networkBehaviors;
         internal Queue<int> paddingRemoveBehaviors;
@@ -37,7 +37,7 @@ namespace StargateNet
         {
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
             this.ConfigData = stargateConfigData;
-            this._timer = new SimulationClock(this, this.FixedUpdate);
+            this.timer = new SimulationClock(this, this.FixedUpdate);
             if (startMode == StartMode.Server)
             {
                 this.ServerPeer = new SgServerPeer(this, stargateConfigData);
@@ -88,8 +88,8 @@ namespace StargateNet
             this.Simulation.PreUpdate();
             this.Peer.NetworkUpdate();
             this.Simulation.ExecuteNetworkUpdate();
-            this._timer.PreUpdate();
-            this._timer.Update();
+            this.timer.PreUpdate();
+            this.timer.Update();
         }
 
         /// <summary>
