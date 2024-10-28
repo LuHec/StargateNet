@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Riptide;
@@ -15,7 +16,7 @@ namespace StargateNet
         public ushort Port { private set; get; }
         public ushort MaxClientCount { private set; get; }
         public Server Server { private set; get; }
-        public Dictionary<ushort, Connection> clientConnections = new();
+        public Dictionary<ushort, ClientConnection> clientConnections = new();
 
         public SgServerPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -41,12 +42,18 @@ namespace StargateNet
         /// 发送一定的字节，尽量压缩到1400字节左右防止分包。不可靠。
         /// </summary>
         /// <param name="clientId">客户端的id</param>
-        /// <param name="data">数据</param>
-        public void SendMessageUnreliable(ushort clientId, byte[] data)
+        /// <param name="msg">数据</param>
+        public void SendMessageUnreliable(ushort clientId, Message msg)
         {
-            Message message = Message.Create(MessageSendMode.Unreliable, (ushort)Protocol.ToClient);
-            message.AddBytes(data);
-            this.Server.Send(message, clientConnections[clientId]);
+            if (clientConnections.TryGetValue(clientId, out ClientConnection clientConnection))
+                this.Server.Send(msg, clientConnection.connection);
+        }
+
+        public void SendServerPak()
+        {
+            Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
+            msg.AddInt(this.Engine.simTick.tickValue);
+            this.Server.SendToAll(msg);
         }
 
         public override void Disconnect()
@@ -57,15 +64,16 @@ namespace StargateNet
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
             var msg = args.Message;
-            // msg.BytesInUse
+            int confirmTick = msg.GetInt();
+            // 暂时只有ACK
             RiptideLogger.Log(LogType.Debug,
-                $"Server Tick:{this.Engine._simTick}:" +
-                $", From {args.FromConnection.Id} at ClientTick {msg.GetString()}, RTT:{args.FromConnection.RTT}");
+                $"Server Tick:{this.Engine.simTick}:" +
+                $", Acked from {args.FromConnection.Id} at Tick {confirmTick}, RTT:{args.FromConnection.RTT}");
         }
 
         private void OnConnect(object sender, ServerConnectedEventArgs args)
         {
-            if (clientConnections.TryAdd(args.Client.Id, args.Client))
+            if (clientConnections.TryAdd(args.Client.Id, new ClientConnection() { connection = args.Client }))
             {
             }
         }

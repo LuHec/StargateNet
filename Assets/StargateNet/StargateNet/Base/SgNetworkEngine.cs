@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Riptide;
 using Riptide.Utils;
 using UnityEngine;
 using LogType = Riptide.Utils.LogType;
@@ -10,13 +11,14 @@ namespace StargateNet
     public sealed class SgNetworkEngine
     {
         internal SimulationClock timer;
+        internal Tick simTick = new Tick(10); // 是客户端/服务端已经模拟的本地帧数。客户端的simTick与同步无关，服务端的simtick会作为AuthorTick传给客户端
         internal float LastDeltaTime { get; private set; }
         internal float LastTimeScale { get; private set; }
         internal StargateConfigData ConfigData { get; private set; }
         internal bool IsRunning { get; private set; }
         internal SgPeer Peer { get; private set; }
-        internal SgClientPeer ClientPeer { get; private set; }
-        internal SgServerPeer ServerPeer { get; private set; }
+        internal SgClientPeer Client { get; private set; }
+        internal SgServerPeer Server { get; private set; }
         internal bool IsServer => Peer.IsServer;
         internal bool IsClient => Peer.IsClient;
         internal InterestManager IM { get; private set; }
@@ -40,16 +42,16 @@ namespace StargateNet
             this.timer = new SimulationClock(this, this.FixedUpdate);
             if (startMode == StartMode.Server)
             {
-                this.ServerPeer = new SgServerPeer(this, stargateConfigData);
-                this.Peer = this.ServerPeer;
+                this.Server = new SgServerPeer(this, stargateConfigData);
+                this.Peer = this.Server;
                 this.ServerSimulation = new ServerSimulation(this);
                 this.Simulation = this.ServerSimulation;
-                this.ServerPeer.StartServer(port, stargateConfigData.maxClientCount);
+                this.Server.StartServer(port, stargateConfigData.maxClientCount);
             }
             else
             { 
-                this.ClientPeer = new SgClientPeer(this, stargateConfigData);
-                this.Peer = this.ClientPeer;
+                this.Client = new SgClientPeer(this, stargateConfigData);
+                this.Peer = this.Client;
                 this.ClientSimulation = new ClientSimulation(this);
                 this.Simulation = this.ClientSimulation;
             }
@@ -62,13 +64,13 @@ namespace StargateNet
         public void ServerStart(ushort port, ushort maxClient)
         {
             if (!this.IsRunning) return;
-            this.ServerPeer.StartServer(port, maxClient);
+            this.Server.StartServer(port, maxClient);
         }
 
         public void Connect(string ip, ushort port)
         {
             if (!this.IsRunning) return;
-            this.ClientPeer.Connect(ip, port);
+            this.Client.Connect(ip, port);
         }
 
         internal void AddNetworkBehavior()
@@ -85,10 +87,10 @@ namespace StargateNet
 
             this.LastDeltaTime = deltaTime;
             this.LastTimeScale = timeScale;
-            this.Simulation.PreUpdate();
-            this.Peer.NetworkUpdate();
-            this.Simulation.ExecuteNetworkUpdate();
             this.timer.PreUpdate();
+            this.Peer.NetworkUpdate();
+            this.Simulation.PreUpdate();
+            this.Simulation.ExecuteNetworkUpdate();
             this.timer.Update();
         }
 
@@ -99,13 +101,12 @@ namespace StargateNet
         {
             if (!IsRunning) return;
             // Server can also have rendering
-            if (this.IsServer || this.IsConnected)
+            if (this.IsServer && !this.ConfigData.runAsHeadless || this.IsConnected)
             {
                 this.Simulation.ExecuteNetworkRender();
             }
         }
-
-        public int _simTick = 1; // 是客户端/服务端已经模拟的本地帧数，和同步无关
+        
         /// <summary>
         /// Called every fixed time, after Update
         /// </summary>
@@ -113,33 +114,27 @@ namespace StargateNet
         {
             if (!this.IsRunning)
                 return;
-
-            // 服务器和已连接的客户端都需要跑
-            if (this.IsServer || this.IsConnected)
+            
+            if (this.IsServer || (this.IsClient && this.IsConnected))
+            {
+                this.simTick++;
+                // 对于客户端，先在这里处理回滚，然后再模拟下一帧
+                this.Simulation.PreFixedUpdate();
                 this.Simulation.FixedUpdate();
-
-            if (this.IsClient && this.IsConnected)
-            {
-                this.ClientPeer.SendMessageUnreliable(Encoding.UTF8.GetBytes((this._simTick ++).ToString()));   
             }
-            else if(this.IsServer && this.ServerPeer.clientConnections.Count > 0)
-            {
-
-                this.ServerPeer.SendMessageUnreliable(1, Encoding.UTF8.GetBytes((this._simTick).ToString()));
-                if(this.ServerPeer.clientConnections.ContainsKey(2))
-                    this.ServerPeer.SendMessageUnreliable(2, Encoding.UTF8.GetBytes((this._simTick).ToString()));
-                _simTick++;
-            }
-            // 接收是Update的，发snapshot则是帧的
+            
             Send();
         }
 
         private void Send()
         {
-        }
-
-        private void Recive()
-        {
+            if (this.IsServer)
+            {
+                // Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
+                // msg.AddInt(this.simTick.tickValue);
+                // this.Server.SendMessageUnreliable(1, msg);
+                Server.SendServerPak();
+            }
         }
     }
 }

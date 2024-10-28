@@ -4,11 +4,11 @@ namespace StargateNet
 {
     public class InterestManager
     {
-        public readonly List<Entity> simulationList;
+        public readonly List<Entity> simulationList = new(32);
 
         public InterestManager()
         {
-            simulationList = new List<Entity>();
+            
         }
         
         public void ExecuteNetworkUpdate()

@@ -26,7 +26,7 @@ namespace StargateNet
         reload,
     }
 
-    public enum Protocol
+    public enum Protocol : ushort
     {
         ToServer = 1,
         ToClient = 2,

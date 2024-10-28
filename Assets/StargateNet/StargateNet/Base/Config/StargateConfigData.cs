@@ -5,7 +5,7 @@ namespace StargateNet
 {
     public struct StargateConfigData
     {
-        public float tickRate; // fps
+        public float tickRate;
         public ushort maxClientCount;
         public bool runAsHeadless;
         public List<GameObject> networkPrefabs;

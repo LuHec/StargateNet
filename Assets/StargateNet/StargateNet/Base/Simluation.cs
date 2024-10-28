@@ -26,8 +26,6 @@ namespace StargateNet
         /// </summary>
         internal void FixedUpdate()
         {
-            // 对于客户端，先在这里处理回滚，然后再模拟下一帧
-            this.PreFixedUpdate();
             this.ExecuteNetworkFixedUpdate();
         }
         

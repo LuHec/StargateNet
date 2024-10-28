@@ -33,29 +33,33 @@ namespace StargateNet
 
         public static SgNetworkGalaxy StartAsServer(ushort port, ushort maxClientCount)
         {
-            var stargateConfig = Resources.Load<StargateConfig>("StargateConfig");
-            
+            var config = Resources.Load<StargateConfig>("StargateConfig");
             return SgNetwork.Launch(StartMode.Server, new LaunchConfig()
             {
                 configData = new StargateConfigData()
                 {
-                    tickRate = 33.3333f,
-                    maxClientCount = maxClientCount,
-                    networkPrefabs =  stargateConfig.NetworkObjects
+                    tickRate = 1000.0f / config.FPS,
+                    maxClientCount = config.MaxClientCount,
+                    runAsHeadless = config.RunAsHeadless,
+                    maxPredictedTicks = config.MaxPredictedTicks,
+                    networkPrefabs = config.NetworkObjects,
                 },
-                port = port,
+                port = port
             });
         }
 
         public static SgNetworkGalaxy StartAsClient(ushort port)
         {
-            var stargateConfig = Resources.Load<StargateConfig>("StargateConfig");
+            var config = Resources.Load<StargateConfig>("StargateConfig");
             return SgNetwork.Launch(StartMode.Client, new LaunchConfig()
             {
                 configData = new StargateConfigData()
                 {
-                    tickRate = 33.3333f,
-                    networkPrefabs =  stargateConfig.NetworkObjects
+                    tickRate = 1000.0f / config.FPS,
+                    maxClientCount = config.MaxClientCount,
+                    runAsHeadless = config.RunAsHeadless,
+                    maxPredictedTicks = config.MaxPredictedTicks,
+                    networkPrefabs = config.NetworkObjects,
                 },
                 port = port
             });
@@ -80,7 +84,7 @@ namespace StargateNet
         public static void Init(LaunchConfig launchConfig)
         {
             if (SgNetwork.Instance != null) return;
-            GameObject sgNet = new GameObject("SgNetwork");
+            GameObject sgNet = new GameObject("StargateNetwork");
             sgNet.AddComponent<SgNetwork>();
             UnityEngine.Object.DontDestroyOnLoad(sgNet);
             SgNetwork.Instance._started = true;
