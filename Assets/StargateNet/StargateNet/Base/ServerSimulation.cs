@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Riptide.Utils;
 
 namespace StargateNet
 {
@@ -27,11 +28,11 @@ namespace StargateNet
             while (clientInput.Count > 0 && clientInput.Peek().targetTick <= targetTick)
             {
                 var input = clientInput.Dequeue();
-                if (clientInput.Peek().targetTick < targetTick)
+                if (input.targetTick < targetTick)
                 {
                     RecycleInput(input);
                 }
-                else if (clientInput.Peek().targetTick == targetTick)
+                else if (input.targetTick == targetTick)
                 {
                     this.currentInput = input;
                 }

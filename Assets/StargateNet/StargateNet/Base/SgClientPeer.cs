@@ -117,6 +117,8 @@ namespace StargateNet
             {
                 msg.AddInt(clientInputs[i].targetTick.tickValue);
             }
+
+            this.Client.Send(msg);
         }
     }
 }
