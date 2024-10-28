@@ -9,7 +9,6 @@ namespace StargateNet
         internal Tick currentTick = Tick.InvalidTick;
         internal Tick predictedTick = Tick.InvalidTick;
         internal Tick authoritativeTick = Tick.InvalidTick;
-        internal Queue<SimulationInput> inputPool = new();
         internal RingQueue<StargateAllocator> snapShots = new(32); //本地可取的snapshot环形队列，可以获得前32帧的snapshot
         internal List<SimulationInput> inputs = new(512);
         internal SimulationInput currentInput = new SimulationInput();
@@ -81,25 +80,7 @@ namespace StargateNet
                 }
             }
         }
-
-        private SimulationInput CreateInput(Tick srvTick, Tick targetTick)
-        {
-            if (inputPool.Count == 0)
-            {
-                inputPool.Enqueue(new SimulationInput());
-            }
-
-            SimulationInput resInput = inputPool.Dequeue();
-            resInput.srvTick = srvTick;
-            resInput.targetTick = targetTick;
-            return resInput;
-        }
-
-        private void RecycleInput(SimulationInput input)
-        {
-            this.inputPool.Enqueue(input);
-        }
-
+        
         private void RemoveAllInputs()
         {
             for (int i = 0; i < this.inputs.Count; i++)
@@ -111,6 +92,7 @@ namespace StargateNet
 
         private void RemoveInputBefore(Tick targetTick)
         {
+            if(this.inputs.Count == 0) return;
             if (this.inputs[^1].targetTick < targetTick)
             {
                 RemoveAllInputs();

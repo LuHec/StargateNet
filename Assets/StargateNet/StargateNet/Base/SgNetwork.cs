@@ -38,7 +38,7 @@ namespace StargateNet
             {
                 configData = new StargateConfigData()
                 {
-                    tickRate = 1000.0f / config.FPS,
+                    tickRate = config.FPS,
                     maxClientCount = config.MaxClientCount,
                     runAsHeadless = config.RunAsHeadless,
                     maxPredictedTicks = config.MaxPredictedTicks,
@@ -55,7 +55,7 @@ namespace StargateNet
             {
                 configData = new StargateConfigData()
                 {
-                    tickRate = 1000.0f / config.FPS,
+                    tickRate = config.FPS,
                     maxClientCount = config.MaxClientCount,
                     runAsHeadless = config.RunAsHeadless,
                     maxPredictedTicks = config.MaxPredictedTicks,

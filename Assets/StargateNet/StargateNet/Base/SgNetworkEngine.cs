@@ -49,7 +49,7 @@ namespace StargateNet
                 this.Server.StartServer(port, stargateConfigData.maxClientCount);
             }
             else
-            { 
+            {
                 this.Client = new SgClientPeer(this, stargateConfigData);
                 this.Peer = this.Client;
                 this.ClientSimulation = new ClientSimulation(this);
@@ -75,7 +75,6 @@ namespace StargateNet
 
         internal void AddNetworkBehavior()
         {
-            
         }
 
         /// <summary>
@@ -106,7 +105,7 @@ namespace StargateNet
                 this.Simulation.ExecuteNetworkRender();
             }
         }
-        
+
         /// <summary>
         /// Called every fixed time, after Update
         /// </summary>
@@ -114,15 +113,20 @@ namespace StargateNet
         {
             if (!this.IsRunning)
                 return;
-            
+
             if (this.IsServer || (this.IsClient && this.IsConnected))
             {
                 this.simTick++;
                 // 对于客户端，先在这里处理回滚，然后再模拟下一帧
                 this.Simulation.PreFixedUpdate();
                 this.Simulation.FixedUpdate();
+                if (this.IsServer)
+                {
+                    RiptideLogger.Log(LogType.Warning,
+                        $"ServerTick:{this.simTick}, ClientInput targetTick:{this.ServerSimulation.currentInput.targetTick},input count:{this.ServerSimulation.clientInput.Count}");
+                }
             }
-            
+
             Send();
         }
 
@@ -134,6 +138,10 @@ namespace StargateNet
                 // msg.AddInt(this.simTick.tickValue);
                 // this.Server.SendMessageUnreliable(1, msg);
                 Server.SendServerPak();
+            }
+            else if (this.IsConnected)
+            {
+                Client.SendClientPak();
             }
         }
     }

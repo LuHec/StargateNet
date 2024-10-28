@@ -5,6 +5,8 @@ namespace StargateNet
     public abstract class Simulation
     {
         internal SgNetworkEngine engine;
+        internal SimulationInput currentInput;
+        protected Queue<SimulationInput> inputPool = new();
 
         internal Simulation(SgNetworkEngine engine)
         {
@@ -46,5 +48,24 @@ namespace StargateNet
             if (!this.engine.Simulated) return;
             this.engine.IM.ExecuteNetworkFixedUpdate();
         }
+        
+        protected SimulationInput CreateInput(Tick srvTick, Tick targetTick)
+        {
+            if (inputPool.Count == 0)
+            {
+                inputPool.Enqueue(new SimulationInput());
+            }
+
+            SimulationInput resInput = inputPool.Dequeue();
+            resInput.srvTick = srvTick;
+            resInput.targetTick = targetTick;
+            return resInput;
+        }
+        
+        protected void RecycleInput(SimulationInput input)
+        {
+            this.inputPool.Enqueue(input);
+        }
+
     }
 }

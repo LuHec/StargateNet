@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Riptide;
 using Riptide.Utils;
 
@@ -54,6 +55,7 @@ namespace StargateNet
         public void Ack(Tick srvTick)
         {
             Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToServer);
+            msg.AddBits(1, 1);
             msg.AddInt(srvTick.tickValue);
             this.Client.Send(msg);
         }
@@ -68,8 +70,8 @@ namespace StargateNet
         {
             RiptideLogger.Log(LogType.Debug, "Client Connect Failed");
         }
-        
-         
+
+
         /// <summary>
         /// 客户端只会收到两种信息：1.DS，2.input ack
         /// </summary>
@@ -83,7 +85,7 @@ namespace StargateNet
             Tick srvtick = new Tick(msg.GetInt());
             this.Engine.ClientSimulation.OnRcvPak(srvtick);
             Ack(srvtick);
-            
+
             // int authorTick = int.Parse(msg.GetString());
             // RiptideLogger.Log(LogType.Debug,
             //     $"Client Tick:{this.Engine.simTick}:" +
@@ -101,6 +103,20 @@ namespace StargateNet
             //     _firstRecive = false; 
             //     this.Engine.simTick += authorTick;
             // }
+        }
+
+        public void SendClientPak()
+        {
+            Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToServer);
+            msg.AddBits(0, 1);
+            Tick clientTick = this.Engine.simTick;
+            // 发送ACK到的Tick后所有的输入    
+            List<SimulationInput> clientInputs = this.Engine.ClientSimulation.inputs;
+            msg.AddInt(clientInputs.Count);
+            for (int i = 0; i < clientInputs.Count; i++)
+            {
+                msg.AddInt(clientInputs[i].targetTick.tickValue);
+            }
         }
     }
 }

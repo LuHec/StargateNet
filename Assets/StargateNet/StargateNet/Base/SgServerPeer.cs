@@ -23,6 +23,7 @@ namespace StargateNet
             this.Server = new Server();
             this.Server.ClientConnected += this.OnConnect;
             this.Server.MessageReceived += this.OnReceiveMessage;
+            this._inputBuffer = new RingQueue<Tick>(configData.maxPredictedTicks);
         }
 
         public void StartServer(ushort port, ushort maxClientCount)
@@ -64,13 +65,27 @@ namespace StargateNet
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
             var msg = args.Message;
-            int confirmTick = msg.GetInt();
-            // 暂时只有ACK
-            RiptideLogger.Log(LogType.Debug,
-                $"Server Tick:{this.Engine.simTick}:" +
-                $", Acked from {args.FromConnection.Id} at Tick {confirmTick}, RTT:{args.FromConnection.RTT}");
+            msg.GetBits(1, out byte flag);
+            // 1为ack，0为input
+            if ((flag & 1) == 0)
+            {
+                int inputCount = msg.GetInt();
+                for (int i = 0; i < inputCount; i++)
+                {
+                    int targetTick = msg.GetInt();
+                    this.Engine.ServerSimulation.AddInput(Tick.InvalidTick, new Tick(targetTick));
+                }
+            }
+            else
+            {
+                int confirmTick = msg.GetInt();
+                RiptideLogger.Log(LogType.Debug,
+                    $"Server Tick:{this.Engine.simTick}:" +
+                    $", Acked from {args.FromConnection.Id} at Tick {confirmTick}, RTT:{args.FromConnection.RTT}");   
+            }
         }
 
+        private RingQueue<Tick> _inputBuffer;
         private void OnConnect(object sender, ServerConnectedEventArgs args)
         {
             if (clientConnections.TryAdd(args.Client.Id, new ClientConnection() { connection = args.Client }))

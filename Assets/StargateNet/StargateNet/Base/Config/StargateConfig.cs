@@ -7,7 +7,7 @@ namespace StargateNet
     [CreateAssetMenu(fileName = "StargateConfig", menuName = "StargateNet/StargateConfig")]
     public class StargateConfig : ScriptableObject
     {
-        public float FPS = 30; // fps
+        public int FPS = 30; // fps
         
         
         [Range(8, ushort.MaxValue)]public ushort MaxClientCount = 16;

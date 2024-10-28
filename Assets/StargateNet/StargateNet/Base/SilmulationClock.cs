@@ -9,7 +9,7 @@ namespace StargateNet
         private Action _action;
         private SgNetworkEngine _engine;
         private float _deltaTime;                   // update delta time(not fixed)
-        private float _scaledFixedDelta;            // ms/frame
+        private float _scaledFixedDelta;            // config ms/frame
         private float _realScaledFixedDelta;        // scaled ms/frame
         private double _accumulator;                // 累计的帧时间，消耗该时间可以tick一次，帧数过低时，这个值在两帧之间会变大
 
@@ -17,7 +17,7 @@ namespace StargateNet
         {
             this._engine = engine;
             this._action = action;
-            this._scaledFixedDelta = 1 / engine.ConfigData.tickRate;
+            this._scaledFixedDelta = 1.0f / engine.ConfigData.tickRate;
             this._realScaledFixedDelta = _scaledFixedDelta;
         }
 
@@ -38,6 +38,11 @@ namespace StargateNet
                 this._action?.Invoke();
                 IsFirstCall = false; 
             }
+        }
+
+        public void AdjustClock()
+        {
+            
         }
     }
 }
