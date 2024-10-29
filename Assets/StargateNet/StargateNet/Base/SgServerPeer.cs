@@ -23,7 +23,6 @@ namespace StargateNet
             this.Server = new Server();
             this.Server.ClientConnected += this.OnConnect;
             this.Server.MessageReceived += this.OnReceiveMessage;
-            this._inputBuffer = new RingQueue<Tick>(configData.maxPredictedTicks);
         }
 
         public void StartServer(ushort port, ushort maxClientCount)
@@ -73,7 +72,11 @@ namespace StargateNet
                 for (int i = 0; i < inputCount; i++)
                 {
                     int targetTick = msg.GetInt();
-                    this.Engine.ServerSimulation.AddInput(Tick.InvalidTick, new Tick(targetTick));
+                    ClientData clientData = this.clientConnections[args.FromConnection.Id].clientData;
+                    SimulationInput simulationInput =
+                        this.Engine.ServerSimulation.CreateInput(Tick.InvalidTick, new Tick(targetTick));
+                    if (!clientData.ReciveInput(simulationInput))
+                        this.Engine.ServerSimulation.RecycleInput(simulationInput);
                 }
             }
             else
@@ -84,13 +87,16 @@ namespace StargateNet
                     $", Acked from {args.FromConnection.Id} at Tick {confirmTick}, RTT:{args.FromConnection.RTT}");   
             }
         }
-
-        private RingQueue<Tick> _inputBuffer;
+        
         private void OnConnect(object sender, ServerConnectedEventArgs args)
         {
             if (clientConnections.TryAdd(args.Client.Id, new ClientConnection() { connection = args.Client }))
             {
+                ClientData clientData = this.clientConnections[args.Client.Id].clientData = this.Engine.ServerSimulation.clientDatas[args.Client.Id];
+                clientData.Reset();
             }
+
+            this.Engine.Monitor.connectedClients = this.clientConnections.Count;
         }
     }
 }

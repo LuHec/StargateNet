@@ -11,6 +11,7 @@ namespace StargateNet
     public sealed class SgNetwork : MonoBehaviour
     {
         public static SgNetwork Instance => _instance;
+        public Monitor monitor;
         private SgNetworkGalaxy _sgNetworkGalaxy;
         private static SgNetwork _instance;
         private bool _started;
@@ -41,6 +42,7 @@ namespace StargateNet
                     tickRate = config.FPS,
                     maxClientCount = config.MaxClientCount,
                     runAsHeadless = config.RunAsHeadless,
+                    savedSnapshotsCount = config.SavedSnapshotsCount,
                     maxPredictedTicks = config.MaxPredictedTicks,
                     networkPrefabs = config.NetworkObjects,
                 },
@@ -58,6 +60,7 @@ namespace StargateNet
                     tickRate = config.FPS,
                     maxClientCount = config.MaxClientCount,
                     runAsHeadless = config.RunAsHeadless,
+                    savedSnapshotsCount = config.SavedSnapshotsCount,
                     maxPredictedTicks = config.MaxPredictedTicks,
                     networkPrefabs = config.NetworkObjects,
                 },
@@ -77,7 +80,9 @@ namespace StargateNet
             }
 
             SgNetwork.Instance._sgNetworkGalaxy = new SgNetworkGalaxy();
-            SgNetwork.Instance._sgNetworkGalaxy.Init(startMode, launchConfig.configData, launchConfig.port);
+            SgNetwork.Instance.monitor = new Monitor();
+            SgNetwork.Instance._sgNetworkGalaxy.Init(startMode, launchConfig.configData, launchConfig.port,
+                SgNetwork.Instance.monitor);
             return SgNetwork.Instance._sgNetworkGalaxy;
         }
 

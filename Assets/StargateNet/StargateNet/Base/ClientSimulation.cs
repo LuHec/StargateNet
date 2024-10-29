@@ -38,7 +38,7 @@ namespace StargateNet
 
             RiptideLogger.Log(LogType.Warning,
                 $"No Rollback yet,Clinet CurrentTick:{this.currentTick.tickValue}, AuthoritativeTick:{this.authoritativeTick}");
-            if (this.engine.timer.IsFirstCall)
+            if (this.engine.Timer.IsFirstCall)
                 Reconcile();
             RiptideLogger.Log(LogType.Warning,
                 $"Rollback,Clinet CurrentTick:{this.currentTick.tickValue}, AuthoritativeTick:{this.authoritativeTick}");
@@ -79,8 +79,11 @@ namespace StargateNet
                     this.currentTick++;
                 }
             }
+
+            this.engine.Monitor.resims = this.currentTick - this.authoritativeTick;
+            this.engine.Monitor.inputCount = this.inputs.Count;
         }
-        
+
         private void RemoveAllInputs()
         {
             for (int i = 0; i < this.inputs.Count; i++)
@@ -92,7 +95,7 @@ namespace StargateNet
 
         private void RemoveInputBefore(Tick targetTick)
         {
-            if(this.inputs.Count == 0) return;
+            if (this.inputs.Count == 0) return;
             if (this.inputs[^1].targetTick < targetTick)
             {
                 RemoveAllInputs();

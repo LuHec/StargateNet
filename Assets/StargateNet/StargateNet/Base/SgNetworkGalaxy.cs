@@ -17,10 +17,10 @@ namespace StargateNet
         {
         }
 
-        public void Init(StartMode startMode, StargateConfigData configData, ushort port)
+        public void Init(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor)
         {
             this.Engine = new SgNetworkEngine();
-            this.Engine.Start(startMode, configData, port);
+            this.Engine.Start(startMode, configData, port, monitor);
             NetworkObjectsTable = new Dictionary<int, NetworkObject>(configData.networkPrefabs.Count);
             for (int i = 0; i < configData.networkPrefabs.Count; i++)
             {

@@ -8,6 +8,7 @@ namespace StargateNet
         public int tickRate;
         public ushort maxClientCount;
         public bool runAsHeadless;
+        public int savedSnapshotsCount;
         public List<GameObject> networkPrefabs;
         public int maxPredictedTicks;
     }

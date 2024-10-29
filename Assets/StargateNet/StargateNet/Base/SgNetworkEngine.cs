@@ -10,7 +10,8 @@ namespace StargateNet
 {
     public sealed class SgNetworkEngine
     {
-        internal SimulationClock timer;
+        internal SimulationClock Timer { get; private set; }
+        internal Monitor Monitor { get; private set; }
         internal Tick simTick = new Tick(10); // 是客户端/服务端已经模拟的本地帧数。客户端的simTick与同步无关，服务端的simtick会作为AuthorTick传给客户端
         internal float LastDeltaTime { get; private set; }
         internal float LastTimeScale { get; private set; }
@@ -35,11 +36,12 @@ namespace StargateNet
         {
         }
 
-        public void Start(StartMode startMode, StargateConfigData stargateConfigData, ushort port)
+        public void Start(StartMode startMode, StargateConfigData stargateConfigData, ushort port, Monitor monitor)
         {
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
             this.ConfigData = stargateConfigData;
-            this.timer = new SimulationClock(this, this.FixedUpdate);
+            this.Timer = new SimulationClock(this, this.FixedUpdate);
+            this.Monitor = monitor;
             if (startMode == StartMode.Server)
             {
                 this.Server = new SgServerPeer(this, stargateConfigData);
@@ -86,11 +88,11 @@ namespace StargateNet
 
             this.LastDeltaTime = deltaTime;
             this.LastTimeScale = timeScale;
-            this.timer.PreUpdate();
+            this.Timer.PreUpdate();
             this.Peer.NetworkUpdate();
             this.Simulation.PreUpdate();
             this.Simulation.ExecuteNetworkUpdate();
-            this.timer.Update();
+            this.Timer.Update();
         }
 
         /// <summary>
@@ -120,11 +122,6 @@ namespace StargateNet
                 // 对于客户端，先在这里处理回滚，然后再模拟下一帧
                 this.Simulation.PreFixedUpdate();
                 this.Simulation.FixedUpdate();
-                if (this.IsServer)
-                {
-                    RiptideLogger.Log(LogType.Warning,
-                        $"ServerTick:{this.simTick}, ClientInput targetTick:{this.ServerSimulation.currentInput.targetTick},input count:{this.ServerSimulation.clientInput.Count}");
-                }
             }
 
             Send();

@@ -32,7 +32,8 @@ namespace StargateNet
         public override void NetworkUpdate()
         {
             this.Client.Update();
-            // RiptideLogger.Log(LogType.Info, $"{Client.RTT}");
+            this.Engine.Monitor.rtt = this.Client.RTT;
+            this.Engine.Monitor.smothRTT = this.Client.SmoothRTT;
         }
 
         public void SendMessageUnreliable(byte[] bytes)
@@ -62,8 +63,8 @@ namespace StargateNet
 
         private void OnConnected(object sender, EventArgs e)
         {
-            RiptideLogger.Log(LogType.Debug, "Client Connected");
-            this.Engine.IsConnected = true;
+            RiptideLogger.Log(LogType.Debug, "Client Connected"); this.Engine.IsConnected = true;
+            
         }
 
         private void OnConnectionFailed(object sender, ConnectionFailedEventArgs args)

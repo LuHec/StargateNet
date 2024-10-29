@@ -5,37 +5,47 @@ namespace StargateNet
 {
     public class ServerSimulation : Simulation
     {
-        public Queue<SimulationInput> clientInput = new();
+        internal ClientData[] clientDatas;
 
-        public ServerSimulation(SgNetworkEngine engine) : base(engine)
+        internal ServerSimulation(SgNetworkEngine engine) : base(engine)
         {
+            this.clientDatas = new ClientData[engine.ConfigData.maxClientCount];
+            for (int i = 0; i < this.clientDatas.Length; i++)
+            {
+                this.clientDatas[i] = new ClientData(engine.ConfigData.savedSnapshotsCount);
+            }
         }
 
         internal override void PreFixedUpdate()
         {
-            // 保证每帧都有一个默认的空Tick
-            this.currentInput = CreateInput(Tick.InvalidTick, Tick.InvalidTick);
             ConsumeInputs(this.engine.simTick);
         }
 
-        internal void AddInput(Tick clientTick, Tick targetTick)
-        {
-            clientInput.Enqueue(CreateInput(clientTick, targetTick));
-        }
 
         private void ConsumeInputs(Tick targetTick)
         {
-            while (clientInput.Count > 0 && clientInput.Peek().targetTick <= targetTick)
+            for (int i = 0; i < clientDatas.Length; i++)
             {
-                var input = clientInput.Dequeue();
-                if (input.targetTick < targetTick)
+                if (clientDatas[i].Started)
                 {
-                    RecycleInput(input);
+                    Queue<SimulationInput> clientInput = clientDatas[i].clientInput;
+                    while (clientInput.Count > 0 && clientInput.Peek().targetTick <= targetTick)
+                    {
+                        var input = clientInput.Dequeue();
+                        if (input.targetTick < targetTick)
+                        {
+                            RecycleInput(input);
+                        }
+                        else if (input.targetTick == targetTick)
+                        {
+                            RecycleInput(clientDatas[i].currentInput);
+                            clientDatas[i].currentInput = input;
+                        }
+                    }
                 }
-                else if (input.targetTick == targetTick)
-                {
-                    this.currentInput = input;
-                }
+                
+                RiptideLogger.Log(LogType.Warning,
+                    $"ServerTick:{this.engine.simTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick},input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
             }
         }
     }
