@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Riptide;
 using Riptide.Utils;
+using UnityEngine;
+using LogType = Riptide.Utils.LogType;
 
 namespace StargateNet
 {
@@ -12,6 +14,7 @@ namespace StargateNet
         public string ServerIP { private set; get; }
         public ushort Port { private set; get; }
         public Client Client { private set; get; }
+        public float lastReceiveTime = -1;
 
         public SgClientPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -83,27 +86,10 @@ namespace StargateNet
             var ds = this.Engine.ClientSimulation.snapShots;
             var msg = args.Message;
             if (msg.UnreadBits < 8 * sizeof(int)) return;
+            this.lastReceiveTime = Time.time; 
             Tick srvtick = new Tick(msg.GetInt());
             this.Engine.ClientSimulation.OnRcvPak(srvtick);
             Ack(srvtick);
-
-            // int authorTick = int.Parse(msg.GetString());
-            // RiptideLogger.Log(LogType.Debug,
-            //     $"Client Tick:{this.Engine.simTick}:" +
-            //     $", From Server at AuthorTick {authorTick}, RTT:{args.FromConnection.RTT}");
-            //
-            // if (_firstRecive)
-            // {
-            //     // 测试:对齐Tick，当前Tick应当为authorTick加上已经模拟的Tick，这样保证客户端是先行的
-            //     // 为什么要保证客户端先行？因为预测很大概率是不会出错的，所以客户端已经模拟的操作完全可以上传‘
-            //     // 假设RTT =200ms，服务端Tick为10，服务端到客户端连接消耗了200ms，此时客户端Tick为6，此时服务端的的ds才传到，
-            //     // 那么客户端在这个时候重新模拟并上传操作，同时初次同步将客户端Tick变为13
-            //     // 这三帧都以AuthorTick加Predicate Tick最终上传，消耗100ms。传到服务端时，服务端Tick为13，客户端Tick为16
-            //     // 疑问：当延迟大的时候，客户端的操作到达服务端后操作的Tick比当前AuthorTick小
-            //     // 首先这些操作肯定会被延迟应用，服务端也会记录收到的最新ClientTick
-            //     _firstRecive = false; 
-            //     this.Engine.simTick += authorTick;
-            // }
         }
 
         public void SendClientPak()
