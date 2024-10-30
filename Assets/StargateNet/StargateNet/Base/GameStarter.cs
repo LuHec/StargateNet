@@ -34,6 +34,7 @@ namespace StargateNet
                 GUILayout.BeginVertical(); // 开始竖排布局
 
                 string textToDisplay = $"Sim DeltaTime: {monitor.deltaTime:F6}\n" +
+                                       $"Clock Level{monitor.clockLevel}\n" +
                                        $"RTT: {monitor.rtt:F6}\n" +
                                        $"Smooth RTT: {monitor.smothRTT:F6}\n" +
                                        $"Client Resim: {monitor.resims}\n" +

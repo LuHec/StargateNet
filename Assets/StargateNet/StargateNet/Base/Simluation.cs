@@ -22,6 +22,11 @@ namespace StargateNet
             
         }
 
+        internal virtual void PostFixedUpdate()
+        {
+            
+        }
+
         /// <summary>
         /// Simulate world in fixed update
         /// </summary>

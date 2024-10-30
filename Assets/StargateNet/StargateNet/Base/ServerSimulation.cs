@@ -21,6 +21,17 @@ namespace StargateNet
             ConsumeInputs(this.engine.simTick);
         }
 
+        internal override void PostFixedUpdate()
+        {
+            for (int i = 0; i < clientDatas.Length; i++)
+            {
+                if (clientDatas[i].Started)
+                {
+                    RecycleInput(clientDatas[i].currentInput);
+                    clientDatas[i].currentInput = CreateInput(Tick.InvalidTick, Tick.InvalidTick);
+                }
+            }
+        }
 
         private void ConsumeInputs(Tick targetTick)
         {
@@ -42,11 +53,12 @@ namespace StargateNet
                             clientDatas[i].currentInput = input;
                         }
                     }
+                    RiptideLogger.Log(LogType.Warning,
+                        $"ServerTick:{this.engine.simTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick},input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
                 }
-                
-                RiptideLogger.Log(LogType.Warning,
-                    $"ServerTick:{this.engine.simTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick},input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
             }
         }
+        
+        
     }
 }

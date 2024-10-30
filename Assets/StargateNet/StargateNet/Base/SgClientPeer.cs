@@ -14,7 +14,6 @@ namespace StargateNet
         public string ServerIP { private set; get; }
         public ushort Port { private set; get; }
         public Client Client { private set; get; }
-        public float lastReceiveTime = -1;
 
         public SgClientPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -66,8 +65,8 @@ namespace StargateNet
 
         private void OnConnected(object sender, EventArgs e)
         {
-            RiptideLogger.Log(LogType.Debug, "Client Connected"); this.Engine.IsConnected = true;
-            
+            RiptideLogger.Log(LogType.Debug, "Client Connected");
+            this.Engine.IsConnected = true;
         }
 
         private void OnConnectionFailed(object sender, ConnectionFailedEventArgs args)
@@ -86,7 +85,6 @@ namespace StargateNet
             var ds = this.Engine.ClientSimulation.snapShots;
             var msg = args.Message;
             if (msg.UnreadBits < 8 * sizeof(int)) return;
-            this.lastReceiveTime = Time.time; 
             Tick srvtick = new Tick(msg.GetInt());
             this.Engine.ClientSimulation.OnRcvPak(srvtick);
             Ack(srvtick);
