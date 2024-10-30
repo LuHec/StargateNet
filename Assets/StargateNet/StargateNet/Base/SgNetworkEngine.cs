@@ -119,8 +119,6 @@ namespace StargateNet
             if (this.IsServer || (this.IsClient && this.IsConnected))
             {
                 this.simTick++;
-                // 对于客户端，先在这里处理回滚，然后再模拟下一帧
-                this.Simulation.PreFixedUpdate();
                 this.Simulation.FixedUpdate();
             }
 

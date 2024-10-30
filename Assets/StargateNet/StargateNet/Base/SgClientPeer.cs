@@ -14,6 +14,7 @@ namespace StargateNet
         public string ServerIP { private set; get; }
         public ushort Port { private set; get; }
         public Client Client { private set; get; }
+        public bool HeavyPakLoss { get; set; }
 
         public SgClientPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -82,6 +83,8 @@ namespace StargateNet
         /// <param name="args"></param>
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
+            this.HeavyPakLoss = false;
+            
             var ds = this.Engine.ClientSimulation.snapShots;
             var msg = args.Message;
             if (msg.UnreadBits < 8 * sizeof(int)) return;

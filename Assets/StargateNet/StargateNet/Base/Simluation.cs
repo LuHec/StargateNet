@@ -11,20 +11,17 @@ namespace StargateNet
         {
             this.engine = engine;
         }
-        
+
         internal virtual void PreUpdate()
         {
-            
         }
-        
+
         internal virtual void PreFixedUpdate()
         {
-            
         }
 
         internal virtual void PostFixedUpdate()
         {
-            
         }
 
         /// <summary>
@@ -32,9 +29,12 @@ namespace StargateNet
         /// </summary>
         internal void FixedUpdate()
         {
+            // 对于客户端，先在这里处理回滚，然后再模拟下一帧
+            this.PreFixedUpdate();
             this.ExecuteNetworkFixedUpdate();
+            this.PostFixedUpdate();
         }
-        
+
         internal void ExecuteNetworkUpdate()
         {
             if (!this.engine.Simulated) return;
@@ -46,13 +46,13 @@ namespace StargateNet
             if (!this.engine.Simulated) return;
             this.engine.IM.ExecuteNetworkRender();
         }
-        
+
         internal void ExecuteNetworkFixedUpdate()
         {
             if (!this.engine.Simulated) return;
             this.engine.IM.ExecuteNetworkFixedUpdate();
         }
-        
+
         internal SimulationInput CreateInput(Tick srvTick, Tick targetTick)
         {
             if (inputPool.Count == 0)
@@ -65,11 +65,10 @@ namespace StargateNet
             resInput.targetTick = targetTick;
             return resInput;
         }
-        
+
         internal void RecycleInput(SimulationInput input)
         {
             this.inputPool.Enqueue(input);
         }
-
     }
 }

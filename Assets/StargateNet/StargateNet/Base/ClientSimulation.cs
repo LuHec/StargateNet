@@ -72,6 +72,7 @@ namespace StargateNet
             if (delayTickCount > this.engine.ConfigData.maxPredictedTicks)
             {
                 // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了
+                this.engine.Client.HeavyPakLoss = true;
                 RemoveAllInputs();
             }
 

@@ -46,36 +46,46 @@ namespace StargateNet
             if (!this._engine.IsClient || this._engine.Client.Client.RTT == -1 ||
                 !this._engine.ClientSimulation.currentTick.IsValid ||
                 !this._engine.ClientSimulation.authoritativeTick.IsValid) return;
+            if (this._engine.Client.HeavyPakLoss)
+                this._scaledDelta = this._fixedDelta;
             AdjustClock(this._engine.Client.Client.RTT, 0, this._engine.ClientSimulation.currentTick.tickValue,
                 this._engine.ClientSimulation.authoritativeTick.tickValue);
         }
 
+        private float _lastAdjustTime = 0;
         private void AdjustClock(float clientRTT, float serverSnapshotTimeAvg, int clientTick, int serverTick)
         {
             // 有关延迟：Client RTT, Server Pack Time, Last Pack Time, 有关Tick:ClientTick, ServerTick
             // 用各种延迟计算出一个Tick的合理区间然后比较当前的Tick差，最后三种结果：加速，减速，不变
             float pakTime = UnityEngine.Time.time - this._engine.ClientSimulation.lastReceiveTime;
-            float targetTick = pakTime / this._deltaTime;
-            float delayTime = (serverTick + targetTick - clientTick) / this._fixedDelta;
+            float targetDelayTick = clientRTT / this._deltaTime;
+            float delayTime = (serverTick + targetDelayTick - clientTick) / this._fixedDelta;
             float delayStd = 0.4f * this._deltaTime; // 标准差值
             //[-std, std]这个范围内都是正常区间
             // 比标准值大，说明慢了，要加速
             if (delayTime > delayStd)
             {
-                this._scaledDelta = 0.99f * this._fixedDelta;
                 this._clockLevel = 2;
+                // 分为两种情况：直接追帧和加速
+                // 和理论值差了3帧以上，就直接让下一帧多模拟几次追上去
+                if (delayTime > this._fixedDelta * 3.0f && this._accumulator < this._fixedDelta * 3.0f)
+                {
+                    this._accumulator += this._fixedDelta * 5.0f;
+                }
+                else
+                    this._scaledDelta = 0.99f * this._fixedDelta;
             }
             // 小于0，说明快了，要减速
             else if (delayTime < 0 && delayTime < -delayStd)
             {
-                this._scaledDelta = 1.04f * this._fixedDelta;
                 this._clockLevel = 0;
+                this._scaledDelta = 1.02f * this._fixedDelta;
             }
             //在正常区间
             else
             {
-                this._scaledDelta = this._fixedDelta;
                 this._clockLevel = 1;
+                this._scaledDelta = this._fixedDelta;
             }
         }
     }
