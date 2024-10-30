@@ -18,21 +18,15 @@ namespace StargateNet
         }
 
         /// <summary>
-        /// 维护从LastReciveTick开始的Input，优先保留旧的input，后来的超过上限就丢弃
+        /// 维护从LastReciveTick开始的Input，后来的会顶掉之前的(可能会顶掉还没被使用的)
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
-        public bool ReciveInput(SimulationInput input)
+        public void ReciveInput(SimulationInput input)
         {
-            if (clientInput.Count >= this.maxClientInput)
-                return false;
-            if (this.LastTick.IsValid && input.targetTick < this.LastTick)
-                return false;
-
             this.Started = true;
             clientInput.Enqueue(input);
             this.LastTick = input.targetTick;
-            return true;
         }
 
         public void Reset()

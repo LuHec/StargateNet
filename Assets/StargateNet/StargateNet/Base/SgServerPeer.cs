@@ -73,26 +73,39 @@ namespace StargateNet
                 {
                     int targetTick = msg.GetInt();
                     ClientData clientData = this.clientConnections[args.FromConnection.Id].clientData;
+                    if (targetTick < clientData.LastTick.tickValue)
+                    {
+                        continue;
+                    }
+
                     SimulationInput simulationInput =
                         this.Engine.ServerSimulation.CreateInput(Tick.InvalidTick, new Tick(targetTick));
-                    if (!clientData.ReciveInput(simulationInput))
-                        this.Engine.ServerSimulation.RecycleInput(simulationInput);
+                    while (clientData.clientInput.Count >= clientData.maxClientInput)
+                    {
+                        this.Engine.ServerSimulation.RecycleInput(clientData.clientInput.Dequeue());
+                    }
+                    
+                    clientData.ReciveInput(simulationInput); 
                 }
+
+                RiptideLogger.Log(LogType.Error,
+                    $"recv count:{inputCount}, actully input count get from pak:{this.clientConnections[args.FromConnection.Id].clientData.clientInput.Count}");
             }
             else
             {
                 int confirmTick = msg.GetInt();
                 RiptideLogger.Log(LogType.Debug,
                     $"Server Tick:{this.Engine.simTick}:" +
-                    $", Acked from {args.FromConnection.Id} at Tick {confirmTick}, RTT:{args.FromConnection.RTT}");   
+                    $", Acked from {args.FromConnection.Id} at Tick {confirmTick}, RTT:{args.FromConnection.RTT}");
             }
         }
-        
+
         private void OnConnect(object sender, ServerConnectedEventArgs args)
         {
             if (clientConnections.TryAdd(args.Client.Id, new ClientConnection() { connection = args.Client }))
             {
-                ClientData clientData = this.clientConnections[args.Client.Id].clientData = this.Engine.ServerSimulation.clientDatas[args.Client.Id];
+                ClientData clientData = this.clientConnections[args.Client.Id].clientData =
+                    this.Engine.ServerSimulation.clientDatas[args.Client.Id];
                 clientData.Reset();
             }
 
