@@ -62,7 +62,7 @@ namespace StargateNet
             // 有关延迟：Client RTT, Server Pack Time, Last Pack Time, 有关Tick:ClientTick, ServerTick
             // 用各种延迟计算出一个Tick的合理区间然后比较当前的Tick差，最后三种结果：加速，减速，不变
             double pakTime = this.Time - this._lastAdjustTime;
-            double targetDelayTick = clientRTT / this._deltaTime;
+            double targetDelayTick = (pakTime + clientRTT) / this._deltaTime; //  从服务端发包时间到现在的增加帧数(RTT+PakTimeDelta)
             double delayTime = (serverTick + targetDelayTick - clientTick) / this._fixedDelta;
             double delayStd = 0.4 * this._deltaTime; // 标准差值
             //[-std, std]这个范围内都是正常区间
