@@ -17,6 +17,11 @@ namespace StargateNet
             this.LastTick = Tick.InvalidTick;
         }
 
+        /// <summary>
+        /// 维护从LastReciveTick开始的Input，优先保留旧的input，后来的超过上限就丢弃
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         public bool ReciveInput(SimulationInput input)
         {
             if (clientInput.Count >= this.maxClientInput)

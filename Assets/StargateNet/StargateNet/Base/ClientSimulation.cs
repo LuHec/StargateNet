@@ -16,9 +16,7 @@ namespace StargateNet
         internal SimulationInput currentInput = new SimulationInput();
         internal StargateAllocator lastAuthorSnapShots;
         internal float serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
-        internal float lastReceiveTime = -1;
         
-
 
         internal ClientSimulation(SgNetworkEngine engine) : base(engine)
         {
@@ -30,7 +28,7 @@ namespace StargateNet
         /// <param name="srvTick"></param>
         internal void OnRcvPak(Tick srvTick)
         {
-            this.lastReceiveTime = Time.time; 
+            this.engine.Timer.OnRecvPak();
             authoritativeTick = srvTick;
         }
 

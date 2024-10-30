@@ -13,6 +13,10 @@ namespace StargateNet
         private float _scaledDelta; // scaled ms/frame
         private double _accumulator; // 累计的帧时间，消耗该时间可以tick一次，帧数过低时，这个值在两帧之间会变大
         private int _clockLevel = 1;
+        private float _lastAdjustTime = 0;
+        private bool _initAdjust = true;
+        private double _connectTime = -1;
+        private double _lastPacketTime = -1;
 
         internal SimulationClock(SgNetworkEngine engine, Action action)
         {
@@ -22,14 +26,14 @@ namespace StargateNet
             this._scaledDelta = _fixedDelta;
         }
 
-        public void PreUpdate()
+        internal void PreUpdate()
         {
             this._deltaTime = this._engine.LastDeltaTime / this._engine.LastTimeScale;
             this._accumulator += this._deltaTime;
             this.Time += this._deltaTime;
         }
 
-        public void Update()
+        internal void Update()
         {
             IsFirstCall = true;
             // 10次只是一个阈值，用来限制处理低帧率的次数。在60tick的情况下，得低于6帧才会在一帧内处理10次，在帧数足够的情况下只会触发一次
@@ -37,6 +41,7 @@ namespace StargateNet
             {
                 this._engine.Monitor.clockLevel = this._clockLevel;
                 this._accumulator -= this._scaledDelta;
+                // 只有每帧的第一次模拟会触发回滚+Resim
                 this._action?.Invoke();
                 IsFirstCall = false;
             }
@@ -52,23 +57,29 @@ namespace StargateNet
                 this._engine.ClientSimulation.authoritativeTick.tickValue);
         }
 
-        private float _lastAdjustTime = 0;
-        private void AdjustClock(float clientRTT, float serverSnapshotTimeAvg, int clientTick, int serverTick)
+        private void AdjustClock(double clientRTT, double serverSnapshotTimeAvg, double clientTick, double serverTick)
         {
             // 有关延迟：Client RTT, Server Pack Time, Last Pack Time, 有关Tick:ClientTick, ServerTick
             // 用各种延迟计算出一个Tick的合理区间然后比较当前的Tick差，最后三种结果：加速，减速，不变
-            float pakTime = UnityEngine.Time.time - this._engine.ClientSimulation.lastReceiveTime;
-            float targetDelayTick = clientRTT / this._deltaTime;
-            float delayTime = (serverTick + targetDelayTick - clientTick) / this._fixedDelta;
-            float delayStd = 0.4f * this._deltaTime; // 标准差值
+            double pakTime = this.Time - this._lastAdjustTime;
+            double targetDelayTick = clientRTT / this._deltaTime;
+            double delayTime = (serverTick + targetDelayTick - clientTick) / this._fixedDelta;
+            double delayStd = 0.4 * this._deltaTime; // 标准差值
             //[-std, std]这个范围内都是正常区间
             // 比标准值大，说明慢了，要加速
             if (delayTime > delayStd)
             {
                 this._clockLevel = 2;
                 // 分为两种情况：直接追帧和加速
+                // 第一次连上服务端，追帧
+                if (this._initAdjust && this.Time - this._connectTime > 0.5)
+                {
+                    this._accumulator += clientRTT;
+                    this._initAdjust = false;
+                }
+
                 // 和理论值差了3帧以上，就直接让下一帧多模拟几次追上去
-                if (delayTime > this._fixedDelta * 3.0f && this._accumulator < this._fixedDelta * 3.0f)
+                if (delayTime > this._fixedDelta * 3.0 && this._accumulator < this._fixedDelta * 3.0)
                 {
                     this._accumulator += this._fixedDelta * 5.0f;
                 }
@@ -79,7 +90,7 @@ namespace StargateNet
             else if (delayTime < 0 && delayTime < -delayStd)
             {
                 this._clockLevel = 0;
-                this._scaledDelta = 1.02f * this._fixedDelta;
+                this._scaledDelta = delayTime < this._fixedDelta * 3? 1.04f * this._fixedDelta : 1.01f * this._fixedDelta; ;
             }
             //在正常区间
             else
@@ -87,6 +98,16 @@ namespace StargateNet
                 this._clockLevel = 1;
                 this._scaledDelta = this._fixedDelta;
             }
+        }
+
+        internal void OnRecvPak()
+        {
+            this._lastPacketTime = this.Time;
+        }
+
+        internal void OnConnect()
+        {
+            this._connectTime = this.Time;
         }
     }
 }
