@@ -31,6 +31,8 @@ namespace StargateNet
                     clientDatas[i].currentInput = CreateInput(Tick.InvalidTick, Tick.InvalidTick);
                 }
             }
+
+            this.engine.Monitor.tick = this.engine.simTick.tickValue;
         }
 
         private void ConsumeInputs(Tick targetTick)

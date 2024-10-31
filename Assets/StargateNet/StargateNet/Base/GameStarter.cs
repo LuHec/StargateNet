@@ -33,7 +33,8 @@ namespace StargateNet
                 var monitor = SgNetwork.Instance.monitor;
                 GUILayout.BeginVertical(); // 开始竖排布局
 
-                string textToDisplay = $"Sim DeltaTime: {monitor.deltaTime:F6}\n" +
+                string textToDisplay = $"Tick: {monitor.tick}\n" +
+                                       $"Sim DeltaTime: {monitor.deltaTime:F6}\n" +
                                        $"Clock Level{monitor.clockLevel}\n" +
                                        $"RTT: {monitor.rtt:F6}\n" +
                                        $"Smooth RTT: {monitor.smothRTT:F6}\n" +

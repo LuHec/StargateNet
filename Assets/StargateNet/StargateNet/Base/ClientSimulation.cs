@@ -16,7 +16,7 @@ namespace StargateNet
         internal SimulationInput currentInput = new SimulationInput();
         internal StargateAllocator lastAuthorSnapShots;
         internal float serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
-        
+
 
         internal ClientSimulation(SgNetworkEngine engine) : base(engine)
         {
@@ -48,12 +48,16 @@ namespace StargateNet
                 $"Rollback,Clinet CurrentTick:{this.currentTick.tickValue}, AuthoritativeTick:{this.authoritativeTick}");
             SimulationInput input = CreateInput(this.authoritativeTick, this.currentTick);
             this.inputs.Add(input);
-            // 新输入占位
-            while (this.inputs.Count > 0 && this.inputs.Count > this.engine.ConfigData.maxPredictedTicks)
+            while (this.inputs.Count > 0 && this.inputs.Count > this.engine.ConfigData.maxPredictedTicks) // 新输入占位
             {
                 RecycleInput(this.inputs[0]);
                 this.inputs.RemoveAt(0);
             }
+        }
+
+        internal override void PostFixedUpdate()
+        {
+            this.engine.Monitor.tick = this.currentTick.tickValue;
         }
 
         internal override void PreUpdate()
@@ -67,18 +71,15 @@ namespace StargateNet
         {
             int delayTickCount = Math.Abs(this.currentTick - this.authoritativeTick);
             this.currentTick = this.authoritativeTick; // currentTick复制authorTick，并从这一帧开始重新模拟
-            if (delayTickCount > this.engine.ConfigData.maxPredictedTicks)
+            if (delayTickCount > this.engine.ConfigData.maxPredictedTicks) // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了
             {
-                // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了
                 this.engine.Client.HeavyPakLoss = true;
                 RemoveAllInputs();
             }
 
-            if (this.currentTick.IsValid && delayTickCount < this.engine.ConfigData.maxPredictedTicks)
+            if (this.currentTick.IsValid && delayTickCount < this.engine.ConfigData.maxPredictedTicks) // 回滚+重模拟
             {
                 RemoveInputBefore(this.authoritativeTick);
-                // 回滚
-                // 重模拟
                 for (int i = 0; i < this.inputs.Count; i++)
                 {
                     this.currentTick++;
