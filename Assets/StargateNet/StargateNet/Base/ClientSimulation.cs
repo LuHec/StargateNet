@@ -15,7 +15,7 @@ namespace StargateNet
         internal List<SimulationInput> inputs = new(512);
         internal SimulationInput currentInput = new SimulationInput();
         internal StargateAllocator lastAuthorSnapShots;
-        internal float serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
+        internal double serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
 
 
         internal ClientSimulation(SgNetworkEngine engine) : base(engine)

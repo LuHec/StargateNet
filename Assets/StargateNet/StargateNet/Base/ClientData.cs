@@ -10,6 +10,8 @@ namespace StargateNet
         public Tick LastTick { get; private set; }
         public bool Started { get; private set; }
         public SimulationInput currentInput = new SimulationInput();
+        public double lastPakTime;
+        public double deltaPakTime;
 
         public ClientData(int maxClientInput)
         {

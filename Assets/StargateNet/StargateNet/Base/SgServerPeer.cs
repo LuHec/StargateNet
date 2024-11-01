@@ -16,7 +16,8 @@ namespace StargateNet
         public ushort Port { private set; get; }
         public ushort MaxClientCount { private set; get; }
         public Server Server { private set; get; }
-        public Dictionary<ushort, ClientConnection> clientConnections = new();
+        public List<ClientConnection> clientConnections;
+
 
         public SgServerPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -30,6 +31,7 @@ namespace StargateNet
             this.Port = port;
             this.MaxClientCount = maxClientCount;
             this.Server.Start(port, maxClientCount, useMessageHandlers: false);
+            this.clientConnections = new List<ClientConnection>(maxClientCount);
             RiptideLogger.Log(LogType.Debug, "Server Start");
         }
 
@@ -39,21 +41,29 @@ namespace StargateNet
         }
 
         /// <summary>
-        /// 发送一定的字节，尽量压缩到1400字节左右防止分包。不可靠。
+        /// 尽量压缩到1400字节左右防止分包。
         /// </summary>
         /// <param name="clientId">客户端的id</param>
         /// <param name="msg">数据</param>
         public void SendMessageUnreliable(ushort clientId, Message msg)
         {
-            if (clientConnections.TryGetValue(clientId, out ClientConnection clientConnection))
-                this.Server.Send(msg, clientConnection.connection);
+            if (clientConnections[clientId].connected)
+                this.Server.Send(msg, clientConnections[clientId].connection);
         }
 
         public void SendServerPak()
         {
             Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
             msg.AddInt(this.Engine.simTick.tickValue);
-            this.Server.SendToAll(msg);
+            ClientData[] clientDatas = this.Engine.ServerSimulation.clientDatas;
+            for (int i = 1; i < clientDatas.Length; i++)
+            {
+                if (clientDatas[i].Started)
+                {
+                    msg.AddDouble(clientDatas[i].deltaPakTime);
+                    this.Server.Send(msg, (ushort)i);
+                }
+            }
         }
 
         public override void Disconnect()
@@ -69,10 +79,12 @@ namespace StargateNet
             if ((flag & 1) == 0)
             {
                 int inputCount = msg.GetInt();
+                ClientData clientData = this.clientConnections[args.FromConnection.Id].clientData;
+                clientData.deltaPakTime = this.Engine.Timer.Time - clientData.lastPakTime;
+                clientData.lastPakTime = this.Engine.Timer.Time;
                 for (int i = 0; i < inputCount; i++)
                 {
                     int targetTick = msg.GetInt();
-                    ClientData clientData = this.clientConnections[args.FromConnection.Id].clientData;
                     if (targetTick < clientData.LastTick.tickValue)
                     {
                         continue;
@@ -84,8 +96,8 @@ namespace StargateNet
                     {
                         this.Engine.ServerSimulation.RecycleInput(clientData.clientInput.Dequeue());
                     }
-                    
-                    clientData.ReciveInput(simulationInput); 
+
+                    clientData.ReciveInput(simulationInput);
                 }
 
                 RiptideLogger.Log(LogType.Error,
@@ -102,8 +114,10 @@ namespace StargateNet
 
         private void OnConnect(object sender, ServerConnectedEventArgs args)
         {
-            if (clientConnections.TryAdd(args.Client.Id, new ClientConnection() { connection = args.Client }))
+            if (clientConnections[args.Client.Id].connected == false)
             {
+                this.clientConnections[args.Client.Id].connected = true;
+                this.clientConnections[args.Client.Id].connection = args.Client;
                 ClientData clientData = this.clientConnections[args.Client.Id].clientData =
                     this.Engine.ServerSimulation.clientDatas[args.Client.Id];
                 clientData.Reset();

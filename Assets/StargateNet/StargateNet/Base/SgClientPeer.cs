@@ -91,6 +91,7 @@ namespace StargateNet
             Tick srvtick = new Tick(msg.GetInt());
             this.Engine.ClientSimulation.OnRcvPak(srvtick);
             Ack(srvtick);
+            this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
         }
 
         public void SendClientPak()
