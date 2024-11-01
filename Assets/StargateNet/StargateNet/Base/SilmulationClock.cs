@@ -8,17 +8,22 @@ namespace StargateNet
         internal double Time { get; private set; }
         internal bool IsFirstCall { get; private set; }
         private Action _action;
+
         private SgNetworkEngine _engine;
+
         // 时间单位全都是秒
         private float _deltaTime; // update delta time(not fixed)
         private float _fixedDelta; // config ms/frame
         private float _scaledDelta; // scaled ms/frame
         private double _accumulator; // 累计的帧时间，消耗该时间可以tick一次，帧数过低时，这个值在两帧之间会变大
+
         private int _clockLevel = 1;
+
         // private float _lastAdjustTime = 0;
         private bool _initAdjust = true;
         private double _connectTime = -1;
         private double _lastPacketTime = -1;
+        private double _lastAdjustTime = 0;
 
         internal SimulationClock(SgNetworkEngine engine, Action action)
         {
@@ -59,22 +64,24 @@ namespace StargateNet
                 this._engine.Monitor.clockLevel = 1;
             }
 
-            AdjustClock(this._engine.Client.Client.SmoothRTT * 0.001, this._engine.ClientSimulation.serverInputRcvTimeAvg, this._engine.ClientSimulation.currentTick.tickValue,
+            AdjustClock(this._engine.Client.Client.SmoothRTT * 0.001, this._engine.ClientSimulation.serverInputRcvTimeAvg,
+                this._engine.ClientSimulation.currentTick.tickValue,
                 this._engine.ClientSimulation.authoritativeTick.tickValue);
         }
 
         private void AdjustClock(double latency, double serverInputRcvTimeAvg, double clientTick, double serverTick)
         {
             // 目前算出来的是在最小帧率附近的值，需要加上一定的提前量
-            
+
             // 有关延迟：Client RTT, Server Pack Time, Last Pack Time, 有关Tick:ClientTick, ServerTick
             // 用各种延迟计算出一个Tick的合理区间然后比较当前的Tick差，最后三种结果：加速，减速，不变
             double pakTime = this.Time - this._lastPacketTime;
-            double targetDelayTick = (pakTime + latency) / this._fixedDelta; //  服务端从发包时间到现在的增加帧数(RTT+PakTimeDelta)
-            double serverBiasTick = (serverInputRcvTimeAvg / this._fixedDelta) * 3.0;
+            double targetDelayTick = (pakTime + latency) / this._fixedDelta; //  从上一次收到包时间到包发到服务端后，服务端的增加帧数(RTT+PakTimeDelta)
+            double serverBiasTick = (serverInputRcvTimeAvg - _fixedDelta) * 4.5 / this._fixedDelta; // 基于服务端的接受延迟的调整值
             double delayTime = (serverTick + targetDelayTick + serverBiasTick - clientTick) * this._fixedDelta;
             double delayStd = 0.4 * this._fixedDelta; // 标准差值
-            RiptideLogger.Log(LogType.Error, $"Delay Time {delayTime}, Delay std {delayStd}， Client Tick {clientTick}, Server Tick{serverTick}, target Delay Tick {targetDelayTick}, pak Time {pakTime}, client RTT {latency}");
+            RiptideLogger.Log(LogType.Error,
+                $"Delay Time {delayTime}, Delay std {delayStd}， Client Tick {clientTick}, Server Tick{serverTick}, target Delay Tick {targetDelayTick}, pak Time {pakTime}, client RTT {latency}");
             //[-std, std]这个范围内都是正常区间
             // 比标准值大，说明慢了，要加速
             if (delayTime > delayStd)
@@ -82,27 +89,33 @@ namespace StargateNet
                 this._clockLevel = 2;
                 // 分为两种情况：直接追帧和加速
                 // 第一次连上服务端，追帧
-                if (this._initAdjust && this.Time - this._connectTime > 0.5)
+                if (this.Time - this._lastAdjustTime > 0.5 && this._initAdjust && this.Time - this._connectTime > 0.5)
                 {
                     this._accumulator += latency * 2;
                     this._initAdjust = false;
                 }
 
                 // 和理论值差了3帧以上，就直接让下一帧多模拟几次追上去
-                if (delayTime > this._fixedDelta * 3.0 && this._accumulator < this._fixedDelta * 3.0)
+                if (this.Time - this._lastAdjustTime > 0.5 && delayTime > this._fixedDelta * 3.0 &&
+                    this._accumulator < this._fixedDelta * 3.0)
                 {
+                    this._lastAdjustTime = this.Time;
                     this._accumulator += this._fixedDelta * 5.0f;
                 }
                 else
                 {
-                    this._scaledDelta = 0.98f * this._fixedDelta;   
+                    this._scaledDelta = 0.99f * this._fixedDelta;
                 }
             }
             // 小于0，说明快了，要减速
             else if (delayTime < 0 && delayTime < -delayStd)
             {
                 this._clockLevel = 0;
-                this._scaledDelta = delayTime < this._fixedDelta * 3? 1.04f * this._fixedDelta : 1.01f * this._fixedDelta; ;
+                // 两个速度间选一个
+                this._scaledDelta = delayTime < this._fixedDelta * 3
+                    ? 1.04f * this._fixedDelta
+                    : 1.01f * this._fixedDelta;
+                ;
             }
             //在正常区间
             else

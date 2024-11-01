@@ -55,8 +55,14 @@ namespace StargateNet
                             clientDatas[i].currentInput = input;
                         }
                     }
+
+                    int peekTick = -1;
+                    if (clientInput.Count > 0)
+                    {
+                        peekTick = clientInput.Peek().targetTick.tickValue;
+                    }
                     RiptideLogger.Log(LogType.Warning,
-                        $"ServerTick:{this.engine.simTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick},input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
+                        $"ServerTick:{this.engine.simTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick},Peek Tick:{peekTick}, input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
                 }
             }
         }

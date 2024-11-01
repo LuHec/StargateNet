@@ -118,8 +118,8 @@ namespace StargateNet
 
             if (this.IsServer || (this.IsClient && this.IsConnected))
             {
-                this.simTick++;
                 this.Simulation.FixedUpdate();
+                this.simTick++;
             }
 
             Send();

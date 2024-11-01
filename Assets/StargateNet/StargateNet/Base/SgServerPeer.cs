@@ -16,7 +16,7 @@ namespace StargateNet
         public ushort Port { private set; get; }
         public ushort MaxClientCount { private set; get; }
         public Server Server { private set; get; }
-        public List<ClientConnection> clientConnections;
+        public List<ClientConnection> clientConnections; // 暂时先用List(有隐患，Riptide给Client的id是递增的，一个CLient断线重连后获得的id和以前不一样)
 
 
         public SgServerPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
@@ -32,6 +32,7 @@ namespace StargateNet
             this.MaxClientCount = maxClientCount;
             this.Server.Start(port, maxClientCount, useMessageHandlers: false);
             this.clientConnections = new List<ClientConnection>(maxClientCount);
+            this.clientConnections.Add(new ClientConnection());
             RiptideLogger.Log(LogType.Debug, "Server Start");
         }
 
@@ -56,9 +57,9 @@ namespace StargateNet
             Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
             msg.AddInt(this.Engine.simTick.tickValue);
             ClientData[] clientDatas = this.Engine.ServerSimulation.clientDatas;
-            for (int i = 1; i < clientDatas.Length; i++)
+            for (int i = 1; i < this.clientConnections.Count; i++)
             {
-                if (clientDatas[i].Started)
+                if (this.clientConnections[i].connected)
                 {
                     msg.AddDouble(clientDatas[i].deltaPakTime);
                     this.Server.Send(msg, (ushort)i);
@@ -90,14 +91,13 @@ namespace StargateNet
                         continue;
                     }
 
-                    SimulationInput simulationInput =
-                        this.Engine.ServerSimulation.CreateInput(Tick.InvalidTick, new Tick(targetTick));
-                    while (clientData.clientInput.Count >= clientData.maxClientInput)
+                    // 优先保留旧输入，以免被冲掉
+                    if (clientData.clientInput.Count < clientData.maxClientInput)
                     {
-                        this.Engine.ServerSimulation.RecycleInput(clientData.clientInput.Dequeue());
+                        SimulationInput simulationInput =
+                            this.Engine.ServerSimulation.CreateInput(Tick.InvalidTick, new Tick(targetTick));
+                        clientData.ReciveInput(simulationInput);
                     }
-
-                    clientData.ReciveInput(simulationInput);
                 }
 
                 RiptideLogger.Log(LogType.Error,
@@ -114,14 +114,10 @@ namespace StargateNet
 
         private void OnConnect(object sender, ServerConnectedEventArgs args)
         {
-            if (clientConnections[args.Client.Id].connected == false)
-            {
-                this.clientConnections[args.Client.Id].connected = true;
-                this.clientConnections[args.Client.Id].connection = args.Client;
-                ClientData clientData = this.clientConnections[args.Client.Id].clientData =
-                    this.Engine.ServerSimulation.clientDatas[args.Client.Id];
-                clientData.Reset();
-            }
+            ClientData clientData = this.Engine.ServerSimulation.clientDatas[args.Client.Id];
+            clientData.Reset();
+            clientConnections.Add(new ClientConnection()
+                { connected = true, connection = args.Client, clientData = clientData });
 
             this.Engine.Monitor.connectedClients = this.clientConnections.Count;
         }
