@@ -40,14 +40,20 @@ namespace StargateNet
             if (!this.authoritativeTick.IsValid)
                 return;
 
-            RiptideLogger.Log(LogType.Warning,
-                $"No Rollback yet,Clinet CurrentTick:{this.currentTick.tickValue}, AuthoritativeTick:{this.authoritativeTick}");
             if (this.engine.Timer.IsFirstCall)
+            {
                 Reconcile();
-            RiptideLogger.Log(LogType.Warning,
-                $"Rollback,Clinet CurrentTick:{this.currentTick.tickValue}, AuthoritativeTick:{this.authoritativeTick}");
-            SimulationInput input = CreateInput(this.authoritativeTick, this.currentTick);
-            this.inputs.Add(input);
+                // 只有第一次模拟才创建输入，Clock后续的追帧模拟因为在同一unity帧内读取不到用户输入,所以不加入
+                // 否则会因为重复输入过多而冲掉了服务端后续接受到的有效帧数
+                // (服务端优先保留旧的输入，【待求证】如果优先新的帧数，可能导致服务端下一帧的输入被冲掉)
+                SimulationInput input = CreateInput(this.authoritativeTick, this.currentTick);
+                this.inputs.Add(input);
+            }
+
+            // 关于新输入把旧输入冲掉导致服务端丢失操作的问题：
+            // 首先模拟函数的调用时机在Send Input之后
+            // Reconcile中限定了客户端的输入范围在AuthorTick到CurrentTick，都是上一帧的数据，已经在Send中被发出。
+            // 本帧要发的实际上应该是AuthorTick + 1到CurrentTick + 1
             while (this.inputs.Count > 0 && this.inputs.Count > this.engine.ConfigData.maxPredictedTicks) // 新输入占位
             {
                 RecycleInput(this.inputs[0]);

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Riptide.Utils;
 
 namespace StargateNet
@@ -42,6 +43,19 @@ namespace StargateNet
                 if (clientDatas[i].Started)
                 {
                     Queue<SimulationInput> clientInput = clientDatas[i].clientInput;
+                    string ticks = "";
+                    if (clientInput.Count > 0)
+                    {
+                        var array = clientInput.ToArray();
+                        for (int j = 0; j < array.Length; j++)
+                        {
+                            ticks += ',';
+                            ticks += array[j].targetTick;
+                        }
+                    }
+
+                    RiptideLogger.Log(LogType.Warning,
+                        $"ServerTick:{this.engine.simTick}, {ticks} input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
                     while (clientInput.Count > 0 && clientInput.Peek().targetTick <= targetTick)
                     {
                         var input = clientInput.Dequeue();
@@ -56,17 +70,11 @@ namespace StargateNet
                         }
                     }
 
-                    int peekTick = -1;
-                    if (clientInput.Count > 0)
-                    {
-                        peekTick = clientInput.Peek().targetTick.tickValue;
-                    }
+
                     RiptideLogger.Log(LogType.Warning,
-                        $"ServerTick:{this.engine.simTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick},Peek Tick:{peekTick}, input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
+                        $"ServerTick:{this.engine.simTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick}, input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
                 }
             }
         }
-        
-        
     }
 }
