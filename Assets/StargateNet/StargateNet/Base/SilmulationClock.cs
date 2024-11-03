@@ -64,24 +64,27 @@ namespace StargateNet
                 this._engine.Monitor.clockLevel = 1;
             }
 
-            AdjustClock(this._engine.Client.Client.SmoothRTT * 0.001, this._engine.ClientSimulation.serverInputRcvTimeAvg,
+            AdjustClock(this._engine.Client.Client.SmoothRTT * 0.001,
+                this._engine.ClientSimulation.serverInputRcvTimeAvg,
                 this._engine.ClientSimulation.currentTick.tickValue,
                 this._engine.ClientSimulation.authoritativeTick.tickValue);
         }
 
-        private void AdjustClock(double latency, double serverInputRcvTimeAvg, double clientTick, double serverTick)
+        private void AdjustClock(double latency, double serverInputRcvTimeAvg, double currentTick, double serverTick)
         {
             // 目前算出来的是在最小帧率附近的值，需要加上一定的提前量
 
             // 有关延迟：Client RTT, Server Pack Time, Last Pack Time, 有关Tick:ClientTick, ServerTick
             // 用各种延迟计算出一个Tick的合理区间然后比较当前的Tick差，最后三种结果：加速，减速，不变
+            // 如果想让客户端在高延迟下多预测几帧，优先应该调整的是【delayTime】
             double pakTime = this.Time - this._lastPacketTime;
-            double targetDelayTick = (pakTime + latency) / this._fixedDelta; //  从上一次收到包时间到包发到服务端后，服务端的增加帧数(RTT+PakTimeDelta)
-            double serverBiasTick = (serverInputRcvTimeAvg - _fixedDelta) * 4.5 / this._fixedDelta; // 基于服务端的接受延迟的调整值
-            double delayTime = (serverTick + targetDelayTick + serverBiasTick - clientTick) * this._fixedDelta;
+            double targetDelayTick =
+                (pakTime + latency) / this._fixedDelta; //  从上一次收到包时间到包发到服务端后，服务端的增加帧数(RTT+PakTimeDelta)
+            double serverBiasTick = (serverInputRcvTimeAvg - _fixedDelta)  / this._fixedDelta; // 基于服务端的接受延迟和一帧时间差值的调整值，
+            double delayTime = (serverTick + targetDelayTick + serverBiasTick + 2 - currentTick) * this._fixedDelta;
             double delayStd = 0.4 * this._fixedDelta; // 标准差值
             RiptideLogger.Log(LogType.Error,
-                $"Delay Time {delayTime}, Delay std {delayStd}， Client Tick {clientTick}, Server Tick{serverTick}, target Delay Tick {targetDelayTick}, pak Time {pakTime}, client RTT {latency}");
+                $"Delay Time {delayTime}, Delay std {delayStd}， Client Tick {currentTick}, Server Tick{serverTick}, target Delay Tick {targetDelayTick}, pak Time {pakTime}, client RTT {latency}");
             //[-std, std]这个范围内都是正常区间
             // 比标准值大，说明慢了，要加速
             if (delayTime > delayStd)
@@ -104,7 +107,7 @@ namespace StargateNet
                 }
                 else
                 {
-                    this._scaledDelta = 0.99f * this._fixedDelta;
+                    this._scaledDelta = 0.98f * this._fixedDelta;
                 }
             }
             // 小于0，说明快了，要减速

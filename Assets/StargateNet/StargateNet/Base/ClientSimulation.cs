@@ -53,7 +53,7 @@ namespace StargateNet
             // 关于新输入把旧输入冲掉导致服务端丢失操作的问题：
             // 首先模拟函数的调用时机在Send Input之后
             // Reconcile中限定了客户端的输入范围在AuthorTick到CurrentTick，都是上一帧的数据，已经在Send中被发出。
-            // 本帧要发的实际上应该是AuthorTick + 1到CurrentTick + 1
+            // 本帧要发的有效数据应该是AuthorTick + 1到CurrentTick + 1
             while (this.inputs.Count > 0 && this.inputs.Count > this.engine.ConfigData.maxPredictedTicks) // 新输入占位
             {
                 RecycleInput(this.inputs[0]);
