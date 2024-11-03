@@ -8,9 +8,9 @@ namespace StargateNet
     /// </summary>
     public sealed class Entity
     {
-        internal int networkId;                       // networked entity unique id
+        internal NetworkObjectRef networkId;                       // networked entity unique id
         internal SgNetworkEngine engine;
-        internal INetworkEntity entity;               // A GameObject which implement INetworkEntity
+        internal INetworkEntity entity;               // A NetworkObject which implement INetworkEntity
         internal readonly int entityBlockSize;        // Networked Field Size 
         internal unsafe int* stateBlockPtr;         // Networked Field memory block base address
         internal int[] bitmap;                       // bit dirtymap

@@ -7,16 +7,19 @@ namespace StargateNet
     public class NetworkObject : MonoBehaviour, INetworkEntity
     {
         public Entity Entity { get; private set; }
-        public int Id => this.Entity.networkId;
+        public NetworkObjectRef Id => this.Entity.networkId;
         public IStargateScript[] NetworkScripts { get; private set; }
 
+        /// <summary>
+        /// 由编辑器生成的id
+        /// </summary>
         public int PrefabId
         {
             get => _prefabId;
             set => this._prefabId = value;
         }
 
-        [SerializeField] internal int _prefabId = -1;
+        [SerializeField] private int _prefabId = -1;
 
         public void Initialize(SgNetworkEngine engine, IStargateScript[] networkScripts)
         {

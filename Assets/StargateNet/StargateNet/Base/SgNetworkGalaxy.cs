@@ -11,7 +11,6 @@ namespace StargateNet
     {
         public SgNetworkEngine Engine { private set; get; }
         public StargateConfigData ConfigData { private set; get; }
-        public Dictionary<int, NetworkObject> NetworkObjectsTable { private set; get; }
 
         public SgNetworkGalaxy()
         {
@@ -21,11 +20,6 @@ namespace StargateNet
         {
             this.Engine = new SgNetworkEngine();
             this.Engine.Start(startMode, configData, port, monitor);
-            NetworkObjectsTable = new Dictionary<int, NetworkObject>(configData.networkPrefabs.Count);
-            for (int i = 0; i < configData.networkPrefabs.Count; i++)
-            {
-                NetworkObjectsTable.Add(i, configData.networkPrefabs[i].GetComponent<NetworkObject>());
-            }
         }
 
         public void Connect(string ip, ushort port)
@@ -53,14 +47,7 @@ namespace StargateNet
         /// <exception cref="Exception"></exception>
         public void NetworkSpawn(GameObject gameObject)
         {
-            // 判断是服务端还是客户端(状态帧同步框架应该让所有涉及同步的部分都由服务端来决定，所以这里应该只由服务端来调用)
-            // 生成物体，构造Entity，根据IM来决定要发给哪个客户端，同时加入pedding send集合中(每个client一个集合，这样可以根据IM的设置来决定是否要在指定客户端生成)
-            // 夹在DS中发给客户端,内存构造是：length,bitmap,data。由于prefab id是int的，所以这个直接用4字节来处理id即可，没有ds的长度不定问题
-            if (Engine.IsClient) throw new Exception("Only Server can spawn network objects");
-            if (gameObject.TryGetComponent<NetworkObject>(out NetworkObject networkObject))
-            {
-            }
-            else throw new Exception($"GameObject {gameObject.name} is not a NetworkObject");
+            this.Engine.NetworkSpawn(gameObject);
         }
     }
 }

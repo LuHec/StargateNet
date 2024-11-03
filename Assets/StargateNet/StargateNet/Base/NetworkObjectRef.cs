@@ -1,45 +1,59 @@
-using System;
-using System.Runtime.CompilerServices;
+﻿using System;
 
 namespace StargateNet
 {
+    /// <summary>
+    /// Network Id
+    /// </summary>
     public struct NetworkObjectRef : IEquatable<NetworkObjectRef>
     {
-        public readonly int objectId;
+        public int refValue;
+        public static NetworkObjectRef InvalidNetworkObjectRef = new NetworkObjectRef(-1);
 
-        // public NetworkObjectRef(NetworkObject obj)
-        // {
-        //     this.objectId = (UnityEngine.Object) obj != (UnityEngine.Object) null ? obj.Id : -1;
-        // }
+        public bool IsValid => this.refValue != -1;
 
-        // public bool TryGetObject(NetworkSandbox sandbox, out NetworkObject obj)
-        // {
-        //     NetworkObject networkObject;
-        //     if (sandbox.TryGetObject(this.objectId, out networkObject))
-        //     {
-        //         obj = networkObject;
-        //         return true;
-        //     }
-        //     obj = (NetworkObject) null;
-        //     return false;
-        // }
-        //
-        // public NetworkObject GetObject(NetworkSandbox sandbox)
-        // {
-        //     NetworkObject networkObject;
-        //     return sandbox.TryGetObject(this.objectId, out networkObject) ? networkObject : (NetworkObject) null;
-        // }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode() => this.objectId.GetHashCode();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool Equals(object other)
+        public NetworkObjectRef(int refValue)
+            : this()
         {
-            return other is NetworkObjectRef other1 && this.Equals(other1);
+            this.refValue = refValue;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(NetworkObjectRef other) => this.objectId.Equals(other.objectId);
+        private void Invalidate() => this.refValue = -1;
+
+        public static NetworkObjectRef operator +(NetworkObjectRef a, int b) => new NetworkObjectRef(a.refValue + b);
+
+        public static NetworkObjectRef operator -(NetworkObjectRef a, int b) => new NetworkObjectRef(a.refValue - b);
+
+        public static int operator %(NetworkObjectRef a, int b) => a.refValue % b;
+
+        public static int operator -(NetworkObjectRef a, NetworkObjectRef b) => a.refValue - b.refValue;
+
+        public static NetworkObjectRef operator ++(NetworkObjectRef a) => new NetworkObjectRef(a.refValue + 1);
+
+        public static bool operator >(NetworkObjectRef a, NetworkObjectRef b) => a - b > 0;
+
+        public static bool operator <(NetworkObjectRef a, NetworkObjectRef b) => a - b < 0;
+
+        public static bool operator >=(NetworkObjectRef a, NetworkObjectRef b) => a - b >= 0;
+
+        public static bool operator <=(NetworkObjectRef a, NetworkObjectRef b) => a - b <= 0;
+
+        public static bool operator ==(NetworkObjectRef a, NetworkObjectRef b)
+        {
+            return a.refValue == b.refValue && a.IsValid == b.IsValid;
+        }
+
+        public static bool operator !=(NetworkObjectRef a, NetworkObjectRef b)
+        {
+            return a.refValue != b.refValue || a.IsValid != b.IsValid;
+        }
+
+        public override int GetHashCode() => this.refValue;
+
+        public override bool Equals(object obj) => obj is NetworkObjectRef networkRef && networkRef.refValue == this.refValue;
+
+        public bool Equals(NetworkObjectRef other) => this.refValue == other.refValue;
+
+        public override string ToString() => this.refValue.ToString();
     }
 }
