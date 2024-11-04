@@ -75,7 +75,7 @@ namespace StargateNet
         }
 
         public static SgNetworkGalaxy Launch(StartMode startMode, LaunchConfig launchConfig,
-            IMemoryAllocator allocator = null)
+            IMemoryAllocator allocator = null, IObjectSpawner spawner = null)
         {
             if (SgNetwork.Instance == null)
             {
@@ -85,7 +85,7 @@ namespace StargateNet
             SgNetwork.Instance._sgNetworkGalaxy = new SgNetworkGalaxy();
             SgNetwork.Instance.monitor = new Monitor();
             SgNetwork.Instance._sgNetworkGalaxy.Init(startMode, launchConfig.configData, launchConfig.port,
-                SgNetwork.Instance.monitor, allocator ?? new UnityAllocator());
+                SgNetwork.Instance.monitor, allocator ?? new UnityAllocator(), spawner ?? new UnityObjectSpawner());
             return SgNetwork.Instance._sgNetworkGalaxy;
         }
 

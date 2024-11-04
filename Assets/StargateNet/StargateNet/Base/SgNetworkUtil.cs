@@ -6,7 +6,7 @@ namespace StargateNet
     public static class SgNetworkUtil
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long AlignTo(long value, long alignment)
+        public static int AlignTo(int value, int alignment)
         {
             // (x + (align - 1)) & ~(align - 1)
             return (value + (alignment - 1)) & ~(alignment - 1);

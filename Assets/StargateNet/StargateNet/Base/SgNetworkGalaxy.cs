@@ -16,10 +16,11 @@ namespace StargateNet
         {
         }
 
-        public void Init(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor, IMemoryAllocator allocator)
+        public void Init(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor,
+            IMemoryAllocator allocator, IObjectSpawner spawner)
         {
             this.Engine = new SgNetworkEngine();
-            this.Engine.Start(startMode, configData, port, monitor, allocator);
+            this.Engine.Start(startMode, configData, port, monitor, allocator, spawner);
         }
 
         public void Connect(string ip, ushort port)
@@ -44,10 +45,11 @@ namespace StargateNet
         /// 对于dll热更新，只需要把Config也打包进去即可，会通过Config动态加载NetworkObject列表
         /// </summary>
         /// <param name="gameObject"></param>
-        /// <exception cref="Exception"></exception>
-        public void NetworkSpawn(GameObject gameObject)
+        /// <param name="position"></param>
+        /// <param name="rotation"></param>
+        public void NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation)
         {
-            this.Engine.NetworkSpawn(gameObject);
+            this.Engine.NetworkSpawn(gameObject, position, rotation);
         }
     }
 }

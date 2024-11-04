@@ -7,7 +7,7 @@ namespace StargateNet
     public class NetworkObject : MonoBehaviour, INetworkEntity
     {
         public Entity Entity { get; private set; }
-        public NetworkObjectRef Id => this.Entity.networkId;
+        public NetworkObjectRef NetworkId => this.Entity.networkId;
         public IStargateScript[] NetworkScripts { get; private set; }
 
         /// <summary>

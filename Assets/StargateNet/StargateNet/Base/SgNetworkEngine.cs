@@ -29,21 +29,24 @@ namespace StargateNet
         internal ClientSimulation ClientSimulation { get; private set; }
         internal bool Simulated { get; private set; }
         internal bool IsConnected { get; set; }
-        internal Dictionary<int, NetworkObject> NetworkObjectsTable { private set; get; }
+        internal IObjectSpawner ObjectSpawner { get; private set; }
+        internal Dictionary<int, NetworkObject> PrefabsTable { private set; get; }
         internal Dictionary<int, NetworkBehavior> networkBehaviors = new();
         internal Queue<int> paddingRemoveBehaviors = new();
         internal Queue<KeyValuePair<int, GameObject>> paddingAddBehaviors = new(); // 待加入的
         internal Queue<NetworkObjectRef> networkRef2Reuse = new(); // 回收的id
         internal NetworkObjectRef currentMaxRef = NetworkObjectRef.InvalidNetworkObjectRef; // 当前最大Ref
-        private unsafe int* networkRefMap;
-        private int maxNetworkRef;
+        internal Dictionary<NetworkObjectRef, NetworkObject> NetworkObjectsTable { private set; get; }
+        internal int maxNetworkRef;
+        internal unsafe int* networkRefMap; 
+
 
         internal SgNetworkEngine()
         {
         }
 
         internal unsafe void Start(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor,
-            IMemoryAllocator allocator)
+            IMemoryAllocator allocator, IObjectSpawner objectSpawner)
         {
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
             MemoryAllocation.Allocator = allocator;
@@ -53,11 +56,21 @@ namespace StargateNet
             this.GlobalAllocator = new StargateAllocator(4096, monitor); //全局的分配器
             // 给每一个Snapshot的分配器，上限是max snapshots
             // 初始化预制体的id
-            this.NetworkObjectsTable = new Dictionary<int, NetworkObject>(configData.networkPrefabs.Count);
+            this.PrefabsTable = new Dictionary<int, NetworkObject>(configData.networkPrefabs.Count);
             for (int i = 0; i < configData.networkPrefabs.Count; i++)
             {
-                NetworkObjectsTable.Add(i, configData.networkPrefabs[i].GetComponent<NetworkObject>());
+                PrefabsTable.Add(i, configData.networkPrefabs[i].GetComponent<NetworkObject>());
             }
+
+            this.IM = new InterestManager();
+            this.maxNetworkRef = (configData.maxNetworkObjects & 1) == 1
+                ? configData.maxNetworkObjects + 1
+                : configData.maxNetworkObjects;
+            // 对齐一个int,申请足够大小的内存给id map
+            this.maxNetworkRef = SgNetworkUtil.AlignTo(this.maxNetworkRef, 32);
+            this.networkRefMap = (int*)this.GlobalAllocator.Malloc((ulong)this.maxNetworkRef * 4);
+            this.NetworkObjectsTable = new(configData.maxNetworkObjects);
+            this.ObjectSpawner = objectSpawner;
 
             if (startMode == StartMode.Server)
             {
@@ -75,12 +88,6 @@ namespace StargateNet
                 this.Simulation = this.ClientSimulation;
             }
 
-            this.IM = new InterestManager();
-            this.maxNetworkRef = (configData.maxNetworkObjects & 1) == 1
-                ? configData.maxNetworkObjects + 1
-                : configData.maxNetworkObjects;
-            // 对齐一个int,申请足够大小的内存
-            this.networkRefMap = (int*)this.GlobalAllocator.Malloc((ulong)this.maxNetworkRef * 4);
             this.Simulated = true;
             this.IsRunning = true;
         }
@@ -160,17 +167,17 @@ namespace StargateNet
         // ------------- Engine Func ------------- //
 
         // ------------- Server Only ------------- //
-        internal void NetworkSpawn(GameObject gameObject)
+        internal unsafe void NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation)
         {
             // 判断是服务端还是客户端(状态帧同步框架应该让所有涉及同步的部分都由服务端来决定，所以这里应该只由服务端来调用)
             // 生成物体，构造Entity，根据IM来决定要发给哪个客户端，同时加入pedding send集合中(每个client一个集合，这样可以根据IM的设置来决定是否要在指定客户端生成)
             // 在下一帧ServerPeer.Send中发出
-            // 夹在DS中发给客户端,内存构造是：length,bitmap,data。由于prefab id是int的，所以这个直接用4字节来处理id即可，没有ds的长度不定问题
+            // 夹在DS中发给客户端,内存构造是：length,bitmap,data。
             if (this.IsClient) throw new Exception("Only Server can spawn network objects");
             if (gameObject.TryGetComponent(out NetworkObject networkObject))
             {
                 int id = networkObject.PrefabId;
-                if (!this.NetworkObjectsTable.ContainsKey(id))
+                if (!this.PrefabsTable.ContainsKey(id))
                     throw new Exception($"GameObject {gameObject.name} has not been registered");
 
                 NetworkObjectRef networkObjectRef = NetworkObjectRef.InvalidNetworkObjectRef;
@@ -182,8 +189,43 @@ namespace StargateNet
                 {
                     networkObjectRef = this.currentMaxRef + 1;
                 }
+
+                NetworkObject spNetObject = this.ObjectSpawner.Spawn(gameObject, position, rotation)
+                    .GetComponent<NetworkObject>();
+                // 初始化Entity以及NetworkObject上的所有Behavior脚本
+                Entity entity = new Entity(networkObjectRef, this, spNetObject);
+
+                // 标记bitmap
+                int raw = networkObjectRef.refValue / 32;
+                int column = networkObjectRef.refValue % 32;
+                this.networkRefMap[raw] |= (1 << column);
+                this.NetworkObjectsTable.TryAdd(networkObjectRef, spNetObject);
             }
             else throw new Exception($"GameObject {gameObject.name} is not a NetworkObject");
         }
+
+        internal unsafe void NetworkDestroy(GameObject gameObject)
+        {
+            if (this.IsClient) throw new Exception("Only Server can spawn network objects");
+            if (gameObject.TryGetComponent(out NetworkObject networkObject))
+            {
+                // 设置bitmap,回收ref
+                NetworkObjectRef networkObjectRef = networkObject.NetworkId;
+                this.NetworkObjectsTable.Remove(networkObjectRef);
+                int raw = networkObjectRef.refValue / 32;
+                int column = networkObjectRef.refValue % 32;
+                this.networkRefMap[raw] &= ~(1 << column);
+                this.networkRef2Reuse.Enqueue(networkObjectRef);
+
+                this.ObjectSpawner.Despawn(gameObject);
+            }
+            else
+                throw new Exception($"GameObject {gameObject.name} is not a NetworkObject");
+        }
+        
+        // ------------- Client Only ------------- //
+        
+        
     }
+    
 }

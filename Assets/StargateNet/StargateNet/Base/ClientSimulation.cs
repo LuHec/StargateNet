@@ -11,7 +11,7 @@ namespace StargateNet
         internal Tick currentTick = Tick.InvalidTick;
         internal Tick predictedTick = Tick.InvalidTick;
         internal Tick authoritativeTick = Tick.InvalidTick;
-        internal RingQueue<StargateAllocator> snapShots = new(32); //本地可取的snapshot环形队列，可以获得前32帧的snapshot
+        internal RingQueue<Snapshot> snapShots = new(32); //本地可取的snapshot环形队列，可以获得前32帧的snapshot
         internal List<SimulationInput> inputs = new(512);
         internal SimulationInput currentInput = new SimulationInput();
         internal StargateAllocator lastAuthorSnapShots;

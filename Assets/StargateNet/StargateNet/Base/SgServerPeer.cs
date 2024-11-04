@@ -18,7 +18,6 @@ namespace StargateNet
         public Server Server { private set; get; }
         public List<ClientConnection> clientConnections; // 暂时先用List(有隐患，Riptide给Client的id是递增的，一个CLient断线重连后获得的id和以前不一样)
 
-
         public SgServerPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
         {
             this.Server = new Server();
@@ -52,7 +51,7 @@ namespace StargateNet
                 this.Server.Send(msg, clientConnections[clientId].connection);
         }
 
-        public void SendServerPak()
+        public unsafe void SendServerPak()
         {
             Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
             // 塞Tick
@@ -65,7 +64,30 @@ namespace StargateNet
                     // 塞pakTime
                     msg.AddDouble(clientDatas[i].deltaPakTime);
                     this.Server.Send(msg, (ushort)i);
-                    // 根据AOI塞Delta NetworkObject
+                    // 塞Delta NetworkObject id
+                    int maxNetworkRef = this.Engine.maxNetworkRef;
+                    msg.AddInt(maxNetworkRef);
+                    for (int j = 0; j < maxNetworkRef / 32; j ++)
+                    {
+                        msg.AddInt(this.Engine.networkRefMap[j]);
+                    }
+                    // 塞prefab id
+                    // TODO:获取可以把NetworkRefMap优化为按需增长，不过这样客户端那边很麻烦
+                    for (int j = 0; j < maxNetworkRef / 32; j ++)
+                    {
+                        int t = this.Engine.networkRefMap[j];
+                        int idx = 0;
+                        while (t > 0)
+                        {
+                            if ((t & 1) == 1)
+                            {
+                                NetworkObjectRef networkObjectRef = new NetworkObjectRef(j * 32 + idx);
+                                msg.AddInt(this.Engine.NetworkObjectsTable[networkObjectRef].PrefabId);
+                            }
+                            t >>= 1;
+                            idx++;
+                        }
+                    }
                 }
             }
         }

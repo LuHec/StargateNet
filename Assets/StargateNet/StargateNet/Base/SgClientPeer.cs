@@ -77,14 +77,14 @@ namespace StargateNet
 
 
         /// <summary>
-        /// 客户端只会收到两种信息：1.DS，2.input ack
+        /// 客户端只会收到DS
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="args"></param>
-        private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
+        private unsafe void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
             this.HeavyPakLoss = false;
-            
+
             var ds = this.Engine.ClientSimulation.snapShots;
             var msg = args.Message;
             if (msg.UnreadBits < 8 * sizeof(int)) return;
@@ -92,6 +92,32 @@ namespace StargateNet
             this.Engine.ClientSimulation.OnRcvPak(srvtick);
             Ack(srvtick);
             this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
+            // 接收NetworkObject
+            int maxNetworkRef = msg.GetInt();
+            int[] srvMap = new int[maxNetworkRef];
+            for (int i = 0; i < maxNetworkRef / 32; i++)
+            {
+                srvMap[i] = msg.GetInt();
+            }
+            for (int i = 0; i < maxNetworkRef / 32; i++)
+            {
+                int delta = this.Engine.networkRefMap[i] & srvMap[i];
+                int idx = 0;
+                while (delta > 0)
+                {
+                    if ((delta & 1) == 1)
+                    {
+                        NetworkObjectRef networkObjectRef = new NetworkObjectRef(i * 32 + idx);
+                        if (!this.Engine.NetworkObjectsTable.ContainsKey(networkObjectRef))
+                        {
+                            // 生成
+                        }
+                    }
+
+                    idx++;
+                    delta >>= 1;
+                }
+            }
         }
 
         public void SendClientPak()
