@@ -6,6 +6,13 @@ namespace StargateNet
     public static class SgNetworkUtil
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long AlignTo(long value, long alignment)
+        {
+            // (x + (align - 1)) & ~(align - 1)
+            return (value + (alignment - 1)) & ~(alignment - 1);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe byte[] CopyTobytes(void* data, int size)
         {
             byte[] res = new byte[size];

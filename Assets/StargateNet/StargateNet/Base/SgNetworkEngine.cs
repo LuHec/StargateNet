@@ -12,6 +12,7 @@ namespace StargateNet
     {
         internal SimulationClock Timer { get; private set; }
         internal Monitor Monitor { get; private set; }
+        internal StargateAllocator GlobalAllocator { get; private set; }
         internal Tick simTick = new Tick(10); // 是客户端/服务端已经模拟的本地帧数。客户端的simTick与同步无关，服务端的simtick会作为AuthorTick传给客户端
         internal float LastDeltaTime { get; private set; }
         internal float LastTimeScale { get; private set; }
@@ -34,23 +35,30 @@ namespace StargateNet
         internal Queue<KeyValuePair<int, GameObject>> paddingAddBehaviors = new(); // 待加入的
         internal Queue<NetworkObjectRef> networkRef2Reuse = new(); // 回收的id
         internal NetworkObjectRef currentMaxRef = NetworkObjectRef.InvalidNetworkObjectRef; // 当前最大Ref
+        private unsafe int* networkRefMap;
+        private int maxNetworkRef;
 
         internal SgNetworkEngine()
         {
         }
 
-        internal void Start(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor)
+        internal unsafe void Start(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor,
+            IMemoryAllocator allocator)
         {
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
+            MemoryAllocation.Allocator = allocator;
+            this.Monitor = monitor;
             this.ConfigData = configData;
             this.Timer = new SimulationClock(this, this.FixedUpdate);
-            this.Monitor = monitor;
+            this.GlobalAllocator = new StargateAllocator(4096, monitor); //全局的分配器
+            // 给每一个Snapshot的分配器，上限是max snapshots
             // 初始化预制体的id
-            this.NetworkObjectsTable = new Dictionary<int, NetworkObject>(configData.networkPrefabs.Count); 
+            this.NetworkObjectsTable = new Dictionary<int, NetworkObject>(configData.networkPrefabs.Count);
             for (int i = 0; i < configData.networkPrefabs.Count; i++)
             {
                 NetworkObjectsTable.Add(i, configData.networkPrefabs[i].GetComponent<NetworkObject>());
             }
+
             if (startMode == StartMode.Server)
             {
                 this.Server = new SgServerPeer(this, configData);
@@ -68,11 +76,16 @@ namespace StargateNet
             }
 
             this.IM = new InterestManager();
+            this.maxNetworkRef = (configData.maxNetworkObjects & 1) == 1
+                ? configData.maxNetworkObjects + 1
+                : configData.maxNetworkObjects;
+            // 对齐一个int,申请足够大小的内存
+            this.networkRefMap = (int*)this.GlobalAllocator.Malloc((ulong)this.maxNetworkRef * 4);
             this.Simulated = true;
             this.IsRunning = true;
         }
 
-        
+
         // ------------- Engine basic ------------- //
         internal void ServerStart(ushort port, ushort maxClient)
         {
@@ -136,17 +149,14 @@ namespace StargateNet
         {
             if (this.IsServer)
             {
-                // Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
-                // msg.AddInt(this.simTick.tickValue);
-                // this.Server.SendMessageUnreliable(1, msg);
                 this.Server.SendServerPak();
             }
-            else if (this.IsConnected)
+            else if (this.IsClient && this.IsConnected)
             {
                 this.Client.SendClientPak();
             }
         }
-        
+
         // ------------- Engine Func ------------- //
 
         // ------------- Server Only ------------- //
@@ -160,7 +170,7 @@ namespace StargateNet
             if (gameObject.TryGetComponent(out NetworkObject networkObject))
             {
                 int id = networkObject.PrefabId;
-                if(!this.NetworkObjectsTable.ContainsKey(id))
+                if (!this.NetworkObjectsTable.ContainsKey(id))
                     throw new Exception($"GameObject {gameObject.name} has not been registered");
 
                 NetworkObjectRef networkObjectRef = NetworkObjectRef.InvalidNetworkObjectRef;
@@ -172,8 +182,6 @@ namespace StargateNet
                 {
                     networkObjectRef = this.currentMaxRef + 1;
                 }
-                
-                
             }
             else throw new Exception($"GameObject {gameObject.name} is not a NetworkObject");
         }

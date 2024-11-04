@@ -10,5 +10,7 @@ namespace StargateNet
         public int resims = -1;
         public int connectedClients = -1;
         public int inputCount = -1;
+        public ulong unmanagedMemeory = 0;
+        public ulong unmanagedMemeoryInuse = 0; // 使用中的内存(不包含block_header)
     }
 }

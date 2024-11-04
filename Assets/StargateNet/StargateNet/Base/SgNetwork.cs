@@ -42,6 +42,7 @@ namespace StargateNet
                     tickRate = config.FPS,
                     maxClientCount = config.MaxClientCount,
                     runAsHeadless = config.RunAsHeadless,
+                    maxNetworkObjects = config.maxNetworkObject,
                     savedSnapshotsCount = config.SavedSnapshotsCount,
                     maxPredictedTicks = config.MaxPredictedTicks,
                     networkPrefabs = config.NetworkObjects,
@@ -60,6 +61,7 @@ namespace StargateNet
                     tickRate = config.FPS,
                     maxClientCount = config.MaxClientCount,
                     runAsHeadless = config.RunAsHeadless,
+                    maxNetworkObjects = config.maxNetworkObject,
                     savedSnapshotsCount = config.SavedSnapshotsCount,
                     maxPredictedTicks = config.MaxPredictedTicks,
                     networkPrefabs = config.NetworkObjects,
@@ -72,7 +74,8 @@ namespace StargateNet
         {
         }
 
-        public static SgNetworkGalaxy Launch(StartMode startMode, LaunchConfig launchConfig)
+        public static SgNetworkGalaxy Launch(StartMode startMode, LaunchConfig launchConfig,
+            IMemoryAllocator allocator = null)
         {
             if (SgNetwork.Instance == null)
             {
@@ -82,7 +85,7 @@ namespace StargateNet
             SgNetwork.Instance._sgNetworkGalaxy = new SgNetworkGalaxy();
             SgNetwork.Instance.monitor = new Monitor();
             SgNetwork.Instance._sgNetworkGalaxy.Init(startMode, launchConfig.configData, launchConfig.port,
-                SgNetwork.Instance.monitor);
+                SgNetwork.Instance.monitor, allocator ?? new UnityAllocator());
             return SgNetwork.Instance._sgNetworkGalaxy;
         }
 

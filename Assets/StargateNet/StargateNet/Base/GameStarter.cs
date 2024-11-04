@@ -40,7 +40,9 @@ namespace StargateNet
                                        $"Smooth RTT: {monitor.smothRTT:F6}\n" +
                                        $"Client Resim: {monitor.resims}\n" +
                                        $"Client Input Count: {monitor.inputCount}\n" +
-                                       $"Connected Clients: {monitor.connectedClients}";
+                                       $"Connected Clients: {monitor.connectedClients}\n" +
+                                       $"Unmanged Memory: {monitor.unmanagedMemeory}\n" +
+                                       $"Using Unmanaged Memory: {monitor.unmanagedMemeoryInuse}";
                 string[] textLines = textToDisplay.Split('\n'); // 以换行符分割文本
                 foreach (string line in textLines)
                 {

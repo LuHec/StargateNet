@@ -16,10 +16,10 @@ namespace StargateNet
         {
         }
 
-        public void Init(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor)
+        public void Init(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor, IMemoryAllocator allocator)
         {
             this.Engine = new SgNetworkEngine();
-            this.Engine.Start(startMode, configData, port, monitor);
+            this.Engine.Start(startMode, configData, port, monitor, allocator);
         }
 
         public void Connect(string ip, ushort port)

@@ -55,14 +55,17 @@ namespace StargateNet
         public void SendServerPak()
         {
             Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
+            // 塞Tick
             msg.AddInt(this.Engine.simTick.tickValue);
             ClientData[] clientDatas = this.Engine.ServerSimulation.clientDatas;
             for (int i = 1; i < this.clientConnections.Count; i++)
             {
                 if (this.clientConnections[i].connected)
                 {
+                    // 塞pakTime
                     msg.AddDouble(clientDatas[i].deltaPakTime);
                     this.Server.Send(msg, (ushort)i);
+                    // 根据AOI塞Delta NetworkObject
                 }
             }
         }

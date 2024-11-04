@@ -15,6 +15,7 @@ MonoBehaviour:
   FPS: 60
   MaxClientCount: 16
   RunAsHeadless: 1
+  maxNetworkObject: 50
   SavedSnapshotsCount: 32
   MaxPredictedTicks: 20
   NetworkObjects:
