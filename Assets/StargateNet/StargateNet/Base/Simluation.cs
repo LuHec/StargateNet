@@ -4,10 +4,18 @@ namespace StargateNet
 {
     public abstract class Simulation
     {
-        internal SgNetworkEngine engine;
+        internal StargateEngine engine;
+        internal Dictionary<int, NetworkBehavior> networkBehaviors = new();
+        // internal Queue<int> paddingRemoveBehaviors = new();
+        // internal Queue<KeyValuePair<int, GameObject>> paddingAddBehaviors = new(); // 待加入的
+        internal Queue<NetworkObjectRef> networkRef2Reuse = new(); // 回收的id
+        internal NetworkObjectRef currentMaxRef = NetworkObjectRef.InvalidNetworkObjectRef; // 当前最大Ref
+        internal Dictionary<NetworkObjectRef, NetworkObject> NetworkObjectsTable { private set; get; }
+        internal unsafe int* networkRefMap; 
         protected Queue<SimulationInput> inputPool = new();
+        
 
-        internal Simulation(SgNetworkEngine engine)
+        internal Simulation(StargateEngine engine)
         {
             this.engine = engine;
         }
@@ -69,6 +77,15 @@ namespace StargateNet
         internal void RecycleInput(SimulationInput input)
         {
             this.inputPool.Enqueue(input);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="networkEntity"></param>
+        internal virtual void AddToSimulation(INetworkEntity networkEntity)
+        {
+            
         }
     }
 }

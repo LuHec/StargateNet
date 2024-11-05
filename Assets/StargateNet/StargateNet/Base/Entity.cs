@@ -9,7 +9,7 @@ namespace StargateNet
     public sealed class Entity
     {
         internal NetworkObjectRef networkId;                       // networked entity unique id
-        internal SgNetworkEngine engine;
+        internal StargateEngine engine;
         internal INetworkEntity entity;               // Truly Object
         internal readonly int entityBlockSize;        // Networked Field Size 
         internal unsafe int* stateBlockPtr;         // Networked Field memory block base address
@@ -21,7 +21,7 @@ namespace StargateNet
         /// <param name="networkId"></param>
         /// <param name="engine"></param>
         /// <param name="entity">真正的实体对象</param>
-        public Entity(NetworkObjectRef networkId, SgNetworkEngine engine, INetworkEntity entity)
+        public Entity(NetworkObjectRef networkId, StargateEngine engine, INetworkEntity entity)
         {
             this.networkId = networkId;
             this.engine = engine;

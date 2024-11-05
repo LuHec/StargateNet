@@ -18,7 +18,7 @@ namespace StargateNet
         internal double serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
 
 
-        internal ClientSimulation(SgNetworkEngine engine) : base(engine)
+        internal ClientSimulation(StargateEngine engine) : base(engine)
         {
         }
 

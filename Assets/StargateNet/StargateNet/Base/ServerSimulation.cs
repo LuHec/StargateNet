@@ -8,7 +8,7 @@ namespace StargateNet
     {
         internal ClientData[] clientDatas;
 
-        internal ServerSimulation(SgNetworkEngine engine) : base(engine)
+        internal ServerSimulation(StargateEngine engine) : base(engine)
         {
             this.clientDatas = new ClientData[engine.ConfigData.maxClientCount];
             for (int i = 0; i < this.clientDatas.Length; i++)

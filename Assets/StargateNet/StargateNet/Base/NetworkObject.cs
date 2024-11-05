@@ -21,7 +21,7 @@ namespace StargateNet
 
         [SerializeField] private int _prefabId = -1;
 
-        public void Initialize(SgNetworkEngine engine, IStargateScript[] networkScripts)
+        public void Initialize(StargateEngine engine, IStargateScript[] networkScripts)
         {
             this.NetworkScripts = networkScripts;
         }

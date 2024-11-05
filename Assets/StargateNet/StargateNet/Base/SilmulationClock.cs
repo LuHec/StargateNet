@@ -9,7 +9,7 @@ namespace StargateNet
         internal bool IsFirstCall { get; private set; }
         private Action _action;
 
-        private SgNetworkEngine _engine;
+        private StargateEngine _engine;
 
         // 时间单位全都是秒
         private float _deltaTime; // update delta time(not fixed)
@@ -25,7 +25,7 @@ namespace StargateNet
         private double _lastPacketTime = -1;
         private double _lastAdjustTime = 0;
 
-        internal SimulationClock(SgNetworkEngine engine, Action action)
+        internal SimulationClock(StargateEngine engine, Action action)
         {
             this._engine = engine;
             this._action = action;

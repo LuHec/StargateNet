@@ -16,7 +16,7 @@ namespace StargateNet
         public Client Client { private set; get; }
         public bool HeavyPakLoss { get; set; }
 
-        public SgClientPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
+        public SgClientPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
         {
             this.Client = new Client();
             this.Client.ConnectionFailed += this.OnConnectionFailed;
@@ -102,14 +102,14 @@ namespace StargateNet
 
             for (int i = 0; i < maxNetworkRef / 32; i++)
             {
-                int delta = this.Engine.networkRefMap[i] | srvMap[i];
+                int delta = this.Engine.Simulation.networkRefMap[i] | srvMap[i];
                 int idx = 0;
                 while (delta > 0)
                 {
                     if ((delta & 1) == 1)
                     {
                         Dictionary<int, NetworkObject> prefabsTable = this.Engine.PrefabsTable;
-                        Dictionary<NetworkObjectRef, NetworkObject> networkObjectsTable = this.Engine.NetworkObjectsTable;
+                        Dictionary<NetworkObjectRef, NetworkObject> networkObjectsTable = this.Engine.Simulation.NetworkObjectsTable;
                         NetworkObjectRef networkObjectRef = new NetworkObjectRef(i * 32 + idx);
                         int prefabId = msg.GetInt();
                         if (!networkObjectsTable.ContainsKey(networkObjectRef) &&
@@ -126,7 +126,7 @@ namespace StargateNet
                     delta >>= 1;
                 }
             }
-            Client
+            // Client
         }
 
         public void SendClientPak()

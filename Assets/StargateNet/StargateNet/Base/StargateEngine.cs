@@ -8,7 +8,7 @@ using LogType = Riptide.Utils.LogType;
 
 namespace StargateNet
 {
-    public sealed class SgNetworkEngine
+    public sealed class StargateEngine
     {
         internal SimulationClock Timer { get; private set; }
         internal Monitor Monitor { get; private set; }
@@ -31,17 +31,10 @@ namespace StargateNet
         internal bool IsConnected { get; set; }
         internal IObjectSpawner ObjectSpawner { get; private set; }
         internal Dictionary<int, NetworkObject> PrefabsTable { private set; get; }
-        internal Dictionary<int, NetworkBehavior> networkBehaviors = new();
-        internal Queue<int> paddingRemoveBehaviors = new();
-        internal Queue<KeyValuePair<int, GameObject>> paddingAddBehaviors = new(); // 待加入的
-        internal Queue<NetworkObjectRef> networkRef2Reuse = new(); // 回收的id
-        internal NetworkObjectRef currentMaxRef = NetworkObjectRef.InvalidNetworkObjectRef; // 当前最大Ref
-        internal Dictionary<NetworkObjectRef, NetworkObject> NetworkObjectsTable { private set; get; }
         internal int maxNetworkRef;
-        internal unsafe int* networkRefMap; 
 
 
-        internal SgNetworkEngine()
+        internal StargateEngine()
         {
         }
 

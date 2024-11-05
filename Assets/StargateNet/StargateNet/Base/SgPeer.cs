@@ -5,9 +5,9 @@ namespace StargateNet
         public virtual bool IsServer => false;
         public virtual bool IsClient => false;
 
-        public SgNetworkEngine Engine { get; set; }
+        public StargateEngine Engine { get; set; }
 
-        public SgPeer(SgNetworkEngine engine, StargateConfigData configData)
+        public SgPeer(StargateEngine engine, StargateConfigData configData)
         {
             this.Engine = engine;
         }

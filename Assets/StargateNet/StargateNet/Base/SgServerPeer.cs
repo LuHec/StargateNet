@@ -18,7 +18,7 @@ namespace StargateNet
         public Server Server { private set; get; }
         public List<ClientConnection> clientConnections; // 暂时先用List(有隐患，Riptide给Client的id是递增的，一个CLient断线重连后获得的id和以前不一样)
 
-        public SgServerPeer(SgNetworkEngine engine, StargateConfigData configData) : base(engine, configData)
+        public SgServerPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
         {
             this.Server = new Server();
             this.Server.ClientConnected += this.OnConnect;

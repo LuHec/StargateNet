@@ -9,7 +9,7 @@ namespace StargateNet
     /// </summary>
     public class SgNetworkGalaxy
     {
-        public SgNetworkEngine Engine { private set; get; }
+        public StargateEngine Engine { private set; get; }
         public StargateConfigData ConfigData { private set; get; }
 
         public SgNetworkGalaxy()
@@ -19,7 +19,7 @@ namespace StargateNet
         public void Init(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor,
             IMemoryAllocator allocator, IObjectSpawner spawner)
         {
-            this.Engine = new SgNetworkEngine();
+            this.Engine = new StargateEngine();
             this.Engine.Start(startMode, configData, port, monitor, allocator, spawner);
         }
 
