@@ -98,7 +98,6 @@ namespace StargateNet
             for (int i = 0; i < maxNetworkRef / 32; i++)
             {
                 srvMap[i] = msg.GetInt();
-                RiptideLogger.Log(LogType.Warning, $"{srvtick.tickValue}, {srvMap[i]}");
             }
 
             for (int i = 0; i < maxNetworkRef / 32; i++)
@@ -127,6 +126,7 @@ namespace StargateNet
                     delta >>= 1;
                 }
             }
+            Client
         }
 
         public void SendClientPak()
