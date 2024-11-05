@@ -12,6 +12,8 @@ namespace StargateNet
         [Header("Client")] [SerializeField] private string toServerIp;
 
         private bool _showConnectBtn = true;
+        private int a = 0;
+        public GameObject test;
 
         private void OnGUI()
         {
@@ -19,6 +21,7 @@ namespace StargateNet
             {
                 _showConnectBtn = false;
                 var galaxy = SgNetwork.StartAsServer(serverPort, maxClientCount);
+                a = 2;
             }
 
             if (_showConnectBtn && GUI.Button(new Rect(10, 120, 100, 90), "Client"))
@@ -26,6 +29,7 @@ namespace StargateNet
                 _showConnectBtn = false;
                 var galaxy = SgNetwork.StartAsClient(serverPort);
                 galaxy.Connect(toServerIp, serverPort);
+                a = 1;
             }
 
             if (!_showConnectBtn && SgNetwork.Instance.monitor != null)
@@ -50,6 +54,11 @@ namespace StargateNet
                 }
 
                 GUILayout.EndVertical(); // 结束竖排布局
+            }
+
+            if (!_showConnectBtn && a == 2 && GUI.Button(new Rect(80, 120, 100, 90), "Spawn"))
+            {
+                SgNetwork.Instance._sgNetworkGalaxy.NetworkSpawn(test, Vector3.zero, Quaternion.identity);
             }
         }
     }

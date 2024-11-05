@@ -69,6 +69,10 @@ namespace StargateNet
             // 对齐一个int,申请足够大小的内存给id map
             this.maxNetworkRef = SgNetworkUtil.AlignTo(this.maxNetworkRef, 32);
             this.networkRefMap = (int*)this.GlobalAllocator.Malloc((ulong)this.maxNetworkRef * 4);
+            for (int i = 0; i < this.maxNetworkRef; i++)
+            {
+                this.networkRefMap[i] = 0;
+            }
             this.NetworkObjectsTable = new(configData.maxNetworkObjects);
             this.ObjectSpawner = objectSpawner;
 
@@ -173,7 +177,6 @@ namespace StargateNet
             // 生成物体，构造Entity，根据IM来决定要发给哪个客户端，同时加入pedding send集合中(每个client一个集合，这样可以根据IM的设置来决定是否要在指定客户端生成)
             // 在下一帧ServerPeer.Send中发出
             // 夹在DS中发给客户端,内存构造是：length,bitmap,data。
-            if (this.IsClient) throw new Exception("Only Server can spawn network objects");
             if (gameObject.TryGetComponent(out NetworkObject networkObject))
             {
                 int id = networkObject.PrefabId;
@@ -206,7 +209,6 @@ namespace StargateNet
 
         internal unsafe void NetworkDestroy(GameObject gameObject)
         {
-            if (this.IsClient) throw new Exception("Only Server can spawn network objects");
             if (gameObject.TryGetComponent(out NetworkObject networkObject))
             {
                 // 设置bitmap,回收ref
@@ -224,7 +226,10 @@ namespace StargateNet
         }
         
         // ------------- Client Only ------------- //
-        
+        internal unsafe void ClinetSpawn()
+        {
+            
+        }
         
     }
     

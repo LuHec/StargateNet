@@ -63,7 +63,6 @@ namespace StargateNet
                 {
                     // 塞pakTime
                     msg.AddDouble(clientDatas[i].deltaPakTime);
-                    this.Server.Send(msg, (ushort)i);
                     // 塞Delta NetworkObject id
                     int maxNetworkRef = this.Engine.maxNetworkRef;
                     msg.AddInt(maxNetworkRef);
@@ -88,6 +87,8 @@ namespace StargateNet
                             idx++;
                         }
                     }
+                    
+                    this.Server.Send(msg, (ushort)i);
                 }
             }
         }

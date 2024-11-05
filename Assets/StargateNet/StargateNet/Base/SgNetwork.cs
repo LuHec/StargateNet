@@ -12,7 +12,7 @@ namespace StargateNet
     {
         public static SgNetwork Instance => _instance;
         public Monitor monitor;
-        private SgNetworkGalaxy _sgNetworkGalaxy;
+        public SgNetworkGalaxy _sgNetworkGalaxy;
         private static SgNetwork _instance;
         private bool _started;
 

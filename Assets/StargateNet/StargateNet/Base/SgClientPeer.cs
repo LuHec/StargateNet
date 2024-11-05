@@ -98,19 +98,28 @@ namespace StargateNet
             for (int i = 0; i < maxNetworkRef / 32; i++)
             {
                 srvMap[i] = msg.GetInt();
+                RiptideLogger.Log(LogType.Warning, $"{srvtick.tickValue}, {srvMap[i]}");
             }
+
             for (int i = 0; i < maxNetworkRef / 32; i++)
             {
-                int delta = this.Engine.networkRefMap[i] & srvMap[i];
+                int delta = this.Engine.networkRefMap[i] | srvMap[i];
                 int idx = 0;
                 while (delta > 0)
                 {
                     if ((delta & 1) == 1)
                     {
+                        Dictionary<int, NetworkObject> prefabsTable = this.Engine.PrefabsTable;
+                        Dictionary<NetworkObjectRef, NetworkObject> networkObjectsTable = this.Engine.NetworkObjectsTable;
                         NetworkObjectRef networkObjectRef = new NetworkObjectRef(i * 32 + idx);
-                        if (!this.Engine.NetworkObjectsTable.ContainsKey(networkObjectRef))
+                        int prefabId = msg.GetInt();
+                        if (!networkObjectsTable.ContainsKey(networkObjectRef) &&
+                            prefabsTable.ContainsKey(prefabId))
                         {
                             // 生成
+                            var networkObject =  this.Engine.ObjectSpawner.Spawn(this.Engine.PrefabsTable[prefabId].gameObject, Vector3.zero,
+                                Quaternion.identity).GetComponent<NetworkObject>();
+                            networkObjectsTable.Add(networkObjectRef, networkObject);
                         }
                     }
 

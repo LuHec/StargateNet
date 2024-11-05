@@ -49,7 +49,14 @@ namespace StargateNet
         /// <param name="rotation"></param>
         public void NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation)
         {
+            if (this.Engine.IsClient) throw new Exception("Only Server can spawn network objects");
             this.Engine.NetworkSpawn(gameObject, position, rotation);
+        }
+
+        public void NetworkDestroy(GameObject gameObject)
+        {
+            if (this.Engine.IsClient) throw new Exception("Only Server can spawn network objects");
+            this.Engine.NetworkDestroy(gameObject);
         }
     }
 }
