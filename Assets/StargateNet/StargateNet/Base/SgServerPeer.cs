@@ -71,7 +71,6 @@ namespace StargateNet
                         msg.AddInt(this.Engine.networkRefMap[j]);
                     }
                     // 塞prefab id
-                    // TODO:获取可以把NetworkRefMap优化为按需增长，不过这样客户端那边很麻烦
                     for (int j = 0; j < maxNetworkRef / 32; j ++)
                     {
                         int t = this.Engine.networkRefMap[j];

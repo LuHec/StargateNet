@@ -13,7 +13,7 @@ namespace StargateNet
         internal INetworkEntity entity;               // Truly Object
         internal readonly int entityBlockSize;        // Networked Field Size 
         internal unsafe int* stateBlockPtr;         // Networked Field memory block base address
-        internal int[] bitmap;                       // bit dirtymap
+        internal unsafe int* bitmap;                       // bit dirtymap
 
         /// <summary>
         /// 初始化脚本等.获取大小等等
@@ -38,6 +38,7 @@ namespace StargateNet
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void SetData(int* newValue, int* address, int byteSize)
         {
+            // 下标不可能超过INT_MAX
             int dataId = (int)(address - stateBlockPtr);
             
             for (int i = 0; i < byteSize; i++)
