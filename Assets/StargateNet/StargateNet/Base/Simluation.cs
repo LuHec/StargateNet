@@ -12,6 +12,8 @@ namespace StargateNet
         internal unsafe int* networkRefMap;
         internal List<Entity> paddingToAddEntities = new(32); // 待加入模拟的实体，用于延迟添加到模拟列表。Entity会在这之前就被添加到table中
         internal List<Entity> paddingToRemoveEntities = new(32);
+        internal NetworkObjectRef currentMaxNetworkObjectRef = NetworkObjectRef.InvalidNetworkObjectRef;
+        internal Queue<NetworkObjectRef> networkRef2Reuse = new(32);
         protected Queue<SimulationInput> inputPool = new();
 
 
@@ -20,7 +22,7 @@ namespace StargateNet
             this.engine = engine;
         }
 
-        internal unsafe Entity CreatEntity(NetworkObject networkObject, NetworkObjectRef networkObjectRef)
+        internal unsafe Entity CreateEntity(NetworkObject networkObject, NetworkObjectRef networkObjectRef)
         {
             // 用本帧的资源来分配
             StargateAllocator allocator = this.engine.WorldState.CurrentSnapshot.networkState;
@@ -50,13 +52,69 @@ namespace StargateNet
             return entity;
         }
 
-        internal void AddEntity(NetworkObject networkObject, NetworkObjectRef networkObjectRef)
+        /// <summary>
+        /// 立即添加一个Entity，会触发被动脚本，但下一帧才会执行它的主动网络脚本
+        /// </summary>
+        /// <param name="networkObject"></param>
+        /// <param name="meta"></param>
+        internal unsafe void AddEntity(NetworkObject networkObject, NetworkObjectMeta meta)
         {
-            Entity entity = this.CreatEntity(networkObject, networkObjectRef);
+            NetworkObjectRef networkObjectRef = this.networkRef2Reuse.Count > 0
+                ? this.networkRef2Reuse.Dequeue()
+                : ++this.currentMaxNetworkObjectRef;
+            Entity entity = this.CreateEntity(networkObject, networkObjectRef);
+            this.EntitiesTable.Add(networkObjectRef, entity);
+            this.paddingToAddEntities.Add(entity);
+            // 修改meta并标记
+            meta.networkId = networkObjectRef.refValue;
+            meta.destroyed = false;
+            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
+            currentSnapshot.worldObjectMap[networkObjectRef.refValue] = 1;
+            currentSnapshot.worldObjectMeta[networkObjectRef.refValue] = meta;
+            currentSnapshot.dirtyObjectMetaMap[networkObjectRef.refValue] = 1;
         }
 
-        internal void RemoveEntity(NetworkObjectRef networkObjectRef)
+        /// <summary>
+        /// 立即删除一个Entity,后续主动/被动网络脚本不会被执行(主动脚本控制不执行，被动脚本由于物体已被销毁，也不会执行)
+        /// </summary>
+        /// <param name="networkObjectRef"></param>
+        internal unsafe void RemoveEntity(NetworkObjectRef networkObjectRef)
         {
+            Entity entity = this.EntitiesTable[networkObjectRef];
+            this.EntitiesTable.Remove(networkObjectRef);
+            this.paddingToRemoveEntities.Add(entity);
+            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
+            // 修改meta并标记
+            currentSnapshot.worldObjectMap[networkObjectRef.refValue] = 0;
+            currentSnapshot.worldObjectMeta[networkObjectRef.refValue].destroyed = true;
+            currentSnapshot.dirtyObjectMetaMap[networkObjectRef.refValue] = 1;
+        }
+
+        /// <summary>
+        /// 主要作用是添加模拟脚本
+        /// </summary>
+        internal void DrainPaddingAddedEntity()
+        {
+            foreach (var entity in this.paddingToAddEntities)
+            {
+                this.engine.IM.simulationList.Add(entity);
+            }
+            
+            this.paddingToAddEntities.Clear();
+        }
+
+        /// <summary>
+        /// 主要作用是移除模拟脚本并回收Entity
+        /// </summary>
+        internal void DrainPaddingRemovedEntity()
+        {
+            foreach (var entity in this.paddingToRemoveEntities)
+            {
+                this.engine.IM.simulationList.Remove(entity);
+                this.networkRef2Reuse.Enqueue(entity.networkId);
+            }
+            
+            this.paddingToRemoveEntities.Clear();
         }
 
         internal virtual void PreUpdate()
@@ -77,9 +135,7 @@ namespace StargateNet
         internal void FixedUpdate()
         {
             // 对于客户端，先在这里处理回滚，然后再模拟下一帧
-            this.PreFixedUpdate();
             this.ExecuteNetworkFixedUpdate();
-            this.PostFixedUpdate();
         }
 
         internal void ExecuteNetworkUpdate()

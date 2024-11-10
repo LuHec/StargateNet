@@ -106,8 +106,8 @@ namespace StargateNet
             {
                 int inputCount = msg.GetInt();
                 ClientData clientData = this.clientConnections[args.FromConnection.Id].clientData;
-                clientData.deltaPakTime = this.Engine.Timer.Time - clientData.lastPakTime;
-                clientData.lastPakTime = this.Engine.Timer.Time;
+                clientData.deltaPakTime = this.Engine.SimulationClock.Time - clientData.lastPakTime;
+                clientData.lastPakTime = this.Engine.SimulationClock.Time;
                 for (int i = 0; i < inputCount; i++)
                 {
                     int targetTick = msg.GetInt();

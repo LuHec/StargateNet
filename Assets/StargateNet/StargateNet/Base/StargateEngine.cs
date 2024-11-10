@@ -11,7 +11,7 @@ namespace StargateNet
     public sealed class StargateEngine
     {
         internal WorldState WorldState { get; private set; }
-        internal SimulationClock Timer { get; private set; }
+        internal SimulationClock SimulationClock { get; private set; }
         internal Monitor Monitor { get; private set; }
         internal StargateAllocator GlobalAllocator { get; private set; }
         internal Tick simTick = new Tick(10); // 是客户端/服务端已经模拟的本地帧数。客户端的simTick与同步无关，服务端的simtick会作为AuthorTick传给客户端
@@ -33,8 +33,6 @@ namespace StargateNet
         internal IObjectSpawner ObjectSpawner { get; private set; }
         internal Dictionary<int, NetworkObject> PrefabsTable { private set; get; }
         internal int maxNetworkRef;
-        internal NetworkObjectRef currentMaxNetworkObjectRef;
-        internal Queue<NetworkObjectRef> networkRef2Reuse = new (32);
 
 
         internal StargateEngine()
@@ -49,7 +47,7 @@ namespace StargateNet
             MemoryAllocation.Allocator = allocator;
             this.Monitor = monitor;
             this.ConfigData = configData;
-            this.Timer = new SimulationClock(this, this.FixedUpdate);
+            this.SimulationClock = new SimulationClock(this, this.FixedUpdate);
             this.GlobalAllocator = new StargateAllocator(4096, monitor); //全局的分配器
             // 给每一个Snapshot的分配器，上限是max snapshots
             // 初始化预制体的id
@@ -66,11 +64,13 @@ namespace StargateNet
             this.maxNetworkRef = (configData.maxNetworkObjects & 1) == 1
                 ? configData.maxNetworkObjects + 1
                 : configData.maxNetworkObjects;
-            this.maxNetworkRef = SgNetworkUtil.AlignTo(this.maxNetworkRef, 32);  // 对齐一个int,申请足够大小的内存给id map
+            this.maxNetworkRef = SgNetworkUtil.AlignTo(this.maxNetworkRef, 32); // 对齐一个int,申请足够大小的内存给id map
+            int totalObjectMapByteSize = this.maxNetworkRef * 4;
             for (int i = 0; i < this.WorldState.MaxSnapshotsCount; i++)
             {
-                this.WorldState.snapshots.Add(new Snapshot((int*)this.GlobalAllocator.Malloc(this.maxNetworkRef * 4),
+                this.WorldState.snapshots.Add(new Snapshot((int*)this.GlobalAllocator.Malloc(totalObjectMapByteSize),
                     (int*)this.GlobalAllocator.Malloc(totalObjectMetaByteSize),
+                    (int*)this.GlobalAllocator.Malloc(totalObjectMapByteSize),
                     new StargateAllocator(totalObjectStateByteSize, monitor))
                 );
             }
@@ -95,6 +95,9 @@ namespace StargateNet
 
             this.Simulated = true;
             this.IsRunning = true;
+            
+            // TODO:客户端不应该用这个
+            this.WorldState.Init(this.simTick);
         }
 
 
@@ -120,11 +123,11 @@ namespace StargateNet
 
             this.LastDeltaTime = deltaTime;
             this.LastTimeScale = timeScale;
-            this.Timer.PreUpdate();
+            this.SimulationClock.PreUpdate();
             this.Peer.NetworkUpdate();
             this.Simulation.PreUpdate();
             this.Simulation.ExecuteNetworkUpdate();
-            this.Timer.Update();
+            this.SimulationClock.Update();
         }
 
         /// <summary>
@@ -150,11 +153,15 @@ namespace StargateNet
 
             if (this.IsServer || (this.IsClient && this.IsConnected))
             {
+                this.Simulation.DrainPaddingAddedEntity();
+                this.Simulation.PreFixedUpdate();
                 this.Simulation.FixedUpdate();
+                if(this.SimulationClock.IsLastCall) // 优先发送消息
+                    this.Send();
+                this.Simulation.PostFixedUpdate();
+                this.Simulation.DrainPaddingRemovedEntity();
                 this.simTick++;
             }
-
-            this.Send();
         }
 
         private void Send()
@@ -183,20 +190,8 @@ namespace StargateNet
                 int id = component.PrefabId;
                 if (!this.PrefabsTable.ContainsKey(id))
                     throw new Exception($"GameObject {gameObject.name} has not been registered");
-
-                NetworkObjectRef networkObjectRef = NetworkObjectRef.InvalidNetworkObjectRef;
-                if (this.networkRef2Reuse.Count > 0)
-                {
-                    networkObjectRef = this.networkRef2Reuse.Dequeue();
-                }
-                else
-                {
-                    networkObjectRef = this.currentMaxNetworkObjectRef + 1;
-                }
-
-                NetworkObject networkObject = this.ObjectSpawner.Spawn(gameObject, position, rotation)
-                    .GetComponent<NetworkObject>();
-                this.Simulation.AddEntity(networkObject, networkObjectRef);
+                NetworkObject networkObject = this.ObjectSpawner.Spawn(gameObject, position, rotation).GetComponent<NetworkObject>();
+                this.Simulation.AddEntity(networkObject, new NetworkObjectMeta());
             }
             else throw new Exception($"GameObject {gameObject.name} is not a NetworkObject");
         }
@@ -207,7 +202,6 @@ namespace StargateNet
             {
                 NetworkObjectRef networkObjectRef = networkObject.NetworkId;
                 this.Simulation.RemoveEntity(networkObjectRef);
-                this.networkRef2Reuse.Enqueue(networkObjectRef);
                 this.ObjectSpawner.Despawn(gameObject);
             }
             else

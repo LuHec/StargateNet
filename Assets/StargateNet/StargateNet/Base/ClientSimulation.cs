@@ -28,7 +28,7 @@ namespace StargateNet
         /// <param name="srvTick"></param>
         internal void OnRcvPak(Tick srvTick)
         {
-            this.engine.Timer.OnRecvPak();
+            this.engine.SimulationClock.OnRecvPak();
             authoritativeTick = srvTick;
         }
 
@@ -40,7 +40,7 @@ namespace StargateNet
             if (!this.authoritativeTick.IsValid)
                 return;
 
-            if (this.engine.Timer.IsFirstCall)
+            if (this.engine.SimulationClock.IsFirstCall)
             {
                 Reconcile();
                 // 只有第一次模拟才创建输入，Clock后续的追帧模拟因为在同一unity帧内读取不到用户输入,所以不加入

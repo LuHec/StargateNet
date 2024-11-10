@@ -7,6 +7,7 @@ namespace StargateNet
     {
         internal double Time { get; private set; }
         internal bool IsFirstCall { get; private set; }
+        internal bool IsLastCall { get; private set; }
         private Action _action;
 
         private StargateEngine _engine;
@@ -43,11 +44,13 @@ namespace StargateNet
         internal void Update()
         {
             IsFirstCall = true;
+            IsLastCall = false;
             // 10次只是一个阈值，用来限制处理低帧率的次数。在60tick的情况下，得低于6帧才会在一帧内处理10次，在帧数足够的情况下只会触发一次
             for (int i = 0; i < 10 && this._accumulator > this._scaledDelta; i++)
             {
                 this._engine.Monitor.clockLevel = this._clockLevel;
                 this._accumulator -= this._scaledDelta;
+                this.IsLastCall = this._accumulator < this._scaledDelta;
                 // 只有每帧的第一次模拟会触发回滚+Resim
                 this._action?.Invoke();
                 IsFirstCall = false;
