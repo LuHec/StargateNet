@@ -109,7 +109,7 @@ namespace StargateNet
                     if ((delta & 1) == 1)
                     {
                         Dictionary<int, NetworkObject> prefabsTable = this.Engine.PrefabsTable;
-                        Dictionary<NetworkObjectRef, NetworkObject> networkObjectsTable = this.Engine.Simulation.NetworkObjectsTable;
+                        Dictionary<NetworkObjectRef, NetworkObject> networkObjectsTable = this.Engine.Simulation.EntitiesTable;
                         NetworkObjectRef networkObjectRef = new NetworkObjectRef(i * 32 + idx);
                         int prefabId = msg.GetInt();
                         if (!networkObjectsTable.ContainsKey(networkObjectRef) &&

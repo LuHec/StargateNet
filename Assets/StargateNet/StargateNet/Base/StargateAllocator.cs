@@ -30,11 +30,16 @@ namespace StargateNet
         // 一个网络id对应一个pool，pool内的内存就是该物体的全部脚本的同步变量所占用的内存
         // SgAllocator的总大小是不会变动的，而TLSF拿和还都是O1的时间复杂度，所以当同步物体发生变化时，不需要重新分配一个Snapshot，直接归还被删除的网络id所占用的内存即可，
         // 所以我决定用字典来保存这个映射关系，平均时间复杂度是o1，且避免了netid经过大量回收后混乱的问题(存疑，可能会导致回滚出问题，因为复用了id)
-        public void* Malloc(ulong size)
+        public void* Malloc(long size)
         {
-            void* block = TLSF64.tlsf_malloc(this._entireBlock, size);
+            void* block = TLSF64.tlsf_malloc(this._entireBlock, (ulong)size);
             this.monitor.unmanagedMemeoryInuse += TLSF64.tlsf_block_size(block);
             return block;
+        }
+
+        public void FlushZero(void* block)
+        {
+            UnsafeUtility.MemSet(block, 0, (long)TLSF64.tlsf_block_size(block));
         }
 
         public void Free(void* block)

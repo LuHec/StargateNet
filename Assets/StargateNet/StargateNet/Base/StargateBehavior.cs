@@ -4,29 +4,29 @@ namespace StargateNet
 {
     public abstract class StargateBehavior : MonoBehaviour, IStargateNetworkScript, IStargateScript
     {
-        public unsafe int* StateBlock { get; internal set; }
+        public unsafe int* StateBlock { get; internal set; } // 由Entity构造时分发
         public Entity Entity { get; internal set; }
-        public void NetworkStart()
+        public virtual void NetworkStart()
         {
             
         }
 
-        public void NetworkUpdate()
+        public virtual void NetworkUpdate()
         {
             
         }
 
-        public void NetworkFixedUpdate()
+        public virtual void NetworkFixedUpdate()
         {
             
         }
 
-        public void NetworkRender()
+        public virtual void NetworkRender()
         {
             
         }
 
-        public void NetworkDestroy()
+        public virtual void NetworkDestroy()
         {
             
         }

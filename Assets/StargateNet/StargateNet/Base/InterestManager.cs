@@ -4,11 +4,11 @@ namespace StargateNet
 {
     public class InterestManager
     {
-        public readonly List<Entity> simulationList = new(32);
+        internal List<Entity> simulationList; // 实际会被执行的单元
 
-        public InterestManager()
+        public InterestManager(int maxEntities)
         {
-            
+            simulationList = new List<Entity>(maxEntities);
         }
         
         public void ExecuteNetworkUpdate()

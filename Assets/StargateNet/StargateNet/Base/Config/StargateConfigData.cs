@@ -12,5 +12,6 @@ namespace StargateNet
         public int savedSnapshotsCount;
         public List<GameObject> networkPrefabs;
         public int maxPredictedTicks;
+        public int objectStateSize; // 单个NetworkObject的内存大小
     }
 }

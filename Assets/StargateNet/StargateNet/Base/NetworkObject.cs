@@ -6,7 +6,7 @@ namespace StargateNet
     [DisallowMultipleComponent]
     public class NetworkObject : MonoBehaviour, INetworkEntity
     {
-        public Entity Entity { get; private set; }
+        public Entity Entity { get;  private set; }
         public NetworkObjectRef NetworkId => this.Entity.networkId;
         public IStargateScript[] NetworkScripts { get; private set; }
 
@@ -21,9 +21,10 @@ namespace StargateNet
 
         [SerializeField] private int _prefabId = -1;
 
-        public void Initialize(StargateEngine engine, IStargateScript[] networkScripts)
+        public void Initialize(StargateEngine engine, IStargateScript[] networkScripts, Entity networkEntity)
         {
             this.NetworkScripts = networkScripts;
+            this.Entity = networkEntity;
         }
 
         private void Start()
