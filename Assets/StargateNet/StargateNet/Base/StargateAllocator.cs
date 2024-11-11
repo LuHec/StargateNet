@@ -62,6 +62,15 @@ namespace StargateNet
         }
 
         /// <summary>
+        /// 将池中的内存拷贝到目标
+        /// </summary>
+        /// <param name="dest"></param>
+        public void CopyTo(StargateAllocator dest)
+        {
+            
+        }
+
+        /// <summary>
         /// 将所有内存归还
         /// </summary>
         public void FastRelease()

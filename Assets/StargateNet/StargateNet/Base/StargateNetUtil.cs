@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace StargateNet
 {
-    public static class SgNetworkUtil
+    public static class StargateNetUtil
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int AlignTo(int value, int alignment)

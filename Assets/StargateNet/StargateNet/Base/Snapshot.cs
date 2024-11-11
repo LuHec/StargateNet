@@ -2,6 +2,7 @@ namespace StargateNet
 {
     public unsafe class Snapshot
     {
+        internal Tick snapshotTick;
         internal int* worldObjectMap; // 标记被占用的NetworkId
         internal int* dirtyObjectMetaMap; // 标记本帧变化的meta
         internal NetworkObjectMeta* worldObjectMeta; // 存储此帧所有物体的meta                 
@@ -10,6 +11,7 @@ namespace StargateNet
         public Snapshot(int* worldObjectMap, int* worldObjectMeta, int* dirtyObjectMetaMap,
             StargateAllocator networkState)
         {
+            this.snapshotTick = Tick.InvalidTick;
             this.worldObjectMap = worldObjectMap;
             this.worldObjectMeta = (NetworkObjectMeta*)worldObjectMeta;
             this.dirtyObjectMetaMap = dirtyObjectMetaMap;

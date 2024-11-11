@@ -14,18 +14,18 @@ public class WorldState
     internal Tick currentTick = Tick.InvalidTick;
     internal Snapshot CurrentSnapshot=>currentTick.IsValid ? snapshots[CurrentSnapIdx] : null;
 
-    public WorldState(int maxSnapCnt)
+    internal WorldState(int maxSnapCnt)
     {
         this.MaxSnapshotsCount = maxSnapCnt;
         this.snapshots = new List<Snapshot>(maxSnapCnt);
     }
 
-    public void Init(Tick tick)
+    internal void Init(Tick tick)
     {
         this.currentTick = tick;
     }
 
-    public void FlushTick(Tick tick)
+    internal void FlushTick(Tick tick)
     {
         
     }

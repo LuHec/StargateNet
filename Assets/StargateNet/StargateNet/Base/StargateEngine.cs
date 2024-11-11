@@ -13,7 +13,8 @@ namespace StargateNet
         internal WorldState WorldState { get; private set; }
         internal SimulationClock SimulationClock { get; private set; }
         internal Monitor Monitor { get; private set; }
-        internal StargateAllocator GlobalAllocator { get; private set; }
+        internal StargateAllocator WorldAllocator { get; private set; }
+        internal StargateAllocator ObjectAllocator { get; private set; }
         internal Tick simTick = new Tick(10); // 是客户端/服务端已经模拟的本地帧数。客户端的simTick与同步无关，服务端的simtick会作为AuthorTick传给客户端
         internal float LastDeltaTime { get; private set; }
         internal float LastTimeScale { get; private set; }
@@ -48,7 +49,6 @@ namespace StargateNet
             this.Monitor = monitor;
             this.ConfigData = configData;
             this.SimulationClock = new SimulationClock(this, this.FixedUpdate);
-            this.GlobalAllocator = new StargateAllocator(4096, monitor); //全局的分配器
             // 给每一个Snapshot的分配器，上限是max snapshots
             // 初始化预制体的id
             this.PrefabsTable = new Dictionary<int, NetworkObject>(configData.networkPrefabs.Count);
@@ -64,13 +64,15 @@ namespace StargateNet
             this.maxNetworkRef = (configData.maxNetworkObjects & 1) == 1
                 ? configData.maxNetworkObjects + 1
                 : configData.maxNetworkObjects;
-            this.maxNetworkRef = SgNetworkUtil.AlignTo(this.maxNetworkRef, 32); // 对齐一个int,申请足够大小的内存给id map
+            this.maxNetworkRef = StargateNetUtil.AlignTo(this.maxNetworkRef, 32); // 对齐一个int,申请足够大小的内存给id map
             int totalObjectMapByteSize = this.maxNetworkRef * 4;
+            this.WorldAllocator = new StargateAllocator(4096, monitor); //全局的分配器
+            this.ObjectAllocator = new StargateAllocator(4096, monitor); //专门用于物体Sync var的分配器
             for (int i = 0; i < this.WorldState.MaxSnapshotsCount; i++)
             {
-                this.WorldState.snapshots.Add(new Snapshot((int*)this.GlobalAllocator.Malloc(totalObjectMapByteSize),
-                    (int*)this.GlobalAllocator.Malloc(totalObjectMetaByteSize),
-                    (int*)this.GlobalAllocator.Malloc(totalObjectMapByteSize),
+                this.WorldState.snapshots.Add(new Snapshot((int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
+                    (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
+                    (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
                     new StargateAllocator(totalObjectStateByteSize, monitor))
                 );
             }
@@ -84,6 +86,8 @@ namespace StargateNet
                 this.ServerSimulation = new ServerSimulation(this);
                 this.Simulation = this.ServerSimulation;
                 this.Server.StartServer(port, configData.maxClientCount);
+                // 客户端的worldState需要在RecvBuffer时更新
+                this.WorldState.Init(this.simTick);
             }
             else
             {
@@ -95,9 +99,6 @@ namespace StargateNet
 
             this.Simulated = true;
             this.IsRunning = true;
-            
-            // TODO:客户端不应该用这个
-            this.WorldState.Init(this.simTick);
         }
 
 

@@ -24,8 +24,8 @@ namespace StargateNet
 
         internal unsafe Entity CreateEntity(NetworkObject networkObject, NetworkObjectRef networkObjectRef)
         {
-            // 用本帧的资源来分配
-            StargateAllocator allocator = this.engine.WorldState.CurrentSnapshot.networkState;
+            // 用全局的内存来分配，在一帧结束后，内存会被拷贝到WorldState中
+            StargateAllocator allocator = this.engine.ObjectAllocator;
             NetworkBehavior[] networkBehaviors = networkObject.GetComponents<NetworkBehavior>();
             Entity entity = new Entity(networkObjectRef, this.engine, networkObject);
             int byteSize = 0;

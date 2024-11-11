@@ -11,15 +11,18 @@ namespace StargateNet
         internal Tick currentTick = Tick.InvalidTick;
         internal Tick predictedTick = Tick.InvalidTick;
         internal Tick authoritativeTick = Tick.InvalidTick;
-        internal RingQueue<Snapshot> snapShots = new(32); //本地可取的snapshot环形队列，可以获得前32帧的snapshot
+        internal List<StargateAllocator> predictedSnapshots; // 客户端用于预测snapshot，由于客户端不会预测物体的销毁和生成，所以只存属性
         internal List<SimulationInput> inputs = new(512);
         internal SimulationInput currentInput = new SimulationInput();
         internal StargateAllocator lastAuthorSnapShots;
         internal double serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
+        private readonly int _maxPredictedTicks;
 
 
         internal ClientSimulation(StargateEngine engine) : base(engine)
         {
+            this._maxPredictedTicks = engine.ConfigData.maxPredictedTicks;
+            this.predictedSnapshots = new List<StargateAllocator>(this._maxPredictedTicks);
         }
 
         /// <summary>
@@ -54,7 +57,7 @@ namespace StargateNet
             // 首先模拟函数的调用时机在Send Input之后
             // Reconcile中限定了客户端的输入范围在AuthorTick到CurrentTick，都是上一帧的数据，已经在Send中被发出。
             // 本帧要发的有效数据应该是AuthorTick + 1到CurrentTick + 1
-            while (this.inputs.Count > 0 && this.inputs.Count > this.engine.ConfigData.maxPredictedTicks) // 新输入占位
+            while (this.inputs.Count > 0 && this.inputs.Count > this._maxPredictedTicks) // 新输入占位
             {
                 RecycleInput(this.inputs[0]);
                 this.inputs.RemoveAt(0);
@@ -77,13 +80,13 @@ namespace StargateNet
         {
             int delayTickCount = Math.Abs(this.currentTick - this.authoritativeTick);
             this.currentTick = this.authoritativeTick; // currentTick复制authorTick，并从这一帧开始重新模拟
-            if (delayTickCount > this.engine.ConfigData.maxPredictedTicks) // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了
+            if (delayTickCount > this._maxPredictedTicks) // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了
             {
                 this.engine.Client.HeavyPakLoss = true;
                 RemoveAllInputs();
             }
 
-            if (this.currentTick.IsValid && delayTickCount < this.engine.ConfigData.maxPredictedTicks) // 回滚+重模拟
+            if (this.currentTick.IsValid && delayTickCount < this._maxPredictedTicks) // 回滚+重模拟
             {
                 RemoveInputBefore(this.authoritativeTick);
                 for (int i = 0; i < this.inputs.Count; i++)

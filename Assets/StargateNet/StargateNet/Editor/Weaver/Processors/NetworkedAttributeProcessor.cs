@@ -245,20 +245,20 @@ namespace StargateNet
             ModuleDefinition moduleDefinition)
         {
             MethodDefinition typeHandler = null;
-            TypeDefinition sgNetworkUtilDef = definitions[typeof(SgNetworkUtil).FullName];
+            TypeDefinition sgNetworkUtilDef = definitions[typeof(StargateNetUtil).FullName];
             switch (propertyDef.PropertyType.FullName)
             {
                 case "UnityEngine.Vector4":
                     typeHandler =
-                        sgNetworkUtilDef.Methods.First(method => method.Name == nameof(SgNetworkUtil.GetVector4));
+                        sgNetworkUtilDef.Methods.First(method => method.Name == nameof(StargateNetUtil.GetVector4));
                     break;
                 case "UnityEngine.Vector3":
                     typeHandler =
-                        sgNetworkUtilDef.Methods.First(method => method.Name == nameof(SgNetworkUtil.GetVector3));
+                        sgNetworkUtilDef.Methods.First(method => method.Name == nameof(StargateNetUtil.GetVector3));
                     break;
                 case "UnityEngine.Vector2":
                     typeHandler =
-                        sgNetworkUtilDef.Methods.First(method => method.Name == nameof(SgNetworkUtil.GetVector2));
+                        sgNetworkUtilDef.Methods.First(method => method.Name == nameof(StargateNetUtil.GetVector2));
                     break;
             }
 
