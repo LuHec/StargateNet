@@ -6,6 +6,8 @@ namespace StargateNet
     public struct NetworkObjectMeta
     {
         public int networkId;
+        public int prefabId;
+        public int stateWordSize; 
         public bool destroyed;
     }
 }

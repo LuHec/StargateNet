@@ -22,7 +22,8 @@ namespace StargateNet
             this.engine = engine;
         }
 
-        internal unsafe Entity CreateEntity(NetworkObject networkObject, NetworkObjectRef networkObjectRef)
+        internal unsafe Entity CreateEntity(NetworkObject networkObject, NetworkObjectRef networkObjectRef,
+            out int stateWordSize)
         {
             // 用全局的内存来分配，在一帧结束后，内存会被拷贝到WorldState中
             StargateAllocator allocator = this.engine.ObjectAllocator;
@@ -34,18 +35,19 @@ namespace StargateNet
                 byteSize += networkBehaviors[i].StateBlockSize;
             }
 
+            stateWordSize = byteSize / 4;
             // 给每个脚本切割内存和bitmap
-            int offset = 0;
+            int wordOffset = 0;
             if (allocator.AddPool(networkObjectRef.refValue, byteSize * 2))
             {
-                int* data = (int*)allocator.pools[networkObjectRef.refValue].data;
-                int* state = data;
-                int* bitmap = data + byteSize / 4;
-                entity.Initialize(state, bitmap, byteSize);
+                int* poolData = (int*)allocator.pools[networkObjectRef.refValue].data;
+                int* bitmap = poolData; //bitmap放在首部
+                int* state = poolData + byteSize / 4;
+                entity.Initialize(state, bitmap, byteSize / 4);
                 for (int i = 0; i < networkBehaviors.Length; i++)
                 {
-                    networkBehaviors[i].StateBlock = data + offset;
-                    offset += networkBehaviors[i].StateBlockSize / 4;
+                    networkBehaviors[i].StateBlock = state + wordOffset;
+                    wordOffset += networkBehaviors[i].StateBlockSize / 4; // 懒得改ilprocessor，所以暂时用字节数
                 }
             }
 
@@ -62,11 +64,13 @@ namespace StargateNet
             NetworkObjectRef networkObjectRef = this.networkRef2Reuse.Count > 0
                 ? this.networkRef2Reuse.Dequeue()
                 : ++this.currentMaxNetworkObjectRef;
-            Entity entity = this.CreateEntity(networkObject, networkObjectRef);
+            Entity entity = this.CreateEntity(networkObject, networkObjectRef, out int stateWordSize);
             this.EntitiesTable.Add(networkObjectRef, entity);
             this.paddingToAddEntities.Add(entity);
             // 修改meta并标记
             meta.networkId = networkObjectRef.refValue;
+            meta.stateWordSize = stateWordSize;
+            meta.prefabId = networkObject.PrefabId;
             meta.destroyed = false;
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             currentSnapshot.worldObjectMap[networkObjectRef.refValue] = 1;
@@ -99,21 +103,22 @@ namespace StargateNet
             {
                 this.engine.IM.simulationList.Add(entity);
             }
-            
+
             this.paddingToAddEntities.Clear();
         }
 
         /// <summary>
-        /// 主要作用是移除模拟脚本并回收Entity
+        /// 主要作用是移除模拟脚本并回收Entity的内存
         /// </summary>
         internal void DrainPaddingRemovedEntity()
         {
             foreach (var entity in this.paddingToRemoveEntities)
             {
                 this.engine.IM.simulationList.Remove(entity);
+                this.engine.ObjectAllocator.ReleasePool(entity.networkId.refValue);
                 this.networkRef2Reuse.Enqueue(entity.networkId);
             }
-            
+
             this.paddingToRemoveEntities.Clear();
         }
 

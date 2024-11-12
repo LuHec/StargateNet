@@ -55,9 +55,11 @@ namespace StargateNet
             return data != null && pools.TryAdd(id, new MemoryPool() { data = data, byteSize = byteSize });
         }
 
-        public bool ReleasePool(int id)
+        public unsafe bool ReleasePool(int id)
         {
             if (!pools.ContainsKey(id)) return false;
+            void* data = pools[id].data;
+            this.Free(data);
             return pools.Remove(id);
         }
 

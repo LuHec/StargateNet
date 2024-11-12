@@ -83,49 +83,48 @@ namespace StargateNet
         /// <param name="args"></param>
         private unsafe void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
-            this.HeavyPakLoss = false;
-
-            var ds = this.Engine.ClientSimulation.snapShots;
-            var msg = args.Message;
-            if (msg.UnreadBits < 8 * sizeof(int)) return;
-            Tick srvtick = new Tick(msg.GetInt());
-            this.Engine.ClientSimulation.OnRcvPak(srvtick);
-            Ack(srvtick);
-            this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
-            // 接收NetworkObject
-            int maxNetworkRef = msg.GetInt();
-            int[] srvMap = new int[maxNetworkRef];
-            for (int i = 0; i < maxNetworkRef / 32; i++)
-            {
-                srvMap[i] = msg.GetInt();
-            }
-
-            for (int i = 0; i < maxNetworkRef / 32; i++)
-            {
-                int delta = this.Engine.Simulation.networkRefMap[i] | srvMap[i];
-                int idx = 0;
-                while (delta > 0)
-                {
-                    if ((delta & 1) == 1)
-                    {
-                        Dictionary<int, NetworkObject> prefabsTable = this.Engine.PrefabsTable;
-                        Dictionary<NetworkObjectRef, NetworkObject> networkObjectsTable = this.Engine.Simulation.EntitiesTable;
-                        NetworkObjectRef networkObjectRef = new NetworkObjectRef(i * 32 + idx);
-                        int prefabId = msg.GetInt();
-                        if (!networkObjectsTable.ContainsKey(networkObjectRef) &&
-                            prefabsTable.ContainsKey(prefabId))
-                        {
-                            // 生成
-                            var networkObject =  this.Engine.ObjectSpawner.Spawn(this.Engine.PrefabsTable[prefabId].gameObject, Vector3.zero,
-                                Quaternion.identity).GetComponent<NetworkObject>();
-                            networkObjectsTable.Add(networkObjectRef, networkObject);
-                        }
-                    }
-
-                    idx++;
-                    delta >>= 1;
-                }
-            }
+            // this.HeavyPakLoss = false;
+            //
+            // var msg = args.Message;
+            // if (msg.UnreadBits < 8 * sizeof(int)) return;
+            // Tick srvtick = new Tick(msg.GetInt());
+            // this.Engine.ClientSimulation.OnRcvPak(srvtick);
+            // // Ack(srvtick);
+            // this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
+            // // 接收NetworkObject
+            // int maxNetworkRef = msg.GetInt();
+            // int[] srvMap = new int[maxNetworkRef];
+            // for (int i = 0; i < maxNetworkRef / 32; i++)
+            // {
+            //     srvMap[i] = msg.GetInt();
+            // }
+            //
+            // for (int i = 0; i < maxNetworkRef / 32; i++)
+            // {
+            //     int delta = this.Engine.Simulation.networkRefMap[i] | srvMap[i];
+            //     int idx = 0;
+            //     while (delta > 0)
+            //     {
+            //         if ((delta & 1) == 1)
+            //         {
+            //             Dictionary<int, NetworkObject> prefabsTable = this.Engine.PrefabsTable;
+            //             Dictionary<NetworkObjectRef, NetworkObject> networkObjectsTable = this.Engine.Simulation.EntitiesTable;
+            //             NetworkObjectRef networkObjectRef = new NetworkObjectRef(i * 32 + idx);
+            //             int prefabId = msg.GetInt();
+            //             if (!networkObjectsTable.ContainsKey(networkObjectRef) &&
+            //                 prefabsTable.ContainsKey(prefabId))
+            //             {
+            //                 // 生成
+            //                 var networkObject =  this.Engine.ObjectSpawner.Spawn(this.Engine.PrefabsTable[prefabId].gameObject, Vector3.zero,
+            //                     Quaternion.identity).GetComponent<NetworkObject>();
+            //                 networkObjectsTable.Add(networkObjectRef, networkObject);
+            //             }
+            //         }
+            //
+            //         idx++;
+            //         delta >>= 1;
+            //     }
+            // }
             // Client
         }
 

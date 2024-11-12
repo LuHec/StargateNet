@@ -192,6 +192,7 @@ namespace StargateNet
                 if (!this.PrefabsTable.ContainsKey(id))
                     throw new Exception($"GameObject {gameObject.name} has not been registered");
                 NetworkObject networkObject = this.ObjectSpawner.Spawn(gameObject, position, rotation).GetComponent<NetworkObject>();
+                // TODO: 把子节点如果是NetworkObject的也加入进去
                 this.Simulation.AddEntity(networkObject, new NetworkObjectMeta());
             }
             else throw new Exception($"GameObject {gameObject.name} is not a NetworkObject");

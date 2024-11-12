@@ -17,6 +17,8 @@ namespace StargateNet
         public ushort MaxClientCount { private set; get; }
         public Server Server { private set; get; }
         public List<ClientConnection> clientConnections; // 暂时先用List(有隐患，Riptide给Client的id是递增的，一个CLient断线重连后获得的id和以前不一样)
+        private List<int> _cachedMetaIds;
+        private List<int> _cachedObjectIds;
 
         public SgServerPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -32,6 +34,8 @@ namespace StargateNet
             this.Server.Start(port, maxClientCount, useMessageHandlers: false);
             this.clientConnections = new List<ClientConnection>(maxClientCount);
             this.clientConnections.Add(new ClientConnection());
+            this._cachedMetaIds = new(this.Engine.maxNetworkRef);
+            this._cachedObjectIds = new(this.Engine.maxNetworkRef);
             RiptideLogger.Log(LogType.Debug, "Server Start");
         }
 
@@ -57,36 +61,51 @@ namespace StargateNet
             // 塞Tick
             msg.AddInt(this.Engine.simTick.tickValue);
             ClientData[] clientDatas = this.Engine.ServerSimulation.clientDatas;
+            Snapshot curSnapshot = this.Engine.WorldState.CurrentSnapshot;
+            this._cachedMetaIds.Clear();
+            this._cachedObjectIds.Clear();
+            for (int i = 0; i < this.Engine.maxNetworkRef; i++)
+            {
+                if (curSnapshot.dirtyObjectMetaMap[i] == 1)
+                    this._cachedMetaIds.Add(i);
+            }
+
+            foreach (var pair in this.Engine.ObjectAllocator.pools)
+            {
+                int id = pair.Key;
+                int mapSize = curSnapshot.worldObjectMeta[id].stateWordSize / 2;
+                StargateAllocator.MemoryPool pool = pair.Value;
+                void* data = pool.data;
+                int* map = (int*)data;
+                int* states = map + mapSize;
+                for (int i = 0; i < mapSize; i++)
+                {
+                    if (map[i] == 1)
+                    {
+                        this._cachedObjectIds.Add(id);
+                        break;
+                    }
+                }
+            }
+
             for (int i = 1; i < this.clientConnections.Count; i++)
             {
                 if (this.clientConnections[i].connected)
                 {
                     // 塞pakTime
                     msg.AddDouble(clientDatas[i].deltaPakTime);
-                    // 塞Delta NetworkObject id
-                    int maxNetworkRef = this.Engine.maxNetworkRef;
-                    msg.AddInt(maxNetworkRef);
-                    for (int j = 0; j < maxNetworkRef / 32; j ++)
+                    // meta
+                    msg.AddInt(this._cachedMetaIds.Count); // 数量
+                    foreach (var id in _cachedMetaIds)
                     {
-                        msg.AddInt(this.Engine.networkRefMap[j]);
+                        NetworkObjectMeta meta = curSnapshot.worldObjectMeta[id];
+                        msg.AddInt(meta.networkId);
+                        msg.AddInt(meta.prefabId);
+                        msg.AddInt(meta.stateWordSize);
+                        msg.AddBool(meta.destroyed);
                     }
-                    // 塞prefab id
-                    for (int j = 0; j < maxNetworkRef / 32; j ++)
-                    {
-                        int t = this.Engine.networkRefMap[j];
-                        int idx = 0;
-                        while (t > 0)
-                        {
-                            if ((t & 1) == 1)
-                            {
-                                NetworkObjectRef networkObjectRef = new NetworkObjectRef(j * 32 + idx);
-                                msg.AddInt(this.Engine.NetworkObjectsTable[networkObjectRef].PrefabId);
-                            }
-                            t >>= 1;
-                            idx++;
-                        }
-                    }
-                    
+                    // sync var,meta为非destroyed的数据全放入
+
                     this.Server.Send(msg, (ushort)i);
                 }
             }

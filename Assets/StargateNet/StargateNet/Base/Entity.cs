@@ -11,7 +11,7 @@ namespace StargateNet
         internal NetworkObjectRef networkId;                       // networked entity unique id
         internal StargateEngine engine;
         internal INetworkEntity entity;               // Truly Object
-        internal int entityBlockByteSize;        // Networked Field Size 
+        internal int entityBlockWordSize;        // Networked Field Size 
         internal unsafe int* stateBlock;         // Networked Field memory block base address
         internal unsafe int* bitmap;                       // bit dirtymap
 
@@ -28,11 +28,11 @@ namespace StargateNet
             this.entity = entity;
         }
 
-        public unsafe void Initialize(int* stateBlockPtr, int* bitmapPtr, int blockByteSize)
+        public unsafe void Initialize(int* stateBlockPtr, int* bitmapPtr, int blockWordSize)
         {
-            this.stateBlock = stateBlock;
+            this.stateBlock = stateBlockPtr;
             this.bitmap = bitmapPtr;
-            this.entityBlockByteSize = blockByteSize;
+            this.entityBlockWordSize = blockWordSize;
         }
 
         /// <summary>
@@ -40,16 +40,16 @@ namespace StargateNet
         /// </summary>
         /// <param name="newValue"></param>
         /// <param name="address"></param>
-        /// <param name="size"></param>
+        /// <param name="wordSize">一个word长度为4字节</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void SetData(int* newValue, int* address, int size)
+        public unsafe void SetData(int* newValue, int* address, int wordSize)
         {
             // 内存大小不超过INT_MAX
             int dataId = (int)(address - stateBlock);
             
             // size是以int为单位的
-            for (int i = 0; i < size; i++)
+            for (int i = 0; i < wordSize; i++)
             {
                 stateBlock[dataId + i] = newValue[i];
             }
@@ -67,9 +67,9 @@ namespace StargateNet
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void DirtifyData(IStargateNetworkScript stargateNetworkScript, int* newValue, int* address, int size)
+        public static unsafe void DirtifyData(IStargateNetworkScript stargateNetworkScript, int* newValue, int* address, int wordSize)
         {
-            stargateNetworkScript.Entity.SetData(newValue, address, size);
+            stargateNetworkScript.Entity.SetData(newValue, address, wordSize);
         }
     }
     
