@@ -34,8 +34,8 @@ namespace StargateNet
             this.Server.Start(port, maxClientCount, useMessageHandlers: false);
             this.clientConnections = new List<ClientConnection>(maxClientCount);
             this.clientConnections.Add(new ClientConnection());
-            this._cachedMetaIds = new(this.Engine.maxNetworkRef);
-            this._cachedObjectIds = new(this.Engine.maxNetworkRef);
+            this._cachedMetaIds = new(this.Engine.maxEntities);
+            this._cachedObjectIds = new(this.Engine.maxEntities);
             RiptideLogger.Log(LogType.Debug, "Server Start");
         }
 
@@ -64,29 +64,31 @@ namespace StargateNet
             Snapshot curSnapshot = this.Engine.WorldState.CurrentSnapshot;
             this._cachedMetaIds.Clear();
             this._cachedObjectIds.Clear();
-            for (int i = 0; i < this.Engine.maxNetworkRef; i++)
+            for (int i = 0; i < this.Engine.maxEntities; i++)
             {
                 if (curSnapshot.dirtyObjectMetaMap[i] == 1)
                     this._cachedMetaIds.Add(i);
             }
 
-            foreach (var pair in this.Engine.ObjectAllocator.pools)
-            {
-                int id = pair.Key;
-                int mapSize = curSnapshot.worldObjectMeta[id].stateWordSize / 2;
-                StargateAllocator.MemoryPool pool = pair.Value;
-                void* data = pool.data;
-                int* map = (int*)data;
-                int* states = map + mapSize;
-                for (int i = 0; i < mapSize; i++)
-                {
-                    if (map[i] == 1)
-                    {
-                        this._cachedObjectIds.Add(id);
-                        break;
-                    }
-                }
-            }
+            // 缓存状态改变了的Entity
+            // TODO:现在已经改成worldIdx了，需要再加入Entity dirty
+            // foreach (var pool in this.Engine.ObjectAllocator.pools)
+            // {
+            //     int id = pair.Key;
+            //     int mapSize = curSnapshot.worldObjectMeta[id].stateWordSize / 2;
+            //     StargateAllocator.MemoryPool pool = pair.Value;
+            //     void* data = pool.data;
+            //     int* map = (int*)data;
+            //     int* states = map + mapSize;
+            //     for (int i = 0; i < mapSize; i++)
+            //     {
+            //         if (map[i] == 1)
+            //         {
+            //             this._cachedObjectIds.Add(id);
+            //             break;
+            //         }
+            //     }
+            // }
 
             for (int i = 1; i < this.clientConnections.Count; i++)
             {
@@ -95,7 +97,6 @@ namespace StargateNet
                     // 塞pakTime
                     msg.AddDouble(clientDatas[i].deltaPakTime);
                     // meta
-                    msg.AddInt(this._cachedMetaIds.Count); // 数量
                     foreach (var id in _cachedMetaIds)
                     {
                         NetworkObjectMeta meta = curSnapshot.worldObjectMeta[id];
@@ -104,7 +105,44 @@ namespace StargateNet
                         msg.AddInt(meta.stateWordSize);
                         msg.AddBool(meta.destroyed);
                     }
-                    // sync var,meta为非destroyed的数据全放入
+                    // meta写入终止符号
+                    msg.AddInt(this._cachedMetaIds.Count); 
+                    // 写入sync var,meta为非destroyed的数据全放入
+                    // for(int i = 0; i < )
+                    foreach (var pair in this.Engine.ObjectAllocator.pools)
+                    {
+                        int id = pair.Key;
+                        if (curSnapshot.worldObjectMeta[id].destroyed) continue;
+                        int mapSize = curSnapshot.worldObjectMeta[id].stateWordSize / 2;
+                        StargateAllocator.MemoryPool pool = pair.Value;
+                        void* data = pool.data;
+                        int* map = (int*)data;
+                        int* states = map + mapSize;
+                        bool dirty = false;
+                        for (int idx = 0; idx < mapSize; idx++)
+                        {
+                            if (map[idx] == 1)
+                            {
+                                dirty = true;
+                                break;
+                            }
+                        }
+                        
+                        if(!dirty) continue;
+                        // 写入id
+                        msg.AddInt(id);
+                        for (int idx = 0; idx < mapSize; idx++)
+                        {
+                            if (map[idx] == 1)
+                            {
+                                msg.AddInt(states[idx]);
+                            }
+                        }
+                        // 单位状态写入终止符号
+                        msg.AddBool(false);
+                    }
+                    // 全部状态写入终止符号
+                    msg.AddBool(false);
 
                     this.Server.Send(msg, (ushort)i);
                 }

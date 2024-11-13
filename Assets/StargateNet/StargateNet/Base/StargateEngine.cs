@@ -25,6 +25,7 @@ namespace StargateNet
         internal SgServerPeer Server { get; private set; }
         internal bool IsServer => Peer.IsServer;
         internal bool IsClient => Peer.IsClient;
+        internal EntityMetaManager EntityMetaManager { get; private set; }
         internal InterestManager IM { get; private set; }
         internal Simulation Simulation { get; private set; }
         internal ServerSimulation ServerSimulation { get; private set; }
@@ -33,7 +34,8 @@ namespace StargateNet
         internal bool IsConnected { get; set; }
         internal IObjectSpawner ObjectSpawner { get; private set; }
         internal Dictionary<int, NetworkObject> PrefabsTable { private set; get; }
-        internal int maxNetworkRef;
+        internal int maxEntities;
+        private int _networkIdCounter = -1;
 
 
         internal StargateEngine()
@@ -59,18 +61,20 @@ namespace StargateNet
 
             this.IM = new InterestManager(configData.maxNetworkObjects);
             // ------------------------ 申请所有需要用到的内存 ------------------------ //
-            int totalObjectStateByteSize = configData.maxNetworkObjects * configData.objectStateSize;
-            int totalObjectMetaByteSize = configData.maxNetworkObjects * sizeof(NetworkObjectMeta);
-            this.maxNetworkRef = (configData.maxNetworkObjects & 1) == 1
+            this.maxEntities = (configData.maxNetworkObjects & 1) == 1
                 ? configData.maxNetworkObjects + 1
                 : configData.maxNetworkObjects;
-            this.maxNetworkRef = StargateNetUtil.AlignTo(this.maxNetworkRef, 32); // 对齐一个int,申请足够大小的内存给id map
-            int totalObjectMapByteSize = this.maxNetworkRef * 4;
+            this.maxEntities = StargateNetUtil.AlignTo(this.maxEntities, 32); // 对齐一个int,申请足够大小的内存给id map
+            this.EntityMetaManager = new EntityMetaManager(this.maxEntities);
+            int totalObjectStateByteSize = configData.maxNetworkObjects * configData.objectStateSize;
+            int totalObjectMetaByteSize = configData.maxNetworkObjects * sizeof(NetworkObjectMeta);
+            int totalObjectMapByteSize = this.maxEntities * 4;
+            // TODO:计算真正的大小
             this.WorldAllocator = new StargateAllocator(4096, monitor); //全局的分配器
             this.ObjectAllocator = new StargateAllocator(4096, monitor); //专门用于物体Sync var的分配器
             for (int i = 0; i < this.WorldState.MaxSnapshotsCount; i++)
             {
-                this.WorldState.snapshots.Add(new Snapshot((int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
+                this.WorldState.snapshots.Add(new Snapshot(
                     (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
                     (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
                     new StargateAllocator(totalObjectStateByteSize, monitor))
@@ -157,10 +161,11 @@ namespace StargateNet
                 this.Simulation.DrainPaddingAddedEntity();
                 this.Simulation.PreFixedUpdate();
                 this.Simulation.FixedUpdate();
+                this.Simulation.DrainPaddingRemovedEntity(); // 清除Entity占用的内存
                 if(this.SimulationClock.IsLastCall) // 优先发送消息
                     this.Send();
                 this.Simulation.PostFixedUpdate();
-                this.Simulation.DrainPaddingRemovedEntity();
+                
                 this.simTick++;
             }
         }
@@ -193,7 +198,7 @@ namespace StargateNet
                     throw new Exception($"GameObject {gameObject.name} has not been registered");
                 NetworkObject networkObject = this.ObjectSpawner.Spawn(gameObject, position, rotation).GetComponent<NetworkObject>();
                 // TODO: 把子节点如果是NetworkObject的也加入进去
-                this.Simulation.AddEntity(networkObject, new NetworkObjectMeta());
+                this.Simulation.AddEntity(networkObject, ++ this._networkIdCounter, this.EntityMetaManager.RequestWorldIdx(),new NetworkObjectMeta());
             }
             else throw new Exception($"GameObject {gameObject.name} is not a NetworkObject");
         }

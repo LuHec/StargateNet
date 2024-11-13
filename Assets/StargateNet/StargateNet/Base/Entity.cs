@@ -8,12 +8,16 @@ namespace StargateNet
     /// </summary>
     public sealed class Entity
     {
-        internal NetworkObjectRef networkId;                       // networked entity unique id
+        internal NetworkObjectRef networkId; // 客户端服务端一定是一致的
+        internal int poolId = -1; // 内存的idx，客户端和服务端不一定一致
+        internal int worldMetaId = -1; // meta的idx，客户端服务端一定是一致的
         internal StargateEngine engine;
-        internal INetworkEntity entity;               // Truly Object
-        internal int entityBlockWordSize;        // Networked Field Size 
-        internal unsafe int* stateBlock;         // Networked Field memory block base address
-        internal unsafe int* bitmap;                       // bit dirtymap
+        internal INetworkEntity entity; // Truly Object
+        internal int entityBlockWordSize; // Networked Field Size 
+        internal unsafe int* stateBlock; // Networked Field memory block base address
+        internal unsafe int* dirtyMap; // bit dirtymap
+        internal bool dirty = false;
+
 
         /// <summary>
         /// 初始化脚本等.获取大小等等
@@ -31,8 +35,30 @@ namespace StargateNet
         public unsafe void Initialize(int* stateBlockPtr, int* bitmapPtr, int blockWordSize)
         {
             this.stateBlock = stateBlockPtr;
-            this.bitmap = bitmapPtr;
+            this.dirtyMap = bitmapPtr;
             this.entityBlockWordSize = blockWordSize;
+        }
+
+        /// <summary>
+        /// 每个Tick后都清理
+        /// </summary>
+        public unsafe void TickReset()
+        {
+            this.dirty = false;
+            for (int i = 0; i < entityBlockWordSize; i++)
+            {
+                this.dirtyMap[i] = 0;
+            }
+        }
+
+        public unsafe void Reset()
+        {
+            this.stateBlock = null;
+            this.dirtyMap = null;
+            this.entityBlockWordSize = 0;
+            this.poolId = -1;
+            this.worldMetaId = -1;
+            this.networkId = NetworkObjectRef.InvalidNetworkObjectRef;
         }
 
         /// <summary>
@@ -47,31 +73,30 @@ namespace StargateNet
         {
             // 内存大小不超过INT_MAX
             int dataId = (int)(address - stateBlock);
-            
+
             // size是以int为单位的
             for (int i = 0; i < wordSize; i++)
             {
                 stateBlock[dataId + i] = newValue[i];
             }
-            
+
             if (this.engine.IsServer)
             {
                 MakeBitmapDirty(dataId);
-            }   
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal unsafe void MakeBitmapDirty(int dataId)
         {
-            bitmap[dataId] = 1;
+            dirtyMap[dataId] = 1;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void DirtifyData(IStargateNetworkScript stargateNetworkScript, int* newValue, int* address, int wordSize)
+        public static unsafe void DirtifyData(IStargateNetworkScript stargateNetworkScript, int* newValue, int* address,
+            int wordSize)
         {
             stargateNetworkScript.Entity.SetData(newValue, address, wordSize);
         }
     }
-    
-    
 }

@@ -9,10 +9,11 @@ namespace StargateNet
     /// </summary>
     public unsafe class StargateAllocator
     {
-        internal Dictionary<int, MemoryPool> pools = new(32); // 对于snapshot来说，存储了所有网络物体的syncvar
+        internal List<MemoryPool> pools = new(32); // 对于snapshot来说，存储了所有网络物体的syncvar
         internal Monitor monitor;
         private const int TLSF64_ALIGNMENT = 8;
         private readonly void* _entireBlock;
+        private Queue<int> _recycledPoolId = new(32);
 
         public StargateAllocator(long byteSize, Monitor monitor)
         {
@@ -48,19 +49,37 @@ namespace StargateNet
             TLSF64.tlsf_free(_entireBlock, block);
         }
 
-        public bool AddPool(int id, long byteSize)
+        public bool AddPool(long byteSize, out int poolId)
         {
             if (byteSize < 0) throw new Exception("SgAllocator can't create negative size!");
             void* data = TLSF64.tlsf_malloc(this._entireBlock, (ulong)byteSize);
-            return data != null && pools.TryAdd(id, new MemoryPool() { data = data, byteSize = byteSize });
+            MemoryPool pool;
+            pool.data = data;
+            pool.used = true;
+            pool.byteSize = byteSize;
+            if (this._recycledPoolId.Count > 0)
+            {
+                poolId = this._recycledPoolId.Dequeue();
+                this.pools[poolId] = pool;
+            }
+            else
+            {
+                this.pools.Add(pool);
+                poolId = this.pools.Count - 1;
+            }
+            return true;
         }
 
-        public unsafe bool ReleasePool(int id)
+        public unsafe void ReleasePool(int id)
         {
-            if (!pools.ContainsKey(id)) return false;
-            void* data = pools[id].data;
-            this.Free(data);
-            return pools.Remove(id);
+            if (id > this.pools.Count) throw new Exception("PoolId out of range!");
+            MemoryPool pool = pools[id];
+            if (pool.used) return;
+            TLSF64.tlsf_free(_entireBlock, pool.data);
+            pool.byteSize = 0;
+            pool.data = null;
+            pools[id] = pool;
+            _recycledPoolId.Enqueue(id);
         }
 
         /// <summary>
@@ -69,7 +88,6 @@ namespace StargateNet
         /// <param name="dest"></param>
         public void CopyTo(StargateAllocator dest)
         {
-            
         }
 
         /// <summary>
@@ -77,14 +95,20 @@ namespace StargateNet
         /// </summary>
         public void FastRelease()
         {
-            foreach (var pool in pools)
+            for (int i = 0; i < pools.Count; i++)
             {
-                TLSF64.tlsf_free(_entireBlock, pool.Value.data);
+                MemoryPool pool = pools[i];
+                TLSF64.tlsf_free(_entireBlock, pool.data);
+                pool.byteSize = 0;
+                pool.data = null;
+                pools[i] = pool;
+                _recycledPoolId.Enqueue(i);
             }
         }
 
         public struct MemoryPool
         {
+            public bool used;
             public void* data;
             public long byteSize;
         }

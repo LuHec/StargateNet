@@ -13,8 +13,8 @@ namespace StargateNet
         internal List<Entity> paddingToAddEntities = new(32); // 待加入模拟的实体，用于延迟添加到模拟列表。Entity会在这之前就被添加到table中
         internal List<Entity> paddingToRemoveEntities = new(32);
         internal NetworkObjectRef currentMaxNetworkObjectRef = NetworkObjectRef.InvalidNetworkObjectRef;
-        internal Queue<NetworkObjectRef> networkRef2Reuse = new(32);
-        protected Queue<SimulationInput> inputPool = new();
+        protected Queue<SimulationInput> inputPool = new(32);
+        protected Queue<Entity> reuseEntities = new(32);
 
 
         internal Simulation(StargateEngine engine)
@@ -38,8 +38,9 @@ namespace StargateNet
             stateWordSize = byteSize / 4;
             // 给每个脚本切割内存和bitmap
             int wordOffset = 0;
-            if (allocator.AddPool(networkObjectRef.refValue, byteSize * 2))
+            if (allocator.AddPool(byteSize * 2, out int poolId))
             {
+                entity.poolId = poolId;
                 int* poolData = (int*)allocator.pools[networkObjectRef.refValue].data;
                 int* bitmap = poolData; //bitmap放在首部
                 int* state = poolData + byteSize / 4;
@@ -58,12 +59,12 @@ namespace StargateNet
         /// 立即添加一个Entity，会触发被动脚本，但下一帧才会执行它的主动网络脚本
         /// </summary>
         /// <param name="networkObject"></param>
+        /// <param name="networkId">网络id</param>
+        /// <param name="worldIdx">worldMeta的下标</param>
         /// <param name="meta"></param>
-        internal unsafe void AddEntity(NetworkObject networkObject, NetworkObjectMeta meta)
+        internal unsafe void AddEntity(NetworkObject networkObject, int networkId, int worldIdx, NetworkObjectMeta meta)
         {
-            NetworkObjectRef networkObjectRef = this.networkRef2Reuse.Count > 0
-                ? this.networkRef2Reuse.Dequeue()
-                : ++this.currentMaxNetworkObjectRef;
+            NetworkObjectRef networkObjectRef = new NetworkObjectRef(networkId);
             Entity entity = this.CreateEntity(networkObject, networkObjectRef, out int stateWordSize);
             this.EntitiesTable.Add(networkObjectRef, entity);
             this.paddingToAddEntities.Add(entity);
@@ -73,7 +74,6 @@ namespace StargateNet
             meta.prefabId = networkObject.PrefabId;
             meta.destroyed = false;
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
-            currentSnapshot.worldObjectMap[networkObjectRef.refValue] = 1;
             currentSnapshot.worldObjectMeta[networkObjectRef.refValue] = meta;
             currentSnapshot.dirtyObjectMetaMap[networkObjectRef.refValue] = 1;
         }
@@ -89,7 +89,6 @@ namespace StargateNet
             this.paddingToRemoveEntities.Add(entity);
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             // 修改meta并标记
-            currentSnapshot.worldObjectMap[networkObjectRef.refValue] = 0;
             currentSnapshot.worldObjectMeta[networkObjectRef.refValue].destroyed = true;
             currentSnapshot.dirtyObjectMetaMap[networkObjectRef.refValue] = 1;
         }
@@ -114,9 +113,13 @@ namespace StargateNet
         {
             foreach (var entity in this.paddingToRemoveEntities)
             {
+                this.engine.ObjectAllocator.ReleasePool(entity.poolId); // 内存归还
                 this.engine.IM.simulationList.Remove(entity);
-                this.engine.ObjectAllocator.ReleasePool(entity.networkId.refValue);
-                this.networkRef2Reuse.Enqueue(entity.networkId);
+                if (this.engine.IsServer) // worldIdx归还
+                {
+                    this.engine.EntityMetaManager.ReturnWorldIdx(entity.worldMetaId);
+                }
+                entity.Reset();
             }
 
             this.paddingToRemoveEntities.Clear();
