@@ -5,11 +5,8 @@ namespace StargateNet
     public abstract class Simulation
     {
         internal StargateEngine engine;
-
-        internal Dictionary<NetworkObjectRef, Entity>
-            EntitiesTable { private set; get; } // 记录当前的Entities，但并不直接执行这些实例
-
-        internal unsafe int* networkRefMap;
+        internal Dictionary<NetworkObjectRef, Entity> entitiesTable; // 记录当前的Entities，但并不直接执行这些实例
+        internal List<Entity> entities; // 用于存储此帧所有的entities，ds不需要这个信息，回放模式可以通过meta还原，延迟补偿不会用到已经删除的实体
         internal List<Entity> paddingToAddEntities = new(32); // 待加入模拟的实体，用于延迟添加到模拟列表。Entity会在这之前就被添加到table中
         internal List<Entity> paddingToRemoveEntities = new(32);
         internal NetworkObjectRef currentMaxNetworkObjectRef = NetworkObjectRef.InvalidNetworkObjectRef;
@@ -20,10 +17,15 @@ namespace StargateNet
         internal Simulation(StargateEngine engine)
         {
             this.engine = engine;
+            this.entities = new List<Entity>(engine.maxEntities);
+            for (int i = 0; i < engine.maxEntities; ++i)
+            {
+                this.entities.Add(null);
+            }
         }
 
         internal unsafe Entity CreateEntity(NetworkObject networkObject, NetworkObjectRef networkObjectRef,
-            out int stateWordSize)
+            int worldIdx, out int stateWordSize)
         {
             // 用全局的内存来分配，在一帧结束后，内存会被拷贝到WorldState中
             StargateAllocator allocator = this.engine.ObjectAllocator;
@@ -37,21 +39,12 @@ namespace StargateNet
 
             stateWordSize = byteSize / 4;
             // 给每个脚本切割内存和bitmap
-            int wordOffset = 0;
-            if (allocator.AddPool(byteSize * 2, out int poolId))
-            {
-                entity.poolId = poolId;
-                int* poolData = (int*)allocator.pools[networkObjectRef.refValue].data;
-                int* bitmap = poolData; //bitmap放在首部
-                int* state = poolData + byteSize / 4;
-                entity.Initialize(state, bitmap, byteSize / 4);
-                for (int i = 0; i < networkBehaviors.Length; i++)
-                {
-                    networkBehaviors[i].StateBlock = state + wordOffset;
-                    wordOffset += networkBehaviors[i].StateBlockSize / 4; // 懒得改ilprocessor，所以暂时用字节数
-                }
-            }
-
+            allocator.AddPool(byteSize * 2, out int poolId);
+            int* poolData = (int*)allocator.pools[networkObjectRef.refValue].data;
+            int* bitmap = poolData; //bitmap放在首部
+            int* state = poolData + stateWordSize;
+            entity.Initialize(state, bitmap, stateWordSize, poolId, worldIdx, networkBehaviors);
+            
             return entity;
         }
 
@@ -65,8 +58,8 @@ namespace StargateNet
         internal unsafe void AddEntity(NetworkObject networkObject, int networkId, int worldIdx, NetworkObjectMeta meta)
         {
             NetworkObjectRef networkObjectRef = new NetworkObjectRef(networkId);
-            Entity entity = this.CreateEntity(networkObject, networkObjectRef, out int stateWordSize);
-            this.EntitiesTable.Add(networkObjectRef, entity);
+            Entity entity = this.CreateEntity(networkObject, networkObjectRef, worldIdx, out int stateWordSize);
+            this.entitiesTable.Add(networkObjectRef, entity);
             this.paddingToAddEntities.Add(entity);
             // 修改meta并标记
             meta.networkId = networkObjectRef.refValue;
@@ -84,8 +77,8 @@ namespace StargateNet
         /// <param name="networkObjectRef"></param>
         internal unsafe void RemoveEntity(NetworkObjectRef networkObjectRef)
         {
-            Entity entity = this.EntitiesTable[networkObjectRef];
-            this.EntitiesTable.Remove(networkObjectRef);
+            Entity entity = this.entitiesTable[networkObjectRef];
+            this.entitiesTable.Remove(networkObjectRef);
             this.paddingToRemoveEntities.Add(entity);
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             // 修改meta并标记
@@ -101,6 +94,7 @@ namespace StargateNet
             foreach (var entity in this.paddingToAddEntities)
             {
                 this.engine.IM.simulationList.Add(entity);
+                this.entities[entity.worldMetaId] = entity;
             }
 
             this.paddingToAddEntities.Clear();
@@ -115,10 +109,12 @@ namespace StargateNet
             {
                 this.engine.ObjectAllocator.ReleasePool(entity.poolId); // 内存归还
                 this.engine.IM.simulationList.Remove(entity);
+                this.entities[entity.worldMetaId] = null;
                 if (this.engine.IsServer) // worldIdx归还
                 {
                     this.engine.EntityMetaManager.ReturnWorldIdx(entity.worldMetaId);
                 }
+
                 entity.Reset();
             }
 

@@ -65,7 +65,7 @@ namespace StargateNet
                 ? configData.maxNetworkObjects + 1
                 : configData.maxNetworkObjects;
             this.maxEntities = StargateNetUtil.AlignTo(this.maxEntities, 32); // 对齐一个int,申请足够大小的内存给id map
-            this.EntityMetaManager = new EntityMetaManager(this.maxEntities);
+            this.EntityMetaManager = new EntityMetaManager(this.maxEntities, this);
             int totalObjectStateByteSize = configData.maxNetworkObjects * configData.objectStateSize;
             int totalObjectMetaByteSize = configData.maxNetworkObjects * sizeof(NetworkObjectMeta);
             int totalObjectMapByteSize = this.maxEntities * 4;

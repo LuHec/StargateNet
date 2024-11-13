@@ -49,7 +49,7 @@ namespace StargateNet
             TLSF64.tlsf_free(_entireBlock, block);
         }
 
-        public bool AddPool(long byteSize, out int poolId)
+        public void AddPool(long byteSize, out int poolId)
         {
             if (byteSize < 0) throw new Exception("SgAllocator can't create negative size!");
             void* data = TLSF64.tlsf_malloc(this._entireBlock, (ulong)byteSize);
@@ -67,7 +67,6 @@ namespace StargateNet
                 this.pools.Add(pool);
                 poolId = this.pools.Count - 1;
             }
-            return true;
         }
 
         public unsafe void ReleasePool(int id)

@@ -13,7 +13,7 @@ namespace StargateNet
         internal int worldMetaId = -1; // meta的idx，客户端服务端一定是一致的
         internal StargateEngine engine;
         internal INetworkEntity entity; // Truly Object
-        internal int entityBlockWordSize; // Networked Field Size 
+        internal int entityBlockWordSize; // Networked Field Size, 不包括bitmap大小(两者大小一致) 
         internal unsafe int* stateBlock; // Networked Field memory block base address
         internal unsafe int* dirtyMap; // bit dirtymap
         internal bool dirty = false;
@@ -32,11 +32,20 @@ namespace StargateNet
             this.entity = entity;
         }
 
-        public unsafe void Initialize(int* stateBlockPtr, int* bitmapPtr, int blockWordSize)
+        public unsafe void Initialize(int* stateBlockPtr, int* bitmapPtr, int blockWordSize, int poolId,
+            int worldMetaId, NetworkBehavior[] networkBehaviors)
         {
             this.stateBlock = stateBlockPtr;
             this.dirtyMap = bitmapPtr;
             this.entityBlockWordSize = blockWordSize;
+            this.poolId = poolId;
+            this.worldMetaId = worldMetaId;
+            int wordOffset = 0;
+            for (int i = 0; i < networkBehaviors.Length; i++)
+            {
+                networkBehaviors[i].StateBlock = this.stateBlock + wordOffset;
+                wordOffset += networkBehaviors[i].StateBlockSize / 4; // 懒得改ilprocessor，所以暂时用字节数
+            }
         }
 
         /// <summary>
@@ -74,13 +83,17 @@ namespace StargateNet
             // 内存大小不超过INT_MAX
             int dataId = (int)(address - stateBlock);
 
-            // size是以int为单位的
+            bool needsUpdate = false;
             for (int i = 0; i < wordSize; i++)
             {
-                stateBlock[dataId + i] = newValue[i];
+                if (stateBlock[dataId + i] != newValue[i])
+                {
+                    needsUpdate = true;
+                    stateBlock[dataId + i] = newValue[i];
+                }
             }
 
-            if (this.engine.IsServer)
+            if (this.engine.IsServer && needsUpdate)
             {
                 MakeBitmapDirty(dataId);
             }
@@ -89,7 +102,8 @@ namespace StargateNet
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal unsafe void MakeBitmapDirty(int dataId)
         {
-            dirtyMap[dataId] = 1;
+            this.dirtyMap[dataId] = 1;
+            this.dirty = true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

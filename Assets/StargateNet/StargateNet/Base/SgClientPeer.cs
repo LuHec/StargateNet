@@ -9,12 +9,12 @@ namespace StargateNet
 {
     public class SgClientPeer : SgPeer
     {
-        public override bool IsServer => false;
-        public override bool IsClient => true;
-        public string ServerIP { private set; get; }
-        public ushort Port { private set; get; }
-        public Client Client { private set; get; }
-        public bool HeavyPakLoss { get; set; }
+        internal override bool IsServer => false;
+        internal override bool IsClient => true;
+        internal string ServerIP { private set; get; }
+        internal ushort Port { private set; get; }
+        internal Client Client { private set; get; }
+        internal bool HeavyPakLoss { get; set; }
 
         public SgClientPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -83,14 +83,15 @@ namespace StargateNet
         /// <param name="args"></param>
         private unsafe void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
-            // this.HeavyPakLoss = false;
-            //
-            // var msg = args.Message;
+            this.HeavyPakLoss = false;
+            var msg = args.Message;
+
             // if (msg.UnreadBits < 8 * sizeof(int)) return;
-            // Tick srvtick = new Tick(msg.GetInt());
-            // this.Engine.ClientSimulation.OnRcvPak(srvtick);
-            // // Ack(srvtick);
-            // this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
+            Tick srvTick = new Tick(msg.GetInt());
+            this.Engine.ClientSimulation.OnRcvPak(srvTick);
+            this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
+            this.ReceiveMeta(msg); // 接收meta
+            this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta
             // // 接收NetworkObject
             // int maxNetworkRef = msg.GetInt();
             // int[] srvMap = new int[maxNetworkRef];
@@ -131,7 +132,6 @@ namespace StargateNet
         public void SendClientPak()
         {
             Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToServer);
-            msg.AddBits(0, 1);
             Tick clientTick = this.Engine.simTick;
             // 发送ACK到的Tick后所有的输入    
             List<SimulationInput> clientInputs = this.Engine.ClientSimulation.inputs;
@@ -142,6 +142,26 @@ namespace StargateNet
             }
 
             this.Client.Send(msg);
+        }
+
+        private void ReceiveMeta(Message msg)
+        {
+            while (true)
+            {
+                int wordMetaIdx = msg.GetInt();
+                if (wordMetaIdx == -1) break;
+                int networkId = msg.GetInt();
+                int prefabId = msg.GetInt();
+                int stateWordSize = msg.GetInt();
+                bool destroyed = msg.GetBool();
+                this.Engine.EntityMetaManager.changedMetas.TryAdd(wordMetaIdx, new NetworkObjectMeta()
+                {
+                    networkId = networkId,
+                    prefabId = prefabId,
+                    stateWordSize = stateWordSize,
+                    destroyed = destroyed
+                });
+            }
         }
     }
 }
