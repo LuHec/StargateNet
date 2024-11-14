@@ -12,7 +12,7 @@ namespace StargateNet
         internal int poolId = -1; // 内存的idx，客户端和服务端不一定一致
         internal int worldMetaId = -1; // meta的idx，客户端服务端一定是一致的
         internal StargateEngine engine;
-        internal INetworkEntity entity; // Truly Object
+        internal NetworkObject entityObject; // Truly Object
         internal int entityBlockWordSize; // Networked Field Size, 不包括bitmap大小(两者大小一致) 
         internal unsafe int* stateBlock; // Networked Field memory block base address
         internal unsafe int* dirtyMap; // bit dirtymap
@@ -24,12 +24,12 @@ namespace StargateNet
         /// </summary>
         /// <param name="networkId"></param>
         /// <param name="engine"></param>
-        /// <param name="entity">真正的实体对象</param>
-        public Entity(NetworkObjectRef networkId, StargateEngine engine, INetworkEntity entity)
+        /// <param name="entityObject">真正的实体对象</param>
+        public Entity(NetworkObjectRef networkId, StargateEngine engine, NetworkObject entityObject)
         {
             this.networkId = networkId;
             this.engine = engine;
-            this.entity = entity;
+            this.entityObject = entityObject;
         }
 
         public unsafe void Initialize(int* stateBlockPtr, int* bitmapPtr, int blockWordSize, int poolId,

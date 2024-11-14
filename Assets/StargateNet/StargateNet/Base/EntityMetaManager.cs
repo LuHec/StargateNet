@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace StargateNet
 {
@@ -33,20 +34,26 @@ namespace StargateNet
             this._recycledWorldIdx.Enqueue(idx);
         }
 
+        // ---------- Client ---------- //
         public unsafe void OnMetaChanged()
         {
+            Simulation simulation = this.engine.Simulation;
             foreach (var pair in this.changedMetas)
             {
                 int metaId = pair.Key;
                 NetworkObjectMeta remoteMeta = pair.Value;
                 // TODO:判断id是不是相同的，如果不是就生成/销毁
                 NetworkObjectMeta localMeta = this.engine.WorldState.CurrentSnapshot.worldObjectMeta[metaId];
-                if (remoteMeta.networkId != localMeta.networkId)
+                if (remoteMeta.networkId != localMeta.networkId || remoteMeta.destroyed)
                 {
                     // 移除Current Entity
+                    this.engine.ClientDestroy(localMeta.networkId);
+                    simulation.DrainPaddingRemovedEntity();
                 }
-                else
+                else if (localMeta.networkId != remoteMeta.networkId || localMeta.destroyed == false)
                 {
+                    this.engine.ClinetSpawn(remoteMeta.networkId, metaId, remoteMeta.prefabId, Vector3.zero,
+                        Quaternion.identity);
                     
                 }
             }

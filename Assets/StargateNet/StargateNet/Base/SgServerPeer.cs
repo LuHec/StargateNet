@@ -102,6 +102,8 @@ namespace StargateNet
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
             var msg = args.Message;
+            bool clientPakLoss = msg.GetBool();
+            int clientLastAuthorTick = msg.GetInt();
             int inputCount = msg.GetInt();
             ClientData clientData = this.clientConnections[args.FromConnection.Id].clientData;
             clientData.deltaPakTime = this.Engine.SimulationClock.Time - clientData.lastPakTime;

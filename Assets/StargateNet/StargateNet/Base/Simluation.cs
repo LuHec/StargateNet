@@ -78,6 +78,7 @@ namespace StargateNet
         internal unsafe void RemoveEntity(NetworkObjectRef networkObjectRef)
         {
             Entity entity = this.entitiesTable[networkObjectRef];
+            if(entity == null) return;
             this.entitiesTable.Remove(networkObjectRef);
             this.paddingToRemoveEntities.Add(entity);
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;

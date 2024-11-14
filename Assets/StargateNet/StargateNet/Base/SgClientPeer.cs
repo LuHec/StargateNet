@@ -15,6 +15,7 @@ namespace StargateNet
         internal ushort Port { private set; get; }
         internal Client Client { private set; get; }
         internal bool HeavyPakLoss { get; set; }
+        internal bool PakLoss { private set; get; }
 
         public SgClientPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -84,14 +85,20 @@ namespace StargateNet
         private unsafe void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
             this.HeavyPakLoss = false;
+            this.PakLoss = false;
             var msg = args.Message;
-
-            // if (msg.UnreadBits < 8 * sizeof(int)) return;
+            
             Tick srvTick = new Tick(msg.GetInt());
-            this.Engine.ClientSimulation.OnRcvPak(srvTick);
+            if (!this.Engine.ClientSimulation.OnRcvPak(srvTick))
+            {
+                this.PakLoss = true;
+                return;
+            }
+            
             this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
             this.ReceiveMeta(msg); // 接收meta
             this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta
+            this.ReceiveState(msg); // 接收state
             // // 接收NetworkObject
             // int maxNetworkRef = msg.GetInt();
             // int[] srvMap = new int[maxNetworkRef];
@@ -132,7 +139,9 @@ namespace StargateNet
         public void SendClientPak()
         {
             Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToServer);
-            Tick clientTick = this.Engine.simTick;
+            // 有没有丢ds包
+            msg.AddBool(this.PakLoss);
+            msg.AddInt(this.Engine.ClientSimulation.authoritativeTick.tickValue);
             // 发送ACK到的Tick后所有的输入    
             List<SimulationInput> clientInputs = this.Engine.ClientSimulation.inputs;
             msg.AddInt(clientInputs.Count);
@@ -149,7 +158,8 @@ namespace StargateNet
             while (true)
             {
                 int wordMetaIdx = msg.GetInt();
-                if (wordMetaIdx == -1) break;
+                if (wordMetaIdx < 0) break;
+                
                 int networkId = msg.GetInt();
                 int prefabId = msg.GetInt();
                 int stateWordSize = msg.GetInt();
@@ -161,6 +171,26 @@ namespace StargateNet
                     stateWordSize = stateWordSize,
                     destroyed = destroyed
                 });
+            }
+        }
+        
+        private unsafe void ReceiveState(Message msg)
+        {
+            // 外层是找meta，内层找object state
+            while (true)
+            {
+                int wordMetaIdx = msg.GetInt(); 
+                if (wordMetaIdx < 0) break;
+                int networkId = this.Engine.WorldState.CurrentSnapshot.worldObjectMeta[wordMetaIdx].networkId;
+                Entity entity = this.Engine.Simulation.entitiesTable[new NetworkObjectRef(networkId)];
+                int* targetState = entity.stateBlock;
+                while (true)
+                {
+                    int dirtyStateId = msg.GetInt();
+                    if (dirtyStateId < 0) break;
+                    int data = msg.GetInt();
+                    targetState[dirtyStateId] = data; // 客户端直接设置即可，dirty没什么用
+                }
             }
         }
     }

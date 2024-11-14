@@ -17,7 +17,7 @@ namespace StargateNet
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             foreach (var entity in simulationList)
             {
-                foreach (var netScript in entity.entity.NetworkScripts)
+                foreach (var netScript in entity.entityObject.NetworkScripts)
                 {
                     if (currentSnapshot.worldObjectMeta[entity.worldMetaId].destroyed) break;
                     netScript.NetworkUpdate();
@@ -30,7 +30,7 @@ namespace StargateNet
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             foreach (var entity in simulationList)
             {
-                foreach (var netScript in entity.entity.NetworkScripts)
+                foreach (var netScript in entity.entityObject.NetworkScripts)
                 {
                     if (currentSnapshot.worldObjectMeta[entity.worldMetaId].destroyed) break;
                     netScript.NetworkRender();
@@ -43,7 +43,7 @@ namespace StargateNet
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             foreach (var entity in simulationList)
             {
-                foreach (var netScript in entity.entity.NetworkScripts)
+                foreach (var netScript in entity.entityObject.NetworkScripts)
                 {
                     if (currentSnapshot.worldObjectMeta[entity.worldMetaId].destroyed) break;
                     netScript.NetworkFixedUpdate();

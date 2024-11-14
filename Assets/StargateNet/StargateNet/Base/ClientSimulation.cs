@@ -26,13 +26,19 @@ namespace StargateNet
         }
 
         /// <summary>
-        /// 保证会在Sim流程前调用
+        /// 如果srvTick不是authoritativeTick + 1，那就说明丢包了
         /// </summary>
         /// <param name="srvTick"></param>
-        internal void OnRcvPak(Tick srvTick)
+        internal bool OnRcvPak(Tick srvTick)
         {
             this.engine.SimulationClock.OnRecvPak();
-            authoritativeTick = srvTick;
+            if (srvTick - authoritativeTick == 1)
+            {
+                authoritativeTick = srvTick;
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

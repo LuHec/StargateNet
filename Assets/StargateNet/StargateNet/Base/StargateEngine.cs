@@ -77,7 +77,7 @@ namespace StargateNet
                 this.WorldState.snapshots.Add(new Snapshot(
                     (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
                     (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
-                    new StargateAllocator(totalObjectStateByteSize, monitor))
+                    new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities)
                 );
             }
 
@@ -162,10 +162,10 @@ namespace StargateNet
                 this.Simulation.PreFixedUpdate();
                 this.Simulation.FixedUpdate();
                 this.Simulation.DrainPaddingRemovedEntity(); // 清除Entity占用的内存
-                if(this.SimulationClock.IsLastCall) // 优先发送消息
+                if (this.SimulationClock.IsLastCall) // 优先发送消息
                     this.Send();
                 this.Simulation.PostFixedUpdate();
-                
+
                 this.simTick++;
             }
         }
@@ -185,7 +185,7 @@ namespace StargateNet
         // ------------- Engine Func ------------- //
 
         // ------------- Server Only ------------- //
-        internal unsafe void NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation)
+        internal void NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation)
         {
             // 判断是服务端还是客户端(状态帧同步框架应该让所有涉及同步的部分都由服务端来决定，所以这里应该只由服务端来调用)
             // 生成物体，构造Entity，根据IM来决定要发给哪个客户端，同时加入pedding send集合中(每个client一个集合，这样可以根据IM的设置来决定是否要在指定客户端生成)
@@ -196,14 +196,15 @@ namespace StargateNet
                 int id = component.PrefabId;
                 if (!this.PrefabsTable.ContainsKey(id))
                     throw new Exception($"GameObject {gameObject.name} has not been registered");
-                NetworkObject networkObject = this.ObjectSpawner.Spawn(gameObject, position, rotation).GetComponent<NetworkObject>();
+                NetworkObject networkObject = this.ObjectSpawner.Spawn(component, position, rotation);
                 // TODO: 把子节点如果是NetworkObject的也加入进去
-                this.Simulation.AddEntity(networkObject, ++ this._networkIdCounter, this.EntityMetaManager.RequestWorldIdx(),new NetworkObjectMeta());
+                this.Simulation.AddEntity(networkObject, ++this._networkIdCounter,
+                    this.EntityMetaManager.RequestWorldIdx(), new NetworkObjectMeta());
             }
             else throw new Exception($"GameObject {gameObject.name} is not a NetworkObject");
         }
 
-        internal unsafe void NetworkDestroy(GameObject gameObject)
+        internal void NetworkDestroy(GameObject gameObject)
         {
             if (gameObject.TryGetComponent(out NetworkObject networkObject))
             {
@@ -216,8 +217,23 @@ namespace StargateNet
         }
 
         // ------------- Client Only ------------- //
-        internal unsafe void ClinetSpawn()
+        internal void ClinetSpawn(int networkId, int worldIdx, int prefabId, Vector3 position, Quaternion rotation)
         {
+            if (prefabId == -1 || !this.PrefabsTable.ContainsKey(prefabId))
+                throw new Exception($"Prefab Id:{prefabId} is not exist");
+            NetworkObject networkObject = this.ObjectSpawner.Spawn(this.PrefabsTable[networkId], position, rotation);
+            this.Simulation.AddEntity(networkObject, networkId, worldIdx, new NetworkObjectMeta());
+        }
+
+        internal void ClientDestroy(int networkId)
+        {
+            NetworkObjectRef networkObjectRef = new NetworkObjectRef(networkId);
+            if (this.Simulation.entitiesTable.TryGetValue(networkObjectRef, out Entity entity))
+            {
+                this.ObjectSpawner.Despawn(entity.entityObject.gameObject);
+                this.Simulation.RemoveEntity(networkObjectRef);
+            }
+            else throw new Exception($"Network Id:{networkId} is not exist");
         }
     }
 }

@@ -12,6 +12,8 @@ namespace StargateNet
         public SimulationInput currentInput = new SimulationInput();
         public double lastPakTime;
         public double deltaPakTime;
+        public bool pakLoss = false;
+        public Tick clientAuthorTick = Tick.InvalidTick;
 
         public ClientData(int maxClientInput)
         {

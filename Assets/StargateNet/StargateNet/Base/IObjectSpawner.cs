@@ -4,7 +4,7 @@ namespace StargateNet
 {
     public interface IObjectSpawner
     {
-        public GameObject Spawn(GameObject prefab, Vector3 position, Quaternion rotation);
+        public T Spawn<T>(T prefab, Vector3 position, Quaternion rotation) where T : Object;
         public void Despawn(GameObject go);
     }
 }
