@@ -159,14 +159,13 @@ namespace StargateNet
             if (this.IsServer || (this.IsClient && this.IsConnected))
             {
                 this.Simulation.DrainPaddingAddedEntity();
-                this.Simulation.PreFixedUpdate();
+                this.Simulation.PreFixedUpdate(); // 对于客户端，先在这里处理回滚，然后再模拟下一帧
                 this.Simulation.FixedUpdate();
                 this.Simulation.DrainPaddingRemovedEntity(); // 清除Entity占用的内存
                 if (this.SimulationClock.IsLastCall) // 优先发送消息
                     this.Send();
-                this.Simulation.PostFixedUpdate();
-
                 this.simTick++;
+                this.Simulation.PostFixedUpdate();  // 服务器把State拷贝到旧的snapshot中
             }
         }
 

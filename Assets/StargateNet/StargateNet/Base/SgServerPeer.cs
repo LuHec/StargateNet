@@ -20,7 +20,6 @@ namespace StargateNet
             clientConnections; // 暂时先用List(有隐患，Riptide给Client的id是递增的，一个CLient断线重连后获得的id和以前不一样)
 
         private List<int> _cachedMetaIds;
-        private List<int> _cachedObjectIds;
 
         public SgServerPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -37,7 +36,6 @@ namespace StargateNet
             this.clientConnections = new List<ClientConnection>(maxClientCount);
             // this.clientConnections.Add(new ClientConnection(this.Engine));
             this._cachedMetaIds = new(this.Engine.maxEntities);
-            this._cachedObjectIds = new(this.Engine.maxEntities);
             RiptideLogger.Log(LogType.Debug, "Server Start");
         }
 
@@ -62,7 +60,6 @@ namespace StargateNet
             ClientData[] clientDatas = this.Engine.ServerSimulation.clientDatas;
             Snapshot curSnapshot = this.Engine.WorldState.CurrentSnapshot;
             this._cachedMetaIds.Clear();
-            this._cachedObjectIds.Clear();
             for (int i = 0; i < this.Engine.maxEntities; i++)
             {
                 if (curSnapshot.dirtyObjectMetaMap[i] == 1)

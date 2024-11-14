@@ -60,11 +60,14 @@ namespace StargateNet
             // 客户端会根据延迟来加速自己的模拟
             if (!this._engine.IsClient || this._engine.Client.Client.RTT == -1 ||
                 !this._engine.ClientSimulation.currentTick.IsValid ||
-                !this._engine.ClientSimulation.authoritativeTick.IsValid) return;
+                !this._engine.ClientSimulation.authoritativeTick.IsValid)
+                return;
+            
             if (this._engine.Client.HeavyPakLoss)
             {
                 this._scaledDelta = this._fixedDelta;
                 this._engine.Monitor.clockLevel = 1;
+                return;
             }
 
             AdjustClock(this._engine.Client.Client.SmoothRTT * 0.001,
@@ -83,7 +86,7 @@ namespace StargateNet
             double pakTime = this.Time - this._lastPacketTime;
             double targetDelayTick =
                 (pakTime + latency) / this._fixedDelta; //  从上一次收到包时间到包发到服务端后，服务端的增加帧数(RTT+PakTimeDelta)
-            double serverBiasTick = (serverInputRcvTimeAvg - _fixedDelta)  / this._fixedDelta; // 基于服务端的接受延迟和一帧时间差值的调整值，
+            double serverBiasTick = (serverInputRcvTimeAvg - _fixedDelta) / this._fixedDelta; // 基于服务端的接受延迟和一帧时间差值的调整值，
             double delayTime = (serverTick + targetDelayTick + serverBiasTick + 2 - currentTick) * this._fixedDelta;
             double delayStd = 0.4 * this._fixedDelta; // 标准差值
             RiptideLogger.Log(LogType.Error,

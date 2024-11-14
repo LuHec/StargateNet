@@ -94,8 +94,8 @@ namespace StargateNet
         {
             foreach (var entity in this.paddingToAddEntities)
             {
-                this.engine.IM.simulationList.Add(entity);
                 this.entities[entity.worldMetaId] = entity;
+                this.AddToSimulation(entity);
             }
 
             this.paddingToAddEntities.Clear();
@@ -139,7 +139,6 @@ namespace StargateNet
         /// </summary>
         internal void FixedUpdate()
         {
-            // 对于客户端，先在这里处理回滚，然后再模拟下一帧
             this.ExecuteNetworkFixedUpdate();
         }
 
@@ -182,9 +181,10 @@ namespace StargateNet
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="networkEntity"></param>
-        internal virtual void AddToSimulation(INetworkEntity networkEntity)
+        /// <param name="entity"></param>
+        internal virtual void AddToSimulation(Entity entity)
         {
+            this.engine.IM.simulationList.Add(entity);
         }
     }
 }

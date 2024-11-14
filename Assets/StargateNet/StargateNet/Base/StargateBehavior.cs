@@ -6,6 +6,15 @@ namespace StargateNet
     {
         public unsafe int* StateBlock { get; internal set; } // 由Entity构造时分发
         public Entity Entity { get; internal set; }
+
+        /// <summary>
+        /// 给IL层注册回调函数
+        /// </summary>
+        public virtual void Init()
+        {
+            
+        }
+        
         public virtual void NetworkStart()
         {
             

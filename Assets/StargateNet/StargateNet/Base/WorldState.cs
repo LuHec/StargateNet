@@ -29,4 +29,16 @@ public class WorldState
     {
         
     }
+
+    internal void UpdateTick(Tick tick)
+    {
+        this.currentTick = tick;
+    }
+
+    internal Snapshot GetHistroyTick(int pastTickValue)
+    {
+        if (pastTickValue > this.MaxSnapshotsCount) return null;
+        int currentTickVal = this.currentTick.tickValue;
+        return this.snapshots[(currentTickVal - pastTickValue) % this.MaxSnapshotsCount];
+    }
 }

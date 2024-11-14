@@ -94,7 +94,8 @@ namespace StargateNet
                 this.PakLoss = true;
                 return;
             }
-            
+
+            this.Engine.WorldState.UpdateTick(srvTick); // 更新环形队列tick
             this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
             this.ReceiveMeta(msg); // 接收meta
             this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta
