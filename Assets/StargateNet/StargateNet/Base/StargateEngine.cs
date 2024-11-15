@@ -80,6 +80,7 @@ namespace StargateNet
                     new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities)
                 );
             }
+            this.WorldState.ToSnapshot = new 
 
             this.ObjectSpawner = objectSpawner;
 
@@ -158,14 +159,25 @@ namespace StargateNet
 
             if (this.IsServer || (this.IsClient && this.IsConnected))
             {
-                this.Simulation.DrainPaddingAddedEntity();
                 this.Simulation.PreFixedUpdate(); // 对于客户端，先在这里处理回滚，然后再模拟下一帧
                 this.Simulation.FixedUpdate();
-                this.Simulation.DrainPaddingRemovedEntity(); // 清除Entity占用的内存
-                if (this.SimulationClock.IsLastCall) // 优先发送消息
+                if (this.SimulationClock.IsLastCall) // 此时toSnapshot已经是完整的信息了，清理前先发送
                     this.Send();
-                this.simTick++;
-                this.Simulation.PostFixedUpdate();  // 服务器把State拷贝到旧的snapshot中
+                this.Simulation.DrainPaddingAddedEntity();   // 发送后再添加到模拟中
+                this.Simulation.DrainPaddingRemovedEntity(); // 发送后再清除Entity占用的内存和id
+                if (this.IsServer) // 更新FromTick
+                {
+                    this.WorldState.UpdateFromTick(this.simTick); // 当前Tick是10，这次WorldState更新前的FromSnapshotTick是9
+                    Snapshot toSnapshot = this.WorldState.ToSnapshot;
+                    Snapshot fromSnapshot = this.WorldState.FromSnapshot;
+                    if (fromSnapshot != null)
+                    {
+                        fromSnapshot.Init(this.simTick);
+                        toSnapshot.CopyStateTo(fromSnapshot);
+                    }
+                }
+                this.simTick++; // 下一次Tick是11
+                this.Simulation.PostFixedUpdate();  
             }
         }
 

@@ -43,7 +43,7 @@ namespace StargateNet
                 int metaId = pair.Key;
                 NetworkObjectMeta remoteMeta = pair.Value;
                 // TODO:判断id是不是相同的，如果不是就生成/销毁
-                NetworkObjectMeta localMeta = this.engine.WorldState.CurrentSnapshot.worldObjectMeta[metaId];
+                NetworkObjectMeta localMeta = this.engine.WorldState.ToSnapshot.worldObjectMeta[metaId];
                 if (remoteMeta.networkId != localMeta.networkId || remoteMeta.destroyed)
                 {
                     // 移除Current Entity

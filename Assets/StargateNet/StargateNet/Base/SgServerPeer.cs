@@ -58,7 +58,7 @@ namespace StargateNet
         public unsafe void SendServerPak()
         {
             ClientData[] clientDatas = this.Engine.ServerSimulation.clientDatas;
-            Snapshot curSnapshot = this.Engine.WorldState.CurrentSnapshot;
+            Snapshot curSnapshot = this.Engine.WorldState.ToSnapshot;
             this._cachedMetaIds.Clear();
             for (int i = 0; i < this.Engine.maxEntities; i++)
             {

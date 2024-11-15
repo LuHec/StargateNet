@@ -14,7 +14,7 @@ namespace StargateNet
         
         public unsafe void ExecuteNetworkUpdate()
         {
-            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
+            Snapshot currentSnapshot = this.engine.WorldState.ToSnapshot;
             foreach (var entity in simulationList)
             {
                 foreach (var netScript in entity.entityObject.NetworkScripts)
@@ -27,7 +27,7 @@ namespace StargateNet
 
         public unsafe void ExecuteNetworkRender()
         {
-            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
+            Snapshot currentSnapshot = this.engine.WorldState.ToSnapshot;
             foreach (var entity in simulationList)
             {
                 foreach (var netScript in entity.entityObject.NetworkScripts)
@@ -40,7 +40,7 @@ namespace StargateNet
         
         public unsafe void ExecuteNetworkFixedUpdate()
         {
-            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
+            Snapshot currentSnapshot = this.engine.WorldState.ToSnapshot;
             foreach (var entity in simulationList)
             {
                 foreach (var netScript in entity.entityObject.NetworkScripts)

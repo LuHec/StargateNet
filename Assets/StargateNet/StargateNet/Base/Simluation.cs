@@ -66,7 +66,7 @@ namespace StargateNet
             meta.stateWordSize = stateWordSize;
             meta.prefabId = networkObject.PrefabId;
             meta.destroyed = false;
-            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
+            Snapshot currentSnapshot = this.engine.WorldState.ToSnapshot;
             currentSnapshot.worldObjectMeta[networkObjectRef.refValue] = meta;
             currentSnapshot.dirtyObjectMetaMap[networkObjectRef.refValue] = 1;
         }
@@ -81,7 +81,7 @@ namespace StargateNet
             if(entity == null) return;
             this.entitiesTable.Remove(networkObjectRef);
             this.paddingToRemoveEntities.Add(entity);
-            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
+            Snapshot currentSnapshot = this.engine.WorldState.ToSnapshot;
             // 修改meta并标记
             currentSnapshot.worldObjectMeta[networkObjectRef.refValue].destroyed = true;
             currentSnapshot.dirtyObjectMetaMap[networkObjectRef.refValue] = 1;

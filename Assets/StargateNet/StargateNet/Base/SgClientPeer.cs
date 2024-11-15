@@ -95,7 +95,7 @@ namespace StargateNet
                 return;
             }
 
-            this.Engine.WorldState.UpdateTick(srvTick); // 更新环形队列tick
+            this.Engine.WorldState.UpdateFromTick(srvTick); // 更新环形队列tick
             this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
             this.ReceiveMeta(msg); // 接收meta
             this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta
@@ -182,7 +182,7 @@ namespace StargateNet
             {
                 int wordMetaIdx = msg.GetInt(); 
                 if (wordMetaIdx < 0) break;
-                int networkId = this.Engine.WorldState.CurrentSnapshot.worldObjectMeta[wordMetaIdx].networkId;
+                int networkId = this.Engine.WorldState.ToSnapshot.worldObjectMeta[wordMetaIdx].networkId;
                 Entity entity = this.Engine.Simulation.entitiesTable[new NetworkObjectRef(networkId)];
                 int* targetState = entity.stateBlock;
                 while (true)
