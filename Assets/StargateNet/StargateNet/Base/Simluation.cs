@@ -142,6 +142,7 @@ namespace StargateNet
         internal void FixedUpdate()
         {
             this.ExecuteNetworkFixedUpdate();
+            this.engine.Monitor.entities = this.engine.IM.simulationList.Count;
         }
 
         internal void ExecuteNetworkUpdate()

@@ -48,6 +48,7 @@ namespace StargateNet
                                        $"Client Resim: {monitor.resims}\n" +
                                        $"Client Input Count: {monitor.inputCount}\n" +
                                        $"Connected Clients: {monitor.connectedClients}\n" +
+                                       $"Entities: {monitor.entities}\n" +
                                        $"Unmanged Memory: {monitor.unmanagedMemeory}\n" +
                                        $"Using Unmanaged Memory: {monitor.unmanagedMemeoryInuse}";
                 string[] textLines = textToDisplay.Split('\n'); // 以换行符分割文本
