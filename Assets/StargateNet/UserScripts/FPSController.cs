@@ -9,8 +9,14 @@ public class FPSController : NetworkBehavior
     [Networked] private Vector3 Movement { get; set; }
     [Networked] private NetworkBool IsFiring { get; set; }
 
-    void Start()
+    public override void NetworkFixedUpdate()
     {
-        Debug.Log(this.StateBlockSize);
+        Pitch += 10;
+        Movement = new Vector3(Random.Range(-1.0f, 1.0f), Random.Range(-1.0f, 1.0f), Random.Range(-1.0f, 1.0f));
+        IsFiring = true;
+        // Debug.Log(Movement);
+        // Debug.Log(IsFiring);
+        // Debug.Log(Pitch);
+        this.transform.position = Movement;
     }
-} 
+}

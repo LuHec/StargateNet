@@ -34,7 +34,7 @@ namespace StargateNet
             this.MaxClientCount = maxClientCount;
             this.Server.Start(port, maxClientCount, useMessageHandlers: false);
             this.clientConnections = new List<ClientConnection>(maxClientCount);
-            // this.clientConnections.Add(new ClientConnection(this.Engine));
+            this.clientConnections.Add(new ClientConnection(this.Engine)); // 用来占位的，connection从1开始
             this._cachedMetaIds = new(this.Engine.maxEntities);
             RiptideLogger.Log(LogType.Debug, "Server Start");
         }

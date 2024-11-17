@@ -202,10 +202,8 @@ namespace StargateNet
                         var setIL = property.SetMethod.Body.GetILProcessor();
                         setIL.Body.Instructions.Clear();
                         setIL.Emit(OpCodes.Ldarg_0); // 加载参数1this
-                        setIL.Emit(OpCodes.Ldarga_S,
-                            (byte)(property.SetMethod.Parameters.First(arg => arg.Name == "value")
-                                .Index)); //加载参数2value地址
-                        setIL.Emit(OpCodes.Conv_U); // 取地址
+                        setIL.Emit(OpCodes.Ldarga_S, (byte)1); // 参数value的地址
+                        setIL.Emit(OpCodes.Conv_U); // 取地址(转成native的int*)
                         setIL.Emit(OpCodes.Ldarg_0); // 加载this
                         setIL.Emit(OpCodes.Callvirt,
                             module.ImportReference(stateBlockProp.GetMethod)); // 加载参数3StateBlock地址

@@ -71,11 +71,11 @@ namespace StargateNet
             int totalObjectMapByteSize = this.maxEntities * 4;
             //全局的分配器, 存map和meta
             long worldAllocatedBytes = (totalObjectMetaByteSize + totalObjectMapByteSize * 2) *
-                                       (this.ConfigData.savedSnapshotsCount + 1);
-            this.WorldAllocator = new StargateAllocator(worldAllocatedBytes, monitor); 
+                                       (this.ConfigData.savedSnapshotsCount + 1) * 2;   // 多乘个2是为了给control和header留空间，下同
+            this.WorldAllocator = new StargateAllocator(worldAllocatedBytes, monitor);
             //用于物体Sync var的内存大小
             long totalObjectStateByteSize =
-                configData.maxNetworkObjects * configData.maxObjectStateBytes * 2; // 2是因为还有dirtymap的占用
+                configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
             this.WorldState = new WorldState(configData.savedSnapshotsCount, new Snapshot(
                 (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
                 (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
@@ -247,6 +247,7 @@ namespace StargateNet
 
         internal void ClientDestroy(int networkId)
         {
+            if (networkId == -1) return;
             NetworkObjectRef networkObjectRef = new NetworkObjectRef(networkId);
             if (this.Simulation.entitiesTable.TryGetValue(networkObjectRef, out Entity entity))
             {

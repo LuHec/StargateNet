@@ -17,6 +17,7 @@ namespace StargateNet
         internal StargateAllocator lastAuthorSnapShots;
         internal double serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
         private readonly int _maxPredictedTicks;
+        private bool firstRecv = true;
 
 
         internal ClientSimulation(StargateEngine engine) : base(engine)
@@ -32,9 +33,10 @@ namespace StargateNet
         internal bool OnRcvPak(Tick srvTick)
         {
             this.engine.SimulationClock.OnRecvPak();
-            if (srvTick - authoritativeTick == 1)
+            if (srvTick - this.authoritativeTick == 1 || this.firstRecv)
             {
-                authoritativeTick = srvTick;
+                this.authoritativeTick = srvTick;
+                this.firstRecv = false;
                 return true;
             }
 

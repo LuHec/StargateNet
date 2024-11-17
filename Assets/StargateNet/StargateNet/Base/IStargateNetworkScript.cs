@@ -4,5 +4,7 @@ namespace StargateNet
     {
         unsafe int* StateBlock { get; }
         Entity Entity { get; }
+        
+        void Initialize(Entity entity);
     }
 }
