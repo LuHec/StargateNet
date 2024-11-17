@@ -140,6 +140,7 @@ namespace StargateNet
             }
 
             this._recycledPoolId.Clear();
+            this.pools.Clear();
         }
 
         public struct MemoryPool
