@@ -39,8 +39,6 @@ public class RegisterStargateNetworkPrefabs : EditorWindow
             {
                 networkObject.PrefabId = id;
                 EditorUtility.SetDirty(networkObject);
-                IStargateScript[] stargateScripts = prefab.GetComponentsInChildren<IStargateScript>();
-                prefab.GetComponent<NetworkObject>().NetworkScripts = stargateScripts;
                 NetworkBehavior[] networkBehaviors = prefab.GetComponentsInChildren<NetworkBehavior>();
                 long stateSize = 0;
                 foreach (var networkBehavior in networkBehaviors)

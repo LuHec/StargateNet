@@ -41,7 +41,7 @@ namespace StargateNet
             stateWordSize = byteSize / 4;
             // 给每个脚本切割内存和bitmap
             stateAllocator.AddPool(byteSize * 2, out int poolId);
-            int* poolData = (int*)stateAllocator.pools[networkObjectRef.refValue].data;
+            int* poolData = (int*)stateAllocator.pools[poolId].data;
             int* bitmap = poolData; //bitmap放在首部
             int* state = poolData + stateWordSize;
             entity.Initialize(state, bitmap, stateWordSize, poolId, worldIdx, networkBehaviors);
@@ -58,9 +58,9 @@ namespace StargateNet
         /// <param name="meta"></param>
         internal unsafe void AddEntity(NetworkObject networkObject, int networkId, int worldIdx, NetworkObjectMeta meta)
         {
-            networkObject.NetworkScripts = networkObject.GetComponents<IStargateScript>();
             NetworkObjectRef networkObjectRef = new NetworkObjectRef(networkId);
             Entity entity = this.CreateEntity(networkObject, networkObjectRef, worldIdx, out int stateWordSize);
+            networkObject.Initialize(this.engine , entity, networkObject.GetComponentsInChildren<IStargateScript>());
             this.entitiesTable.Add(networkObjectRef, entity);
             this.paddingToAddEntities.Add(entity);
             // 修改meta并标记

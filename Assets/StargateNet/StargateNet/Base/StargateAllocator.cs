@@ -75,10 +75,11 @@ namespace StargateNet
         {
             if (id > this.pools.Count) throw new Exception("PoolId out of range!");
             MemoryPool pool = this.pools[id];
-            if (pool.used) return;
+            if (!pool.used) return;
             this.Free(pool.data);
             pool.byteSize = -1;
             pool.data = null;
+            pool.used = false;
             this.pools[id] = pool;
             this._recycledPoolId.Enqueue(id);
         }

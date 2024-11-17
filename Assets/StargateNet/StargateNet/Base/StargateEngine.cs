@@ -204,7 +204,7 @@ namespace StargateNet
         // ------------- Engine Func ------------- //
 
         // ------------- Server Only ------------- //
-        internal void NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation)
+        internal NetworkObject NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation)
         {
             // 判断是服务端还是客户端(状态帧同步框架应该让所有涉及同步的部分都由服务端来决定，所以这里应该只由服务端来调用)
             // 生成物体，构造Entity，根据IM来决定要发给哪个客户端，同时加入pedding send集合中(每个client一个集合，这样可以根据IM的设置来决定是否要在指定客户端生成)
@@ -219,6 +219,7 @@ namespace StargateNet
                 // TODO: 把子节点如果是NetworkObject的也加入进去
                 this.Simulation.AddEntity(networkObject, ++this._networkIdCounter,
                     this.EntityMetaManager.RequestWorldIdx(), new NetworkObjectMeta());
+                return networkObject;
             }
             else throw new Exception($"GameObject {gameObject.name} is not a NetworkObject");
         }

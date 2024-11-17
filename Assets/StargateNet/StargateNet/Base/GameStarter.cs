@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Riptide.Utils;
 using UnityEngine;
 
@@ -14,6 +15,8 @@ namespace StargateNet
         private bool _showConnectBtn = true;
         private int a = 0;
         public GameObject test;
+
+        private Queue<GameObject> refs = new();
 
         private void OnGUI()
         {
@@ -56,9 +59,16 @@ namespace StargateNet
                 GUILayout.EndVertical(); // 结束竖排布局
             }
 
-            if (!_showConnectBtn && a == 2 && GUI.Button(new Rect(80, 120, 100, 90), "Spawn"))
+            if (!_showConnectBtn && a == 2 && GUI.Button(new Rect(80, 200, 100, 90), "Spawn"))
             {
-                SgNetwork.Instance._sgNetworkGalaxy.NetworkSpawn(test, Vector3.zero, Quaternion.identity);
+                refs.Enqueue(SgNetwork.Instance._sgNetworkGalaxy.NetworkSpawn(test, Vector3.zero, Quaternion.identity)
+                    .gameObject);
+            }
+
+            if (!_showConnectBtn && a == 2 && GUI.Button(new Rect(80, 300, 100, 90), "Destroy"))
+            {
+                if (refs.Count > 0)
+                    SgNetwork.Instance._sgNetworkGalaxy.NetworkDestroy(refs.Dequeue());
             }
         }
     }
