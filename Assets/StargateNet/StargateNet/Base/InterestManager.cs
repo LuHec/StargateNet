@@ -7,14 +7,15 @@ namespace StargateNet
         internal StargateEngine engine;
         internal List<Entity> simulationList; // 实际会被执行的单元
 
-        public InterestManager(int maxEntities)
+        public InterestManager(int maxEntities, StargateEngine engine)
         {
+            this.engine = engine;
             simulationList = new List<Entity>(maxEntities);
         }
         
         public unsafe void ExecuteNetworkUpdate()
         {
-            Snapshot currentSnapshot = this.engine.WorldState.ToSnapshot;
+            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             foreach (var entity in simulationList)
             {
                 foreach (var netScript in entity.entityObject.NetworkScripts)
@@ -27,7 +28,7 @@ namespace StargateNet
 
         public unsafe void ExecuteNetworkRender()
         {
-            Snapshot currentSnapshot = this.engine.WorldState.ToSnapshot;
+            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             foreach (var entity in simulationList)
             {
                 foreach (var netScript in entity.entityObject.NetworkScripts)
@@ -40,7 +41,7 @@ namespace StargateNet
         
         public unsafe void ExecuteNetworkFixedUpdate()
         {
-            Snapshot currentSnapshot = this.engine.WorldState.ToSnapshot;
+            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             foreach (var entity in simulationList)
             {
                 foreach (var netScript in entity.entityObject.NetworkScripts)

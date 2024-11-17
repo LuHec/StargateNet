@@ -102,7 +102,7 @@ namespace StargateNet
                 {
                     for (int j = 0; j < thisMemoryPool.byteSize; j++)
                     {
-                        destMemoryPool.data[i] = thisMemoryPool.data[i];
+                        ((byte*)destMemoryPool.data)[i] = ((byte*)thisMemoryPool.data)[i];
                     }
                 }
 
@@ -120,8 +120,8 @@ namespace StargateNet
             {
                 MemoryPool pool = pools[i];
                 if (!pool.used) continue;
-                TLSF64.tlsf_free(_entireBlock, pool.data);
-                pool.byteSize = 0;
+                this.Free(pool.data);
+                pool.byteSize = -1;
                 pool.data = null;
                 pools[i] = pool;
                 _recycledPoolId.Enqueue(i);

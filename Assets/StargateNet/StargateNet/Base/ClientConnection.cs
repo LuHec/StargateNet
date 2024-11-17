@@ -25,8 +25,8 @@ namespace StargateNet
             for (int worldIdx = 0; worldIdx < simulation.entities.Count; worldIdx++)
             {
                 Entity entity = simulation.entities[worldIdx];
-                if (entity != null && entity.dirty && worldState.ToSnapshot != null &&
-                    !worldState.ToSnapshot.worldObjectMeta[worldIdx].destroyed)
+                if (entity != null && entity.dirty && worldState.CurrentSnapshot != null &&
+                    !worldState.CurrentSnapshot.worldObjectMeta[worldIdx].destroyed)
                 {
                     int* state = entity.stateBlock;
                     int* dirtyMap = entity.dirtyMap;

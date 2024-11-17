@@ -28,6 +28,7 @@ public class RegisterStargateNetworkPrefabs : EditorWindow
         List<string> prefabsWithNetworkObject = new();
         List<GameObject> networkPrefabs = new();
         int id = 0;
+        long maxStateSize = 0;
 
         foreach (string prefabGUID in allPrefabs)
         {
@@ -38,6 +39,15 @@ public class RegisterStargateNetworkPrefabs : EditorWindow
             {
                 networkObject.PrefabId = id;
                 EditorUtility.SetDirty(networkObject);
+                IStargateScript[] stargateScripts = prefab.GetComponentsInChildren<IStargateScript>();
+                prefab.GetComponent<NetworkObject>().NetworkScripts = stargateScripts;
+                NetworkBehavior[] networkBehaviors = prefab.GetComponentsInChildren<NetworkBehavior>();
+                long stateSize = 0;
+                foreach (var networkBehavior in networkBehaviors)
+                {
+                    stateSize += networkBehavior.StateBlockSize;
+                }
+                maxStateSize = maxStateSize < stateSize ? stateSize : maxStateSize;
                 networkPrefabs.Add(prefab);
                 prefabsWithNetworkObject.Add(prefabPath);
                 id++;
@@ -46,7 +56,6 @@ public class RegisterStargateNetworkPrefabs : EditorWindow
         
         // 获取所有 StargateConfig
         string[] allConfigs = AssetDatabase.FindAssets("t:StargateConfig");
-        List<string> configPaths = new();
 
         foreach (string configGUID in allConfigs)
         {
@@ -56,7 +65,7 @@ public class RegisterStargateNetworkPrefabs : EditorWindow
             if (config != null)
             {
                 config.NetworkObjects = networkPrefabs;
-                configPaths.Add(configPath);
+                config.maxObjectStateBytes  = maxStateSize;
                 EditorUtility.SetDirty(config);
             }
         }

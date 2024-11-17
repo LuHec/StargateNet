@@ -20,3 +20,4 @@ MonoBehaviour:
   MaxPredictedTicks: 20
   NetworkObjects:
   - {fileID: 7095134503880436856, guid: 69e03efa710929f47b22396aa0160455, type: 3}
+  maxObjectStateBytes: 20

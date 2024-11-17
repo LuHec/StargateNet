@@ -15,5 +15,6 @@ namespace StargateNet
         [Range(1, 64)] public int SavedSnapshotsCount = 32;
         [Range(8, 300)]public int MaxPredictedTicks = 8;
         public List<GameObject> NetworkObjects;
+        public long maxObjectStateBytes;
     }
 }

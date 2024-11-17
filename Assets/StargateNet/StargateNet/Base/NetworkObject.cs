@@ -8,7 +8,7 @@ namespace StargateNet
     {
         public Entity Entity { get;  private set; }
         public NetworkObjectRef NetworkId => this.Entity.networkId;
-        public IStargateScript[] NetworkScripts { get; private set; }
+        public IStargateScript[] NetworkScripts { get;  set; }
 
         /// <summary>
         /// 由编辑器生成的id

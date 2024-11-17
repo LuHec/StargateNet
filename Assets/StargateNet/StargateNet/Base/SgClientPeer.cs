@@ -182,7 +182,7 @@ namespace StargateNet
             {
                 int wordMetaIdx = msg.GetInt(); 
                 if (wordMetaIdx < 0) break;
-                int networkId = this.Engine.WorldState.ToSnapshot.worldObjectMeta[wordMetaIdx].networkId;
+                int networkId = this.Engine.WorldState.CurrentSnapshot.worldObjectMeta[wordMetaIdx].networkId;
                 Entity entity = this.Engine.Simulation.entitiesTable[new NetworkObjectRef(networkId)];
                 int* targetState = entity.stateBlock;
                 while (true)

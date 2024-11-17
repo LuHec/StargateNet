@@ -46,6 +46,7 @@ namespace StargateNet
                     savedSnapshotsCount = config.SavedSnapshotsCount,
                     maxPredictedTicks = config.MaxPredictedTicks,
                     networkPrefabs = config.NetworkObjects,
+                    maxObjectStateBytes = config.maxObjectStateBytes 
                 },
                 port = port
             });
@@ -65,6 +66,7 @@ namespace StargateNet
                     savedSnapshotsCount = config.SavedSnapshotsCount,
                     maxPredictedTicks = config.MaxPredictedTicks,
                     networkPrefabs = config.NetworkObjects,
+                    maxObjectStateBytes = config.maxObjectStateBytes
                 },
                 port = port
             });

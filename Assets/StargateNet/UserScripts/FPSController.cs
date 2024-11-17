@@ -13,4 +13,4 @@ public class FPSController : NetworkBehavior
     {
         Debug.Log(this.StateBlockSize);
     }
-}
+} 
