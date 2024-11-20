@@ -87,9 +87,11 @@ namespace StargateNet
             this.HeavyPakLoss = false;
             this.PakLoss = false;
             var msg = args.Message;
-            
+            //TODO:服务端需要加入一个客户端LastTick
+            bool isFullPacket = msg.GetBool();
+            Tick srvRcvClientTick = new Tick(msg.GetInt());
             Tick srvTick = new Tick(msg.GetInt());
-            if (!this.Engine.ClientSimulation.OnRcvPak(srvTick))
+            if (!this.Engine.ClientSimulation.OnRcvPak(srvTick, srvRcvClientTick, isFullPacket))
             {
                 this.PakLoss = true;
                 return;
@@ -140,7 +142,7 @@ namespace StargateNet
         public void SendClientPak()
         {
             Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToServer);
-            // 有没有丢ds包
+            // 有没有丢ds包，如果丢包了就要求服务端发从上一次客户端authorTick之后的所有包
             msg.AddBool(this.PakLoss);
             msg.AddInt(this.Engine.ClientSimulation.authoritativeTick.tickValue);
             // 发送ACK到的Tick后所有的输入    

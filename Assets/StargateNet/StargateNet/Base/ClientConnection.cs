@@ -6,6 +6,7 @@ namespace StargateNet
     public class ClientConnection
     {
         internal bool connected = false;
+        internal bool losePacket = false;
         internal ClientData clientData;
         internal Connection connection;
         internal Tick lastAckTick = Tick.InvalidTick;

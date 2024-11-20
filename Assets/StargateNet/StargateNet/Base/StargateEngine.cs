@@ -127,6 +127,22 @@ namespace StargateNet
             this.Client.Connect(ip, port);
         }
 
+        internal void ShutDown()
+        {
+            Peer.Disconnect();
+            this.IsConnected = false;
+            this.IsRunning = false;
+            
+            // clear resources
+            foreach (var snapshot in this.WorldState.snapshots)
+            {
+                snapshot.networkStates.HandledRelease();
+            }
+            this.WorldState.CurrentSnapshot.networkStates.HandledRelease();
+            this.WorldAllocator.HandledRelease();
+            this.Simulation.HandledRelease();
+        }
+
         /// <summary>
         /// Called every frame.
         /// </summary>

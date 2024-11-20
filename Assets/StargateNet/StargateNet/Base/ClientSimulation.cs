@@ -17,7 +17,7 @@ namespace StargateNet
         internal StargateAllocator lastAuthorSnapShots;
         internal double serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
         private readonly int _maxPredictedTicks;
-        private bool firstRecv = true;
+        private bool _firstReceive = true;
 
 
         internal ClientSimulation(StargateEngine engine) : base(engine)
@@ -26,17 +26,28 @@ namespace StargateNet
             this.predictedSnapshots = new List<StargateAllocator>(this._maxPredictedTicks);
         }
 
+        internal override void HandledRelease()
+        {
+            base.HandledRelease();
+            foreach (var snapshot in this.predictedSnapshots)
+            {
+                snapshot.HandledRelease();
+            }
+        }
+
         /// <summary>
         /// 如果srvTick不是authoritativeTick + 1，那就说明丢包了
         /// </summary>
-        /// <param name="srvTick"></param>
-        internal bool OnRcvPak(Tick srvTick)
+        /// <param name="srvTick">服务端Tick</param>
+        /// <param name="srvRcvClientTick">服务端上次收到的客户端Tick</param>
+        /// <param name="isFullPacket">服务端发来的是不是从上一次收到客户端Tick以来的全量包</param>
+        internal bool OnRcvPak(Tick srvTick, Tick srvRcvClientTick, bool isFullPacket)
         {
             this.engine.SimulationClock.OnRecvPak();
-            if (srvTick - this.authoritativeTick == 1 || this.firstRecv)
+            if (srvTick - this.authoritativeTick == 1 || this._firstReceive)
             {
                 this.authoritativeTick = srvTick;
-                this.firstRecv = false;
+                this._firstReceive = false;
                 return true;
             }
 

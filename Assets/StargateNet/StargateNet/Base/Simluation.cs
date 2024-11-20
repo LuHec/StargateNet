@@ -25,6 +25,16 @@ namespace StargateNet
             }
         }
 
+        ~Simulation()
+        {
+            this.HandledRelease();   
+        }
+
+        internal virtual void HandledRelease()
+        {
+            
+        }
+
         internal unsafe Entity CreateEntity(NetworkObject networkObject, NetworkObjectRef networkObjectRef,
             int worldIdx, out int stateWordSize)
         {

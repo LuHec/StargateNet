@@ -35,6 +35,19 @@ namespace StargateNet
                 monitor.unmanagedMemeory += (ulong)byteSize;
         }
 
+        ~StargateAllocator()
+        {
+            MemoryAllocation.Free(this._entireBlock);    
+        }
+
+        /// <summary>
+        /// 手动归还内存
+        /// </summary>
+        public void HandledRelease()
+        {
+            MemoryAllocation.Free(this._entireBlock);    
+        }
+
         // SgAllocator在初始化时实际上就已经分配好了总的大小(sync var)
         // 一个网络id对应一个pool，pool内的内存就是该物体的全部脚本的同步变量所占用的内存
         // SgAllocator的总大小是不会变动的，而TLSF拿和还都是O1的时间复杂度，所以当同步物体发生变化时，不需要重新分配一个Snapshot，直接归还被删除的网络id所占用的内存即可，
@@ -43,10 +56,10 @@ namespace StargateNet
         {
             void* block = TLSF64.tlsf_malloc(this._entireBlock, (ulong)byteSize);
             this.monitor.unmanagedMemeoryInuse += TLSF64.tlsf_block_size(block);
-            int* data = (int*)block;
-            for (int i = 0; i < byteSize / 4; i++)
+            // 这里之前转成int然后用byteSize / 4去算了，在byteSize不是4的倍数下是错的
+            for (int i = 0; i < byteSize; i++)
             {
-                data[i] = 0;
+                ((byte*)block)[i] = 0;
             }
             return block;
         }
@@ -73,6 +86,7 @@ namespace StargateNet
             if (this._recycledPoolId.Count > 0)
             {
                 poolId = this._recycledPoolId.Dequeue();
+                if(this.pools[poolId].used) throw new Exception($"Pool {poolId} already used!");
                 this.pools[poolId] = pool;
             }
             else
@@ -103,18 +117,18 @@ namespace StargateNet
         {
             if (dest.Size < this.Size) throw new Exception("Dest allocator size is too small!");
             dest.FastRelease();
-            for (int i = 0; i < this.pools.Count; i++)
+            for (int poolIdx = 0; poolIdx < this.pools.Count; poolIdx++)
             {
-                MemoryPool thisMemoryPool = this.pools[i];
+                MemoryPool thisMemoryPool = this.pools[poolIdx];
                 MemoryPool destMemoryPool;
                 destMemoryPool.used = thisMemoryPool.used;
                 destMemoryPool.byteSize = thisMemoryPool.used ? thisMemoryPool.byteSize : -1;
                 destMemoryPool.data = thisMemoryPool.used ? dest.Malloc(thisMemoryPool.byteSize) : null;
                 if (thisMemoryPool.used)
                 {
-                    for (int j = 0; j < thisMemoryPool.byteSize; j++)
+                    for (int byteIdx = 0; byteIdx < thisMemoryPool.byteSize; byteIdx++)
                     {
-                        ((byte*)destMemoryPool.data)[i] = ((byte*)thisMemoryPool.data)[i];
+                        ((byte*)destMemoryPool.data)[byteIdx] = ((byte*)thisMemoryPool.data)[byteIdx];
                     }
                 }
 
