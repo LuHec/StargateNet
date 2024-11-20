@@ -89,54 +89,25 @@ namespace StargateNet
             var msg = args.Message;
             //TODO:服务端需要加入一个客户端LastTick
             bool isFullPacket = msg.GetBool();
-            Tick srvRcvClientTick = new Tick(msg.GetInt());
             Tick srvTick = new Tick(msg.GetInt());
+            Tick srvRcvClientTick = new Tick(msg.GetInt());
+            this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
             if (!this.Engine.ClientSimulation.OnRcvPak(srvTick, srvRcvClientTick, isFullPacket))
             {
                 this.PakLoss = true;
                 return;
             }
 
+            Snapshot lastAuthorSnapshot = this.Engine.WorldState.FromSnapshot;
             this.Engine.WorldState.UpdateFromTick(srvTick); // 更新环形队列tick
-            this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
+            if (lastAuthorSnapshot != null)
+            {
+                lastAuthorSnapshot.CopyStateTo(this.Engine.WorldState.FromSnapshot); // 客户端根据上一次的数据进行增量式更新
+            }
+
             this.ReceiveMeta(msg); // 接收meta
             this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta
             this.ReceiveState(msg); // 接收state
-            // // 接收NetworkObject
-            // int maxNetworkRef = msg.GetInt();
-            // int[] srvMap = new int[maxNetworkRef];
-            // for (int i = 0; i < maxNetworkRef / 32; i++)
-            // {
-            //     srvMap[i] = msg.GetInt();
-            // }
-            //
-            // for (int i = 0; i < maxNetworkRef / 32; i++)
-            // {
-            //     int delta = this.Engine.Simulation.networkRefMap[i] | srvMap[i];
-            //     int idx = 0;
-            //     while (delta > 0)
-            //     {
-            //         if ((delta & 1) == 1)
-            //         {
-            //             Dictionary<int, NetworkObject> prefabsTable = this.Engine.PrefabsTable;
-            //             Dictionary<NetworkObjectRef, NetworkObject> networkObjectsTable = this.Engine.Simulation.EntitiesTable;
-            //             NetworkObjectRef networkObjectRef = new NetworkObjectRef(i * 32 + idx);
-            //             int prefabId = msg.GetInt();
-            //             if (!networkObjectsTable.ContainsKey(networkObjectRef) &&
-            //                 prefabsTable.ContainsKey(prefabId))
-            //             {
-            //                 // 生成
-            //                 var networkObject =  this.Engine.ObjectSpawner.Spawn(this.Engine.PrefabsTable[prefabId].gameObject, Vector3.zero,
-            //                     Quaternion.identity).GetComponent<NetworkObject>();
-            //                 networkObjectsTable.Add(networkObjectRef, networkObject);
-            //             }
-            //         }
-            //
-            //         idx++;
-            //         delta >>= 1;
-            //     }
-            // }
-            // Client
         }
 
         public void SendClientPak()
@@ -162,7 +133,7 @@ namespace StargateNet
             {
                 int wordMetaIdx = msg.GetInt();
                 if (wordMetaIdx < 0) break;
-                
+
                 int networkId = msg.GetInt();
                 int prefabId = msg.GetInt();
                 int stateWordSize = msg.GetInt();
@@ -176,13 +147,13 @@ namespace StargateNet
                 });
             }
         }
-        
+
         private unsafe void ReceiveState(Message msg)
         {
             // 外层是找meta，内层找object state
             while (true)
             {
-                int wordMetaIdx = msg.GetInt(); 
+                int wordMetaIdx = msg.GetInt();
                 if (wordMetaIdx < 0) break;
                 int networkId = this.Engine.WorldState.CurrentSnapshot.worldObjectMeta[wordMetaIdx].networkId;
                 Entity entity = this.Engine.Simulation.entitiesTable[new NetworkObjectRef(networkId)];

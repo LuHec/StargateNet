@@ -79,9 +79,7 @@ namespace StargateNet
             meta.prefabId = networkObject.PrefabId;
             meta.destroyed = false;
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
-            // c# 抽象机制，List的struct返回复制的值，native则是必须逐个赋值
             currentSnapshot.worldObjectMeta[worldIdx] = meta;
-                
             currentSnapshot.dirtyObjectMetaMap[networkObjectRef.refValue] = 1;
         }
 

@@ -7,37 +7,37 @@ namespace StargateNet
     {
         public readonly int maxClientInput;
         public Queue<SimulationInput> clientInput = new(); //  ow gdc所说的input缓冲区        
-        public Tick LastTick { get; private set; }
+        public Tick LastTargetTick { get; private set; }
         public bool Started { get; private set; }
         public SimulationInput currentInput = new SimulationInput();
         public double lastPakTime;
         public double deltaPakTime;
         public bool pakLoss = false;
-        public Tick clientAuthorTick = Tick.InvalidTick;
+        public Tick clientLastAuthorTick = Tick.InvalidTick;
 
         public ClientData(int maxClientInput)
         {
             this.maxClientInput = maxClientInput;
-            this.LastTick = Tick.InvalidTick;
+            this.LastTargetTick = Tick.InvalidTick;
         }
 
         /// <summary>
-        /// 维护从LastReciveTick开始的Input，后来的会顶掉之前的(可能会顶掉还没被使用的)
+        /// 维护从LastReceiveTick开始的Input，后来的会顶掉之前的(可能会顶掉还没被使用的)
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
-        public void ReciveInput(SimulationInput input)
+        public void ReceiveInput(SimulationInput input)
         {
             this.Started = true;
             clientInput.Enqueue(input);
-            this.LastTick = input.targetTick;
+            this.LastTargetTick = input.targetTick;
         }
 
         public void Reset()
         {
             this.Started = false;
             this.clientInput.Clear();
-            this.LastTick = Tick.InvalidTick;
+            this.LastTargetTick = Tick.InvalidTick;
         }
     }
 }

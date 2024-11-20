@@ -44,12 +44,12 @@ namespace StargateNet
         internal bool OnRcvPak(Tick srvTick, Tick srvRcvClientTick, bool isFullPacket)
         {
             this.engine.SimulationClock.OnRecvPak();
-            if (srvTick - this.authoritativeTick == 1 || this._firstReceive)
-            {
+            // if (srvTick - this.authoritativeTick == 1 || this._firstReceive)
+            // {
                 this.authoritativeTick = srvTick;
                 this._firstReceive = false;
                 return true;
-            }
+            // }
 
             return false;
         }

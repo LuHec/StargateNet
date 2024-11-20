@@ -10,8 +10,12 @@ public class FPSController : NetworkBehavior
 
     public override void NetworkFixedUpdate()
     {
-        Pitch += 10;
-        Movement = new Vector3(Random.Range(-1.0f, 1.0f), Random.Range(-1.0f, 1.0f), Random.Range(-1.0f, 1.0f));
+        if (this.IsServer)
+        {
+            Pitch += 10;
+            Movement = new Vector3(Random.Range(-1.0f, 1.0f), Random.Range(-1.0f, 1.0f), Random.Range(-1.0f, 1.0f));
+        }
+
         // Debug.Log(Movement);
         // Debug.Log(IsFiring);
         // Debug.Log(Pitch);

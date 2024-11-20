@@ -195,7 +195,6 @@ namespace StargateNet
                     Snapshot fromSnapshot = this.WorldState.FromSnapshot;
                     if (fromSnapshot != null)
                     {
-                        fromSnapshot.Init(this.simTick);
                         toSnapshot.CopyStateTo(fromSnapshot);
                     }
                 }
@@ -253,12 +252,13 @@ namespace StargateNet
         }
 
         // ------------- Client Only ------------- //
-        internal void ClinetSpawn(int networkId, int worldIdx, int prefabId, Vector3 position, Quaternion rotation)
+        internal void ClientSpawn(int networkId, int worldIdx, int prefabId, Vector3 position, Quaternion rotation)
         {
-            if (prefabId == -1 || !this.PrefabsTable.ContainsKey(prefabId))
+            if (prefabId == -1 || !this.PrefabsTable.TryGetValue(prefabId, out var value))
                 throw new Exception($"Prefab Id:{prefabId} is not exist");
-            NetworkObject networkObject = this.ObjectSpawner.Spawn(this.PrefabsTable[networkId], position, rotation);
+            NetworkObject networkObject = this.ObjectSpawner.Spawn(value, position, rotation);
             this.Simulation.AddEntity(networkObject, networkId, worldIdx, new NetworkObjectMeta());
+            this.Simulation.DrainPaddingAddedEntity();
         }
 
         internal void ClientDestroy(int networkId)
@@ -269,6 +269,7 @@ namespace StargateNet
             {
                 this.ObjectSpawner.Despawn(entity.entityObject.gameObject);
                 this.Simulation.RemoveEntity(networkObjectRef);
+                this.Simulation.DrainPaddingRemovedEntity();
             }
             else throw new Exception($"Network Id:{networkId} is not exist");
         }

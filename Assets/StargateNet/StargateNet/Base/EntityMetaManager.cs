@@ -37,24 +37,22 @@ namespace StargateNet
         // ---------- Client ---------- //
         public unsafe void OnMetaChanged()
         {
-            Simulation simulation = this.engine.Simulation;
+            NetworkObjectMeta* worldMeta = this.engine.WorldState.CurrentSnapshot.worldObjectMeta;
             foreach (var pair in this.changedMetas)
             {
                 int metaId = pair.Key;
                 NetworkObjectMeta remoteMeta = pair.Value;
-                // TODO:判断id是不是相同的，如果不是就生成/销毁
-                NetworkObjectMeta localMeta = this.engine.WorldState.CurrentSnapshot.worldObjectMeta[metaId];
+                // 与服务端id不同或者服务端删除了这个物体，客户端销毁
+                NetworkObjectMeta localMeta = worldMeta[metaId];
                 if (remoteMeta.networkId != localMeta.networkId || remoteMeta.destroyed)
                 {
-                    // 移除Current Entity
                     this.engine.ClientDestroy(localMeta.networkId);
-                    simulation.DrainPaddingRemovedEntity();
                 }
-                else if (localMeta.networkId != remoteMeta.networkId || localMeta.destroyed == false)
+                // 如果服务端生成新的物体，客户端也生成
+                if (remoteMeta.networkId != localMeta.networkId && !remoteMeta.destroyed)
                 {
-                    this.engine.ClinetSpawn(remoteMeta.networkId, metaId, remoteMeta.prefabId, Vector3.zero,
+                    this.engine.ClientSpawn(remoteMeta.networkId, metaId, remoteMeta.prefabId, Vector3.zero,
                         Quaternion.identity);
-                    
                 }
             }
 

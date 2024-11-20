@@ -68,26 +68,29 @@ namespace StargateNet
 
             for (int i = 1; i < this.clientConnections.Count; i++)
             {
-                if (this.clientConnections[i].connected)
+                if (!this.clientConnections[i].connected) continue;
+                // ------------------ Header ------------------
+                Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
+                // TODO:全量包判断
+                msg.AddBool(true);
+                msg.AddInt(this.Engine.simTick.tickValue); // Author Tick
+                msg.AddInt(clientDatas[i].clientLastAuthorTick.tickValue);
+                msg.AddDouble(clientDatas[i].deltaPakTime); // pakTime
+                // ------------------ Data ------------------
+                foreach (var id in _cachedMetaIds) // meta
                 {
-                    Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
-                    msg.AddInt(this.Engine.simTick.tickValue); // Author Tick
-                    msg.AddDouble(clientDatas[i].deltaPakTime); // pakTime
-                    foreach (var id in _cachedMetaIds) // meta
-                    {
-                        NetworkObjectMeta meta = curSnapshot.worldObjectMeta[id];
-                        msg.AddInt(id);
-                        msg.AddInt(meta.networkId);
-                        msg.AddInt(meta.prefabId);
-                        msg.AddInt(meta.stateWordSize);
-                        msg.AddBool(meta.destroyed);
-                    }
-
-                    msg.AddInt(-1); // meta写入终止符号
-                    this.clientConnections[i].WritePacket(msg); // state
-                    msg.AddInt(-1); // 状态写入终止符号
-                    this.Server.Send(msg, (ushort)i);
+                    NetworkObjectMeta meta = curSnapshot.worldObjectMeta[id];
+                    msg.AddInt(id);
+                    msg.AddInt(meta.networkId);
+                    msg.AddInt(meta.prefabId);
+                    msg.AddInt(meta.stateWordSize);
+                    msg.AddBool(meta.destroyed);
                 }
+
+                msg.AddInt(-1); // meta写入终止符号
+                this.clientConnections[i].WritePacket(msg); // state
+                msg.AddInt(-1); // 状态写入终止符号
+                this.Server.Send(msg, (ushort)i);
             }
         }
 
@@ -99,16 +102,20 @@ namespace StargateNet
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
             var msg = args.Message;
+            // header ------------------------
             bool clientLossPacket = msg.GetBool();
             int clientLastAuthorTick = msg.GetInt();
             int inputCount = msg.GetInt();
             ClientData clientData = this.clientConnections[args.FromConnection.Id].clientData;
             clientData.deltaPakTime = this.Engine.SimulationClock.Time - clientData.lastPakTime;
             clientData.lastPakTime = this.Engine.SimulationClock.Time;
+            clientData.clientLastAuthorTick = new Tick(clientLastAuthorTick);
+            clientData.pakLoss = clientLossPacket;
+            // input ------------------------
             for (int i = 0; i < inputCount; i++)
             {
                 int targetTick = msg.GetInt();
-                if (targetTick <= clientData.LastTick.tickValue)
+                if (targetTick <= clientData.LastTargetTick.tickValue)
                 {
                     continue;
                 }
@@ -118,7 +125,7 @@ namespace StargateNet
                 {
                     SimulationInput simulationInput =
                         this.Engine.ServerSimulation.CreateInput(Tick.InvalidTick, new Tick(targetTick));
-                    clientData.ReciveInput(simulationInput);
+                    clientData.ReceiveInput(simulationInput);
                 }
             }
 
