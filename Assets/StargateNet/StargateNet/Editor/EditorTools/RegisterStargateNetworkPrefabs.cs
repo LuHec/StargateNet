@@ -35,7 +35,7 @@ public class RegisterStargateNetworkPrefabs : EditorWindow
             string prefabPath = AssetDatabase.GUIDToAssetPath(prefabGUID);
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
 
-            if (prefab != null && prefab.TryGetComponent<NetworkObject>(out NetworkObject networkObject))
+            if (prefab != null && prefab.TryGetComponent(out NetworkObject networkObject))
             {
                 networkObject.PrefabId = id;
                 EditorUtility.SetDirty(networkObject);

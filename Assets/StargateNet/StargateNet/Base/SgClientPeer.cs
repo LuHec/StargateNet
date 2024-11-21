@@ -76,7 +76,7 @@ namespace StargateNet
             RiptideLogger.Log(LogType.Debug, "Client Connect Failed");
         }
 
-
+        
         /// <summary>
         /// 客户端只会收到DS
         /// </summary>
@@ -97,17 +97,12 @@ namespace StargateNet
                 this.PakLoss = true;
                 return;
             }
-
-            Snapshot lastAuthorSnapshot = this.Engine.WorldState.FromSnapshot;
-            this.Engine.WorldState.UpdateFromTick(srvTick); // 更新环形队列tick
-            if (lastAuthorSnapshot != null)
-            {
-                lastAuthorSnapshot.CopyStateTo(this.Engine.WorldState.FromSnapshot); // 客户端根据上一次的数据进行增量式更新
-            }
-
-            this.ReceiveMeta(msg); // 接收meta
-            this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta
-            this.ReceiveState(msg); // 接收state
+            // 用服务端下发的结果更新环形队列
+            this.Engine.WorldState.Update(srvTick); 
+            this.ReceiveMeta(msg); 
+            this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta，处理服务端生成和销毁的物体
+            this.ReceiveState(msg);
+            this.Engine.WorldState.CurrentSnapshot.CleanMap(); // CurrentSnapshot将作为本帧的开始，必须要清理干净，否则下次收到包，delta就出错了
         }
 
         public void SendClientPak()

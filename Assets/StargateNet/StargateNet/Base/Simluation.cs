@@ -25,17 +25,12 @@ namespace StargateNet
             }
         }
 
-        ~Simulation()
-        {
-            this.HandledRelease();   
-        }
-
         internal virtual void HandledRelease()
         {
             
         }
 
-        internal unsafe Entity CreateEntity(NetworkObject networkObject, NetworkObjectRef networkObjectRef,
+        private unsafe Entity CreateEntity(NetworkObject networkObject, NetworkObjectRef networkObjectRef,
             int worldIdx, out int stateWordSize)
         {
             // 用全局的内存来分配，在一帧结束后，内存会被拷贝到WorldState中
@@ -80,7 +75,7 @@ namespace StargateNet
             meta.destroyed = false;
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             currentSnapshot.worldObjectMeta[worldIdx] = meta;
-            currentSnapshot.dirtyObjectMetaMap[networkObjectRef.refValue] = 1;
+            currentSnapshot.dirtyObjectMetaMap[worldIdx] = 1;
         }
 
         /// <summary>

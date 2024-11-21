@@ -22,6 +22,7 @@ namespace StargateNet
         internal float LastTimeScale { get; private set; }
         internal StargateConfigData ConfigData { get; private set; }
         internal bool IsRunning { get; private set; }
+        internal bool IsShutDown { get; private set; }
         internal SgPeer Peer { get; private set; }
         internal SgClientPeer Client { get; private set; }
         internal SgServerPeer Server { get; private set; }
@@ -71,7 +72,7 @@ namespace StargateNet
             int totalObjectMapByteSize = this.maxEntities * 4;
             //全局的分配器, 存map和meta
             long worldAllocatedBytes = (totalObjectMetaByteSize + totalObjectMapByteSize * 2) *
-                                       (this.ConfigData.savedSnapshotsCount + 1) * 2;   // 多乘个2是为了给control和header留空间，下同
+                                       (this.ConfigData.savedSnapshotsCount + 1) * 2; // 多乘个2是为了给control和header留空间，下同
             this.WorldAllocator = new StargateAllocator(worldAllocatedBytes, monitor);
             //用于物体Sync var的内存大小
             long totalObjectStateByteSize =
@@ -107,6 +108,7 @@ namespace StargateNet
                 this.Peer = this.Client;
                 this.ClientSimulation = new ClientSimulation(this);
                 this.Simulation = this.ClientSimulation;
+                this.WorldState.Init(Tick.InvalidTick);
             }
 
             this.Simulated = true;
@@ -129,15 +131,15 @@ namespace StargateNet
 
         internal void ShutDown()
         {
+            if (this.IsShutDown) return;
+            
+            this.IsShutDown = true;
             Peer.Disconnect();
             this.IsConnected = false;
             this.IsRunning = false;
-            
+
             // clear resources
-            foreach (var snapshot in this.WorldState.snapshots)
-            {
-                snapshot.networkStates.HandledRelease();
-            }
+            this.WorldState.HandledRelease();
             this.WorldState.CurrentSnapshot.networkStates.HandledRelease();
             this.WorldAllocator.HandledRelease();
             this.Simulation.HandledRelease();
@@ -190,13 +192,7 @@ namespace StargateNet
                 this.Simulation.DrainPaddingRemovedEntity(); // 发送后再清除Entity占用的内存和id
                 if (this.IsServer) // 更新FromTick
                 {
-                    this.WorldState.UpdateFromTick(this.simTick); // 当前Tick是10，这次WorldState更新前的FromSnapshotTick是9
-                    Snapshot toSnapshot = this.WorldState.CurrentSnapshot;
-                    Snapshot fromSnapshot = this.WorldState.FromSnapshot;
-                    if (fromSnapshot != null)
-                    {
-                        toSnapshot.CopyStateTo(fromSnapshot);
-                    }
+                    this.WorldState.Update(this.simTick);
                 }
 
                 this.simTick++; // 下一次Tick是11

@@ -79,6 +79,7 @@ namespace StargateNet
                 // ------------------ Data ------------------
                 foreach (var id in _cachedMetaIds) // meta
                 {
+                    // 这里有问题！发送的时候物体meta还没被写入
                     NetworkObjectMeta meta = curSnapshot.worldObjectMeta[id];
                     msg.AddInt(id);
                     msg.AddInt(meta.networkId);

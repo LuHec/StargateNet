@@ -10,37 +10,67 @@ public class WorldState
     internal Snapshot FromSnapshot => fromTick.IsValid ? snapshots[FromSnapshotIdx] : null;
 
     /// <summary>
-    ///  每一帧修改的主Snapshot，对于客户端来说这个是存本帧预测的结果；服务端是本帧的权威结果。其他的Snapshot都是对这个的拷贝
+    ///  每一帧修改的主Snapshot，对于客户端来说这个用来存最新收到的服务端权威状态；服务端是本帧运算结果，其他的Snapshot都是对这个的拷贝。
     /// </summary>
-    internal Snapshot CurrentSnapshot { private set; get; }
+    internal Snapshot CurrentSnapshot
+    {
+        private set => this._currentSnapshot = value;
+        get => _currentSnapshot.snapshotTick == Tick.InvalidTick ? null : _currentSnapshot;
+    }
+
+    private Snapshot _currentSnapshot;
 
     /// <summary>
-    /// 存放过去Snapshot，对于客户端是收到AuthorSnapshot，对于服务端是存放过去的权威结果
+    /// 存放过去Snapshot，客户端拷贝时间在收到新的权威Snapshot时，服务端拷贝时间在一帧的结束。
     /// </summary>
-    internal List<Snapshot> snapshots; // 过去Tick的快照
+    internal List<Snapshot> snapshots;
 
     internal Tick fromTick = Tick.InvalidTick;
+    internal bool HasInitialized { private set; get; }
+
 
     internal WorldState(int maxSnapCnt, Snapshot currentSnapshot)
     {
         this.MaxSnapshotsCount = maxSnapCnt;
-        this.CurrentSnapshot = currentSnapshot;
+        this._currentSnapshot = currentSnapshot;
         this.snapshots = new List<Snapshot>(maxSnapCnt);
+        this.HasInitialized = false;
+    }
+
+    internal void HandledRelease()
+    {
+        foreach (var snapshot in this.snapshots)
+        {
+            snapshot.networkStates.HandledRelease();
+        }
     }
 
     internal void Init(Tick tick)
     {
         this.fromTick = tick;
+        this._currentSnapshot.Init(tick);
     }
 
-    internal void FlushTick(Tick tick)
-    {
-    }
-
-    internal void UpdateFromTick(Tick tick)
+    /// <summary>
+    /// 更新Snapshot和Tick。
+    /// FromTick指的是本帧，FromTickSnapshot指的是本帧开始时的状态，CurrentSnapshot此时是上一帧的最后结果。此函数将CurrentSnapshot拷贝到FromTick，作为本帧的初始状态
+    /// 接下来StargateEngine就会更新CurrentSnapshot，下一帧时CurrentSnapshot会再次拷贝到新的FromTickSnapshot。
+    /// 对于客户端，真正的权威是WorldState::snapshots，客户端预测时可以修改CurrentSnapshot
+    /// </summary>
+    /// <param name="tick"></param>
+    internal void Update(Tick tick)
     {
         this.fromTick = tick;
-        this.FromSnapshot?.Init(tick);
+        this.FromSnapshot.Init(tick);
+        this._currentSnapshot.snapshotTick = tick;
+        if (!this.HasInitialized)
+        {
+            this.HasInitialized = true;
+            return;
+        }
+        
+        this.CurrentSnapshot.CopyStateTo(this.FromSnapshot);
+        this.CurrentSnapshot.CleanMap();
     }
 
     /// <summary>

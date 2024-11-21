@@ -40,5 +40,16 @@ namespace StargateNet
         {
             this.networkStates.CopyTo(dest.networkStates);
         }
+
+        /// <summary>
+        /// 将snapshot的dirtymap清理干净，此函数一般会在CurrentSnapshot拷贝完毕，进入新的一帧时调用
+        /// </summary>
+        internal void CleanMap()
+        {
+            for (int i = 0; i < this.metaCnt; i++)
+            {
+                this.dirtyObjectMetaMap[i] = 0;
+            }
+        }
     }
 }

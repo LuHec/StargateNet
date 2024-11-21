@@ -44,6 +44,7 @@ namespace StargateNet
         internal bool OnRcvPak(Tick srvTick, Tick srvRcvClientTick, bool isFullPacket)
         {
             this.engine.SimulationClock.OnRecvPak();
+            // TODO:这个功能先等状态同步测试完再搞
             // if (srvTick - this.authoritativeTick == 1 || this._firstReceive)
             // {
                 this.authoritativeTick = srvTick;
