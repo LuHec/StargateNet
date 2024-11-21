@@ -113,7 +113,7 @@ namespace StargateNet
                 }
                 else
                 {
-                    this._scaledDelta = 0.98f * this._fixedDelta;
+                    this._scaledDelta = 0.95f * this._fixedDelta;
                 }
             }
             // 小于0，说明快了，要减速
@@ -121,7 +121,7 @@ namespace StargateNet
             {
                 this._clockLevel = 0;
                 // 两个速度间选一个
-                this._scaledDelta = delayTime < this._fixedDelta * 3
+                this._scaledDelta = delayTime < -this._fixedDelta * 3.0f
                     ? 1.04f * this._fixedDelta
                     : 1.01f * this._fixedDelta;
                 ;
