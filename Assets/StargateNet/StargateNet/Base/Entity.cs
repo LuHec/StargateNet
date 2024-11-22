@@ -82,20 +82,17 @@ namespace StargateNet
         {
             // 内存大小不超过INT_MAX
             int dataId = (int)(address - stateBlock);
-
-            bool needsUpdate = false;
+            
             for (int i = 0; i < wordSize; i++)
             {
                 if (stateBlock[dataId + i] != newValue[i])
                 {
-                    needsUpdate = true;
                     stateBlock[dataId + i] = newValue[i];
+                    if (this.engine.IsServer)
+                    {
+                        this.MakeBitmapDirty(dataId + i);
+                    }
                 }
-            }
-
-            if (this.engine.IsServer && needsUpdate)
-            {
-                MakeBitmapDirty(dataId);
             }
         }
 

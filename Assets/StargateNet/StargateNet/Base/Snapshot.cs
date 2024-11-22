@@ -28,10 +28,7 @@ namespace StargateNet
             for (int i = 0; i < this.metaCnt; i++)
             {
                 this.dirtyObjectMetaMap[i] = 0;
-                this.worldObjectMeta[i].networkId = -1;
-                this.worldObjectMeta[i].prefabId = -1;
-                this.worldObjectMeta[i].stateWordSize = -1;
-                this.worldObjectMeta[i].destroyed = false;
+                this.worldObjectMeta[i] = NetworkObjectMeta.Invalid;
             }
             this.networkStates.FastRelease();
         }

@@ -90,8 +90,8 @@ namespace StargateNet
             this.paddingToRemoveEntities.Add(entity);
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             // 修改meta并标记
-            currentSnapshot.worldObjectMeta[networkObjectRef.refValue].destroyed = true;
-            currentSnapshot.dirtyObjectMetaMap[networkObjectRef.refValue] = 1;
+            currentSnapshot.worldObjectMeta[entity.worldMetaId].destroyed = true;
+            currentSnapshot.dirtyObjectMetaMap[entity.worldMetaId] = 1;
         }
 
         /// <summary>
@@ -109,12 +109,14 @@ namespace StargateNet
         }
 
         /// <summary>
-        /// 主要作用是移除模拟脚本并回收Entity的内存
+        /// 移除模拟脚本，清理meta并回收Entity的内存，
         /// </summary>
-        internal void DrainPaddingRemovedEntity()
+        internal unsafe void DrainPaddingRemovedEntity()
         {
+            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             foreach (var entity in this.paddingToRemoveEntities)
             {
+                currentSnapshot.worldObjectMeta[entity.worldMetaId] = NetworkObjectMeta.Invalid;
                 this.engine.WorldState.CurrentSnapshot.networkStates.ReleasePool(entity.poolId); // 内存归还
                 this.engine.IM.simulationList.Remove(entity);
                 this.entities[entity.worldMetaId] = null;
