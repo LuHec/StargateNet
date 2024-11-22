@@ -78,7 +78,7 @@ namespace StargateNet
         /// <param name="wordSize">一个word长度为4字节</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void SetData(int* newValue, int* address, int wordSize)
+        private unsafe void SetData(int* newValue, int* address, int wordSize)
         {
             // 内存大小不超过INT_MAX
             int dataId = (int)(address - stateBlock);
@@ -97,7 +97,7 @@ namespace StargateNet
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal unsafe void MakeBitmapDirty(int dataId)
+        private unsafe void MakeBitmapDirty(int dataId)
         {
             this.dirtyMap[dataId] = 1;
             this.dirty = true;

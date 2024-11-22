@@ -17,11 +17,6 @@ public class FPSController : NetworkBehavior
             IsFiring = false;
             Movement += new Vector3(0.1f, 0.1f, 0.1f);
         }
-
-        // Debug.Log(Movement);
-        Debug.Log(IsFiring);
-        Debug.Log(Pitch);
-        Debug.Log(Movement);
         this.transform.position = Movement;
     }
 }

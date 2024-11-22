@@ -19,13 +19,16 @@ namespace StargateNet
         internal List<ClientConnection>
             clientConnections; // 暂时先用List(有隐患，Riptide给Client的id是递增的，一个CLient断线重连后获得的id和以前不一样)
 
+        private Queue<int> _connectionId2Reuse = new(16);
         private List<int> _cachedMetaIds;
+
 
         public SgServerPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
         {
             this.Server = new Server();
             this.Server.ClientConnected += this.OnConnect;
             this.Server.MessageReceived += this.OnReceiveMessage;
+            this.Server.ClientDisconnected += this.OnDisConnect;
         }
 
         public void StartServer(ushort port, ushort maxClientCount)
@@ -42,6 +45,7 @@ namespace StargateNet
         public override void NetworkUpdate()
         {
             this.Server.Update();
+            
         }
 
         /// <summary>
@@ -146,10 +150,20 @@ namespace StargateNet
         {
             ClientData clientData = this.Engine.ServerSimulation.clientDatas[args.Client.Id];
             clientData.Reset();
-            clientConnections.Add(new ClientConnection(this.Engine)
-                { connected = true, connection = args.Client, clientData = clientData });
-
+            ClientConnection clientConnection = new ClientConnection(this.Engine)
+                { connected = true, connection = args.Client, clientData = clientData };
+            clientConnections.Add(clientConnection);
+            args.Client.TimeoutTime = 50 * 1000;
             this.Engine.Monitor.connectedClients = this.clientConnections.Count;
+        }
+
+        private void OnDisConnect(object sender, ServerDisconnectedEventArgs args)
+        {
+            Connection connection = args.Client;
+            ClientData clientData = this.Engine.ServerSimulation.clientDatas[connection.Id];
+            ClientConnection clientConnection = clientConnections[connection.Id];
+            clientData.Reset();
+            clientConnection.Reset();
         }
     }
 }

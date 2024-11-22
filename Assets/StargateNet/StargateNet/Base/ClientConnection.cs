@@ -18,6 +18,15 @@ namespace StargateNet
             this.engine = engine;
         }
 
+        public void Reset()
+        {
+            this.connected = false;
+            this.losePacket = false;
+            this.clientData = null;
+            this.connection = null;
+            this.lastAckTick = Tick.InvalidTick;
+        }
+
         public unsafe void WritePacket(Message message)
         {
             // TODO:写入信息，这里后续要加入每个客户端各自的剔除
