@@ -140,7 +140,7 @@ namespace StargateNet
 
             // clear resources
             this.WorldState.HandledRelease();
-            this.WorldState.CurrentSnapshot.networkStates.HandledRelease();
+            this.WorldState.CurrentSnapshot.NetworkStates.HandledRelease();
             this.WorldAllocator.HandledRelease();
             this.Simulation.HandledRelease();
         }

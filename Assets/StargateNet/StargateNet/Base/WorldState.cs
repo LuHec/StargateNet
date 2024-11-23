@@ -41,7 +41,7 @@ public class WorldState
     {
         foreach (var snapshot in this.snapshots)
         {
-            snapshot.networkStates.HandledRelease();
+            snapshot.NetworkStates.HandledRelease();
         }
     }
 

@@ -27,14 +27,13 @@ namespace StargateNet
 
         internal virtual void HandledRelease()
         {
-            
         }
 
         private unsafe Entity CreateEntity(NetworkObject networkObject, NetworkObjectRef networkObjectRef,
             int worldIdx, out int stateWordSize)
         {
             // 用全局的内存来分配，在一帧结束后，内存会被拷贝到WorldState中
-            StargateAllocator stateAllocator = this.engine.WorldState.CurrentSnapshot.networkStates;
+            StargateAllocator stateAllocator = this.engine.WorldState.CurrentSnapshot.NetworkStates;
             NetworkBehavior[] networkBehaviors = networkObject.GetComponents<NetworkBehavior>();
             Entity entity = new Entity(networkObjectRef, this.engine, networkObject);
             int byteSize = 0;
@@ -50,7 +49,7 @@ namespace StargateNet
             int* bitmap = poolData; //bitmap放在首部
             int* state = poolData + stateWordSize;
             entity.Initialize(state, bitmap, stateWordSize, poolId, worldIdx, networkBehaviors);
-            
+
             return entity;
         }
 
@@ -65,7 +64,7 @@ namespace StargateNet
         {
             NetworkObjectRef networkObjectRef = new NetworkObjectRef(networkId);
             Entity entity = this.CreateEntity(networkObject, networkObjectRef, worldIdx, out int stateWordSize);
-            networkObject.Initialize(this.engine , entity, networkObject.GetComponentsInChildren<IStargateScript>());
+            networkObject.Initialize(this.engine, entity, networkObject.GetComponentsInChildren<IStargateScript>());
             this.entitiesTable.Add(networkObjectRef, entity);
             this.paddingToAddEntities.Add(entity);
             // 修改meta并标记
@@ -74,8 +73,9 @@ namespace StargateNet
             meta.prefabId = networkObject.PrefabId;
             meta.destroyed = false;
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
-            currentSnapshot.worldObjectMeta[worldIdx] = meta;
-            currentSnapshot.dirtyObjectMetaMap[worldIdx] = 1;
+
+            currentSnapshot.SetWorldObjectMeta(worldIdx, meta);
+            currentSnapshot.MarkMetaDirty(worldIdx);
         }
 
         /// <summary>
@@ -85,13 +85,13 @@ namespace StargateNet
         internal unsafe void RemoveEntity(NetworkObjectRef networkObjectRef)
         {
             Entity entity = this.entitiesTable[networkObjectRef];
-            if(entity == null) return;
+            if (entity == null) return;
             this.entitiesTable.Remove(networkObjectRef);
             this.paddingToRemoveEntities.Add(entity);
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             // 修改meta并标记
-            currentSnapshot.worldObjectMeta[entity.worldMetaId].destroyed = true;
-            currentSnapshot.dirtyObjectMetaMap[entity.worldMetaId] = 1;
+            currentSnapshot.SetMetaDestroyed(entity.worldMetaId, true);
+            currentSnapshot.MarkMetaDirty(entity.worldMetaId);
         }
 
         /// <summary>
@@ -116,8 +116,8 @@ namespace StargateNet
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             foreach (var entity in this.paddingToRemoveEntities)
             {
-                currentSnapshot.worldObjectMeta[entity.worldMetaId] = NetworkObjectMeta.Invalid;
-                this.engine.WorldState.CurrentSnapshot.networkStates.ReleasePool(entity.poolId); // 内存归还
+                currentSnapshot.InvalidateMeta(entity.worldMetaId);
+                this.engine.WorldState.CurrentSnapshot.NetworkStates.ReleasePool(entity.poolId); // 内存归还
                 this.engine.IM.simulationList.Remove(entity);
                 this.entities[entity.worldMetaId] = null;
                 if (this.engine.IsServer) // worldIdx归还

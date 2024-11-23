@@ -148,9 +148,9 @@ namespace StargateNet
             // 外层是找meta，内层找object state
             while (true)
             {
-                int wordMetaIdx = msg.GetInt();
-                if (wordMetaIdx < 0) break;
-                int networkId = this.Engine.WorldState.CurrentSnapshot.worldObjectMeta[wordMetaIdx].networkId;
+                int worldMetaIdx = msg.GetInt();
+                if (worldMetaIdx < 0) break;
+                int networkId = this.Engine.WorldState.CurrentSnapshot.GetWorldObjectMeta(worldMetaIdx).networkId;
                 Entity entity = this.Engine.Simulation.entitiesTable[new NetworkObjectRef(networkId)];
                 int* targetState = entity.stateBlock;
                 while (true)

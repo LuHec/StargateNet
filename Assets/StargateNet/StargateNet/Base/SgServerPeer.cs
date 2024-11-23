@@ -64,10 +64,10 @@ namespace StargateNet
             ClientData[] clientDatas = this.Engine.ServerSimulation.clientDatas;
             Snapshot curSnapshot = this.Engine.WorldState.CurrentSnapshot;
             this._cachedMetaIds.Clear();
-            for (int i = 0; i < this.Engine.maxEntities; i++)
+            for (int idx = 0; idx < this.Engine.maxEntities; idx++)
             {
-                if (curSnapshot.dirtyObjectMetaMap[i] == 1)
-                    this._cachedMetaIds.Add(i);
+                if (curSnapshot.IsWorldMetaDirty(idx))
+                    this._cachedMetaIds.Add(idx);
             }
 
             for (int i = 1; i < this.clientConnections.Count; i++)
@@ -84,7 +84,7 @@ namespace StargateNet
                 foreach (var id in _cachedMetaIds) // meta
                 {
                     // 这里有问题！发送的时候物体meta还没被写入
-                    NetworkObjectMeta meta = curSnapshot.worldObjectMeta[id];
+                    NetworkObjectMeta meta = curSnapshot.GetWorldObjectMeta(id);
                     msg.AddInt(id);
                     msg.AddInt(meta.networkId);
                     msg.AddInt(meta.prefabId);

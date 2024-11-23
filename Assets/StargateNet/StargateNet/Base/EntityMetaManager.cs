@@ -37,13 +37,13 @@ namespace StargateNet
         // ---------- Client ---------- //
         public unsafe void OnMetaChanged()
         {
-            NetworkObjectMeta* worldMeta = this.engine.WorldState.CurrentSnapshot.worldObjectMeta;
+            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
             foreach (var pair in this.changedMetas)
             {
                 int metaId = pair.Key;
                 NetworkObjectMeta remoteMeta = pair.Value;
                 // 与服务端id不同或者服务端删除了这个物体，客户端销毁
-                NetworkObjectMeta localMeta = worldMeta[metaId];
+                NetworkObjectMeta localMeta = currentSnapshot.GetWorldObjectMeta(metaId);
                 if (remoteMeta.networkId != localMeta.networkId || remoteMeta.destroyed)
                 {
                     this.engine.ClientDestroy(localMeta.networkId);
