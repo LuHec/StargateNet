@@ -38,14 +38,12 @@ namespace StargateNet
                 if (entity != null && entity.dirty && worldState.CurrentSnapshot != null &&
                     !worldState.CurrentSnapshot.IsObjectDestroyed(worldIdx))
                 {
-                    int* state = entity.stateBlock;
-                    int* dirtyMap = entity.dirtyMap;
                     message.AddInt(worldIdx);
                     for (int idx = 0; idx < entity.entityBlockWordSize; idx++)
                     {
-                        if (dirtyMap[idx] == 0) continue;
+                        if (!entity.IsStateDirty(idx)) continue;
                         message.AddInt(idx);
-                        message.AddInt(state[idx]);
+                        message.AddInt(entity.GetState(idx));
                     }
                     message.AddInt(-1); // 终止符号
                 }

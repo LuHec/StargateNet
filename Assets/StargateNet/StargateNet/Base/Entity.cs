@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 
 namespace StargateNet
@@ -14,8 +15,8 @@ namespace StargateNet
         internal StargateEngine engine;
         internal NetworkObject entityObject; // Truly Object
         internal int entityBlockWordSize; // Networked Field Size, 不包括bitmap大小(两者大小一致) 
-        internal unsafe int* stateBlock; // Networked Field memory block base address
-        internal unsafe int* dirtyMap; // bit dirtymap
+        private unsafe int* _stateBlock; // Networked Field memory block base address
+        private unsafe int* _dirtyMap; // bit dirtymap
         internal bool dirty = false;
 
 
@@ -35,15 +36,15 @@ namespace StargateNet
         public unsafe void Initialize(int* stateBlockPtr, int* bitmapPtr, int blockWordSize, int poolId,
             int worldMetaId, NetworkBehavior[] networkBehaviors)
         {
-            this.stateBlock = stateBlockPtr;
-            this.dirtyMap = bitmapPtr;
+            this._stateBlock = stateBlockPtr;
+            this._dirtyMap = bitmapPtr;
             this.entityBlockWordSize = blockWordSize;
             this.poolId = poolId;
             this.worldMetaId = worldMetaId;
             int wordOffset = 0;
             for (int i = 0; i < networkBehaviors.Length; i++)
             {
-                networkBehaviors[i].StateBlock = this.stateBlock + wordOffset;
+                networkBehaviors[i].StateBlock = this._stateBlock + wordOffset;
                 wordOffset += networkBehaviors[i].StateBlockSize / 4; // 懒得改ilprocessor，所以暂时用字节数
             }
         }
@@ -51,23 +52,47 @@ namespace StargateNet
         /// <summary>
         /// 每个Tick后都清理
         /// </summary>
-        public unsafe void TickReset()
+        internal unsafe void TickReset()
         {
             this.dirty = false;
             for (int i = 0; i < entityBlockWordSize; i++)
             {
-                this.dirtyMap[i] = 0;
+                this._dirtyMap[i] = 0;
             }
         }
 
-        public unsafe void Reset()
+        internal unsafe void Reset()
         {
-            this.stateBlock = null;
-            this.dirtyMap = null;
+            this._stateBlock = null;
+            this._dirtyMap = null;
             this.entityBlockWordSize = 0;
             this.poolId = -1;
             this.worldMetaId = -1;
             this.networkId = NetworkObjectRef.InvalidNetworkObjectRef;
+        }
+
+        internal unsafe int GetState(int idx)
+        {
+            if (idx >= entityBlockWordSize) throw new Exception("State idx is out of range");
+            return this._stateBlock[idx];
+        }
+
+        /// <summary>
+        /// 客户端专用拷贝函数
+        /// </summary>
+        /// <param name="idx"></param>
+        /// <param name="stateData"></param>
+        /// <exception cref="Exception"></exception>
+        internal unsafe void SetState(int idx, int stateData)
+        {
+            if (idx >= entityBlockWordSize) throw new Exception("State idx is out of range");
+            this._stateBlock[idx] = stateData;
+        }
+
+        internal unsafe bool IsStateDirty(int idx)
+        {
+            if (idx >= entityBlockWordSize) throw new Exception("State idx is out of range");
+            return this._dirtyMap[idx] == 1;
         }
 
         /// <summary>
@@ -81,13 +106,13 @@ namespace StargateNet
         private unsafe void SetData(int* newValue, int* address, int wordSize)
         {
             // 内存大小不超过INT_MAX
-            int dataId = (int)(address - stateBlock);
-            
+            int dataId = (int)(address - _stateBlock);
+
             for (int i = 0; i < wordSize; i++)
             {
-                if (stateBlock[dataId + i] != newValue[i])
+                if (_stateBlock[dataId + i] != newValue[i])
                 {
-                    stateBlock[dataId + i] = newValue[i];
+                    _stateBlock[dataId + i] = newValue[i];
                     if (this.engine.IsServer)
                     {
                         this.MakeBitmapDirty(dataId + i);
@@ -99,7 +124,7 @@ namespace StargateNet
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private unsafe void MakeBitmapDirty(int dataId)
         {
-            this.dirtyMap[dataId] = 1;
+            this._dirtyMap[dataId] = 1;
             this.dirty = true;
         }
 

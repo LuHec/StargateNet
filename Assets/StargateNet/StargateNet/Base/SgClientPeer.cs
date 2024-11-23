@@ -76,7 +76,7 @@ namespace StargateNet
             RiptideLogger.Log(LogType.Debug, "Client Connect Failed");
         }
 
-        
+
         /// <summary>
         /// 客户端只会收到DS
         /// </summary>
@@ -97,9 +97,10 @@ namespace StargateNet
                 this.PakLoss = true;
                 return;
             }
+
             // 用服务端下发的结果更新环形队列
-            this.Engine.WorldState.Update(srvTick); 
-            this.ReceiveMeta(msg); 
+            this.Engine.WorldState.Update(srvTick);
+            this.ReceiveMeta(msg);
             this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta，处理服务端生成和销毁的物体
             this.ReceiveState(msg);
             this.Engine.WorldState.CurrentSnapshot.CleanMap(); // CurrentSnapshot将作为本帧的开始，必须要清理干净，否则下次收到包，delta就出错了
@@ -152,13 +153,12 @@ namespace StargateNet
                 if (worldMetaIdx < 0) break;
                 int networkId = this.Engine.WorldState.CurrentSnapshot.GetWorldObjectMeta(worldMetaIdx).networkId;
                 Entity entity = this.Engine.Simulation.entitiesTable[new NetworkObjectRef(networkId)];
-                int* targetState = entity.stateBlock;
                 while (true)
                 {
                     int dirtyStateId = msg.GetInt();
                     if (dirtyStateId < 0) break;
                     int data = msg.GetInt();
-                    targetState[dirtyStateId] = data; // 客户端直接设置即可，dirty没什么用
+                    entity.SetState(dirtyStateId, data); // 客户端直接设置即可，dirty没什么用
                 }
             }
         }
