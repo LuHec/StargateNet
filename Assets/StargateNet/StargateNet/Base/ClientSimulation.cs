@@ -36,24 +36,61 @@ namespace StargateNet
         }
 
         /// <summary>
-        /// 如果srvTick不是authoritativeTick + 1，那就说明丢包了
+        /// 处理收到的服务端数据包
         /// </summary>
-        /// <param name="srvTick">服务端Tick</param>
-        /// <param name="srvRcvClientTick">服务端上次收到的客户端Tick</param>
-        /// <param name="isFullPacket">服务端发来的是不是从上一次收到客户端Tick以来的全量包</param>
-        internal bool OnRcvPak(Tick srvTick, Tick srvRcvClientTick, bool isFullPacket)
+        /// <param name="srvTick">服务端 Tick</param>
+        /// <param name="srvClientAuthorTick">服务端接收的客户端最新 Tick</param>
+        /// <param name="isMultiPacket">是否是多帧包</param>
+        /// <param name="isFullPacket">是否是全量包</param>
+        /// <returns>是否接受并处理了该数据包</returns>
+        internal bool OnRcvPak(Tick srvTick, Tick srvClientAuthorTick, bool isMultiPacket, bool isFullPacket)
         {
-            this.engine.SimulationClock.OnRecvPak();
-            // TODO:这个功能先等状态同步测试完再搞
-            // if (srvTick - this.authoritativeTick == 1 || this._firstReceive)
-            // {
-                this.authoritativeTick = srvTick;
-                this._firstReceive = false;
+            // 优先处理全量包
+            if (isFullPacket)
+            {
+                this.HandleFullPacket(srvTick);
                 return true;
-            // }
+            }
 
+            // 检查正常包或多帧包
+            if (this.IsValidNormalPacket(srvTick) || this.IsValidMultiPacket(srvTick, srvClientAuthorTick, isMultiPacket))
+            {
+                this.authoritativeTick = srvTick;
+                RiptideLogger.Log(LogType.Debug, $"Packet accepted. Updated Tick to {srvTick.tickValue}.");
+                return true;
+            }
+
+            // 非法包
+            RiptideLogger.Log(LogType.Warning, $"Rejected packet with invalid Tick: {srvTick.tickValue}.");
             return false;
         }
+
+        /// <summary>
+        /// 处理全量包
+        /// </summary>
+        private void HandleFullPacket(Tick srvTick)
+        {
+            this.authoritativeTick = srvTick;
+            this._firstReceive = false; // 全量包直接结束首次接收状态
+            RiptideLogger.Log(LogType.Debug, $"Full packet received. Tick updated to {srvTick.tickValue}.");
+        }
+
+        /// <summary>
+        /// 检查是否是有效的正常包
+        /// </summary>
+        private bool IsValidNormalPacket(Tick srvTick)
+        {
+            return srvTick == this.authoritativeTick + 1;
+        }
+
+        /// <summary>
+        /// 检查是否是有效的多帧包
+        /// </summary>
+        private bool IsValidMultiPacket(Tick srvTick, Tick srvClientAuthorTick, bool isMultiPacket)
+        {
+            return isMultiPacket && srvTick >= this.authoritativeTick + 1 && srvClientAuthorTick <= this.authoritativeTick;
+        }
+
 
         /// <summary>
         /// 客户端的模拟

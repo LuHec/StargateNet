@@ -90,16 +90,18 @@ namespace StargateNet
             Tick srvTick = new Tick(msg.GetInt());
             Tick srvRcvClientTick = new Tick(msg.GetInt());
             this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
+            bool isMultiPacket = msg.GetBool();
             bool isFullPacket = msg.GetBool();
-            if (!this.Engine.ClientSimulation.OnRcvPak(srvTick, srvRcvClientTick, isFullPacket))
+            this.Engine.SimulationClock.OnRecvPak();
+            if (!this.Engine.ClientSimulation.OnRcvPak(srvTick, srvRcvClientTick, isMultiPacket, isFullPacket))
             {
                 this.PakLoss = true;
                 return;
             }
-
+            
             // 用服务端下发的结果更新环形队列
             this.Engine.WorldState.Update(srvTick);
-            this.ReceiveMeta(msg);
+            this.ReceiveMeta(msg, isFullPacket);
             this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta，处理服务端生成和销毁的物体
             this.ReceiveState(msg);
             this.Engine.WorldState.CurrentSnapshot.CleanMap(); // CurrentSnapshot将作为本帧的开始，必须要清理干净，否则下次收到包，delta就出错了
@@ -122,9 +124,8 @@ namespace StargateNet
             this.Client.Send(msg);
         }
 
-        private void ReceiveMeta(Message msg)
+        private void ReceiveMeta(Message msg, bool isFullPak)
         {
-            bool isFullPak = msg.GetBool();
             while (true)
             {
                 int wordMetaIdx = msg.GetInt();
@@ -142,6 +143,7 @@ namespace StargateNet
                     destroyed = destroyed
                 });
             }
+
             // 全量包的额外处理。服务端全量包只会发存在的物体，需要将所有服务端不存在的资源全部删除
             if (isFullPak)
             {

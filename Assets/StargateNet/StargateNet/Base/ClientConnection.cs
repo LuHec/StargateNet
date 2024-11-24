@@ -61,7 +61,7 @@ namespace StargateNet
             this._cachedSnapshots.Clear();
             int hisTickCount = this.engine.SimTick.tickValue - this.lastAckTick.tickValue;
             bool isMissingTooManyFrames =
-                hisTickCount > this.engine.WorldState.HistoryCount || this.clientData.isFirstPak;
+                this.clientData.isFirstPak || hisTickCount > this.engine.WorldState.HistoryCount;
             msg.AddBool(isMissingTooManyFrames); // 全量标识
 
             // 发送全量数据
