@@ -10,7 +10,7 @@ namespace StargateNet
             this.Engine = engine;
         }
 
-        public abstract void NetworkUpdate();
+        internal abstract void NetworkUpdate();
 
         public abstract void Disconnect();
     }

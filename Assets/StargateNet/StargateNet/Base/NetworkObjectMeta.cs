@@ -10,7 +10,7 @@ namespace StargateNet
             networkId = -1,
             prefabId = -1,
             stateWordSize = -1,
-            destroyed = false
+            destroyed = true
         };
         public int networkId;
         public int prefabId;

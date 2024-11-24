@@ -17,7 +17,7 @@ namespace StargateNet
         internal StargateAllocator WorldAllocator { get; private set; }
 
         // internal StargateAllocator ObjectAllocator { get; private set; }
-        internal Tick simTick = new Tick(10); // 是客户端/服务端已经模拟的本地帧数。客户端的simTick与同步无关，服务端的simtick会作为AuthorTick传给客户端
+        internal Tick SimTick { get; private set; } // 是客户端/服务端已经模拟的本地帧数。客户端的simTick与同步无关，服务端的simtick会作为AuthorTick传给客户端
         internal float LastDeltaTime { get; private set; }
         internal float LastTimeScale { get; private set; }
         internal StargateConfigData ConfigData { get; private set; }
@@ -52,6 +52,7 @@ namespace StargateNet
             MemoryAllocation.Allocator = allocator;
             this.Monitor = monitor;
             this.ConfigData = configData;
+            this.SimTick = new Tick(10);
             this.SimulationClock = new SimulationClock(this, this.FixedUpdate);
             // 给每一个Snapshot的分配器，上限是max snapshots
             // 初始化预制体的id
@@ -100,7 +101,7 @@ namespace StargateNet
                 this.Simulation = this.ServerSimulation;
                 this.Server.StartServer(port, configData.maxClientCount);
                 // 客户端的worldState需要在RecvBuffer时更新
-                this.WorldState.Init(this.simTick);
+                this.WorldState.Init(this.SimTick);
             }
             else
             {
@@ -192,10 +193,10 @@ namespace StargateNet
                 this.Simulation.DrainPaddingRemovedEntity(); // 发送后再清除Entity占用的内存和id
                 if (this.IsServer) // 更新FromTick
                 {
-                    this.WorldState.Update(this.simTick);
+                    this.WorldState.Update(this.SimTick);
                 }
 
-                this.simTick++; // 下一次Tick是11
+                this.SimTick++; // 下一次Tick是11
                 this.Simulation.PostFixedUpdate();
             }
         }

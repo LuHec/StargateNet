@@ -33,7 +33,7 @@ namespace StargateNet
             RiptideLogger.Log(LogType.Info, "Client Connecting");
         }
 
-        public override void NetworkUpdate()
+        internal override void NetworkUpdate()
         {
             this.Client.Update();
             this.Engine.Monitor.rtt = this.Client.RTT;
@@ -87,11 +87,10 @@ namespace StargateNet
             this.HeavyPakLoss = false;
             this.PakLoss = false;
             var msg = args.Message;
-            //TODO:服务端需要加入一个客户端LastTick
-            bool isFullPacket = msg.GetBool();
             Tick srvTick = new Tick(msg.GetInt());
             Tick srvRcvClientTick = new Tick(msg.GetInt());
             this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
+            bool isFullPacket = msg.GetBool();
             if (!this.Engine.ClientSimulation.OnRcvPak(srvTick, srvRcvClientTick, isFullPacket))
             {
                 this.PakLoss = true;
@@ -125,6 +124,7 @@ namespace StargateNet
 
         private void ReceiveMeta(Message msg)
         {
+            bool isFullPak = msg.GetBool();
             while (true)
             {
                 int wordMetaIdx = msg.GetInt();
@@ -142,9 +142,17 @@ namespace StargateNet
                     destroyed = destroyed
                 });
             }
+            // 全量包的额外处理。服务端全量包只会发存在的物体，需要将所有服务端不存在的资源全部删除
+            if (isFullPak)
+            {
+                for (int metaIdx = 0; metaIdx < this.Engine.ConfigData.maxNetworkObjects; metaIdx++)
+                {
+                    this.Engine.EntityMetaManager.changedMetas.TryAdd(metaIdx, NetworkObjectMeta.Invalid);
+                }
+            }
         }
 
-        private unsafe void ReceiveState(Message msg)
+        private void ReceiveState(Message msg)
         {
             // 外层是找meta，内层找object state
             while (true)

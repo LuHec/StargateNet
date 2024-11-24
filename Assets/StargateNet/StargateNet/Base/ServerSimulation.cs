@@ -19,7 +19,7 @@ namespace StargateNet
 
         internal override void PreFixedUpdate()
         {
-            ConsumeInputs(this.engine.simTick);
+            ConsumeInputs(this.engine.SimTick);
         }
 
         internal override void PostFixedUpdate()
@@ -33,7 +33,7 @@ namespace StargateNet
                 }
             }
 
-            this.engine.Monitor.tick = this.engine.simTick.tickValue;
+            this.engine.Monitor.tick = this.engine.SimTick.tickValue;
         }
 
         private void ConsumeInputs(Tick targetTick)
@@ -55,7 +55,7 @@ namespace StargateNet
                     }
 
                     RiptideLogger.Log(LogType.Warning,
-                        $"ServerTick:{this.engine.simTick}, {ticks} input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
+                        $"ServerTick:{this.engine.SimTick}, {ticks} input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
                     while (clientInput.Count > 0 && clientInput.Peek().targetTick <= targetTick)
                     {
                         var input = clientInput.Dequeue();
@@ -72,7 +72,7 @@ namespace StargateNet
 
 
                     RiptideLogger.Log(LogType.Warning,
-                        $"ServerTick:{this.engine.simTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick}, input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
+                        $"ServerTick:{this.engine.SimTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick}, input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
                 }
             }
         }

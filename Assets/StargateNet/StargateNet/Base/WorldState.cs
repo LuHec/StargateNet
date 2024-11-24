@@ -18,8 +18,6 @@ public class WorldState
         get => _currentSnapshot.snapshotTick == Tick.InvalidTick ? null : _currentSnapshot;
     }
 
-    private Snapshot _currentSnapshot;
-
     /// <summary>
     /// 存放过去Snapshot，客户端拷贝时间在收到新的权威Snapshot时，服务端拷贝时间在一帧的结束。
     /// </summary>
@@ -27,6 +25,9 @@ public class WorldState
 
     internal Tick fromTick = Tick.InvalidTick;
     internal bool HasInitialized { private set; get; }
+    internal int HistoryCount => _tickCount > this.MaxSnapshotsCount ? MaxSnapshotsCount : _tickCount;
+    private int _tickCount = 0;
+    private Snapshot _currentSnapshot;
 
 
     internal WorldState(int maxSnapCnt, Snapshot currentSnapshot)
@@ -69,6 +70,7 @@ public class WorldState
             return;
         }
         
+        this._tickCount++;
         this.CurrentSnapshot.CopyStateTo(this.FromSnapshot);
         this.CurrentSnapshot.CleanMap();
     }
@@ -83,7 +85,7 @@ public class WorldState
     }
 
     /// <summary>
-    /// 获取以往的快照，需要注意的是从FromTick开始计算，而不是本帧
+    /// 获取以往的快照，从FromTick开始计算
     /// </summary>
     /// <param name="minus">倒回几帧</param>
     /// <returns></returns>
@@ -91,6 +93,8 @@ public class WorldState
     {
         if (minus > this.MaxSnapshotsCount) return null;
         int fromTickValue = this.fromTick.tickValue;
-        return this.snapshots[(fromTickValue - minus) % this.MaxSnapshotsCount];
+        int targetTickValue = fromTickValue - minus;
+        Snapshot res = this.snapshots[(targetTickValue) % this.MaxSnapshotsCount];
+        return res.snapshotTick.tickValue == targetTickValue ? res : null;
     }
 }

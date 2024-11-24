@@ -42,10 +42,9 @@ namespace StargateNet
             RiptideLogger.Log(LogType.Debug, "Server Start");
         }
 
-        public override void NetworkUpdate()
+        internal override void NetworkUpdate()
         {
             this.Server.Update();
-            
         }
 
         /// <summary>
@@ -75,27 +74,19 @@ namespace StargateNet
                 if (!this.clientConnections[i].connected) continue;
                 // ------------------ Header ------------------
                 Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
-                // TODO:全量包判断
-                msg.AddBool(true);
-                msg.AddInt(this.Engine.simTick.tickValue); // Author Tick
-                msg.AddInt(clientDatas[i].clientLastAuthorTick.tickValue);
-                msg.AddDouble(clientDatas[i].deltaPakTime); // pakTime
+                // 判断是否发送多帧包。现在是只要客户端不回话，服务端就会一直发多帧包
+                bool isMultiPak = this.clientConnections[i].clientData.isFirstPak || this.clientConnections[i].clientData.pakLoss;
+                Tick authorTick = this.Engine.SimTick;
+                Tick lastAckedAuthorTick = clientDatas[i].clientLastAuthorTick;
+                msg.AddInt(authorTick.tickValue); 
+                msg.AddInt(lastAckedAuthorTick.tickValue); 
+                msg.AddDouble(clientDatas[i].deltaPakTime); // 两次收到客户端包的间隔
                 // ------------------ Data ------------------
-                foreach (var id in _cachedMetaIds) // meta
-                {
-                    // 这里有问题！发送的时候物体meta还没被写入
-                    NetworkObjectMeta meta = curSnapshot.GetWorldObjectMeta(id);
-                    msg.AddInt(id);
-                    msg.AddInt(meta.networkId);
-                    msg.AddInt(meta.prefabId);
-                    msg.AddInt(meta.stateWordSize);
-                    msg.AddBool(meta.destroyed);
-                }
-
-                msg.AddInt(-1); // meta写入终止符号
-                this.clientConnections[i].WritePacket(msg); // state
-                msg.AddInt(-1); // 状态写入终止符号
+                msg.AddBool(isMultiPak);
+                bool isFullPak = this.clientConnections[i].WriteMeta(msg, _cachedMetaIds, isMultiPak);
+                this.clientConnections[i].WriteState(msg, isMultiPak); 
                 this.Server.Send(msg, (ushort)i);
+                this.clientConnections[i].clientData.isFirstPak = false;
             }
         }
 
@@ -134,8 +125,8 @@ namespace StargateNet
                 }
             }
 
-            RiptideLogger.Log(LogType.Error,
-                $"recv count:{inputCount}, actully input count get from pak:{this.clientConnections[args.FromConnection.Id].clientData.clientInput.Count}");
+            // RiptideLogger.Log(LogType.Error,
+            //     $"recv count:{inputCount}, actully input count get from pak:{this.clientConnections[args.FromConnection.Id].clientData.clientInput.Count}");
 
             // 1为ack，0为input。现在已经弃用，客户端只会发input，input即是ack
             // {
@@ -154,7 +145,7 @@ namespace StargateNet
                 { connected = true, connection = args.Client, clientData = clientData };
             clientConnections.Add(clientConnection);
             args.Client.TimeoutTime = 50 * 1000;
-            this.Engine.Monitor.connectedClients = this.clientConnections.Count;
+            this.Engine.Monitor.connectedClients = this.clientConnections.Count - 1; // 有一个idx为0的占位
         }
 
         private void OnDisConnect(object sender, ServerDisconnectedEventArgs args)
@@ -164,6 +155,7 @@ namespace StargateNet
             ClientConnection clientConnection = clientConnections[connection.Id];
             clientData.Reset();
             clientConnection.Reset();
+            this.Engine.Monitor.connectedClients--;
         }
     }
 }

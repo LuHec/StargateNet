@@ -13,6 +13,7 @@ namespace StargateNet
         public double lastPakTime;
         public double deltaPakTime;
         public bool pakLoss = false;
+        public bool isFirstPak = true;
         public Tick clientLastAuthorTick = Tick.InvalidTick;
 
         public ClientData(int maxClientInput)
