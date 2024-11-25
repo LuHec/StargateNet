@@ -33,6 +33,13 @@ namespace StargateNet
                 }
             }
 
+            // 复原DirtyMap
+            foreach (var pair in this.entitiesTable)
+            {
+                Entity entity = pair.Value;
+                entity.TickReset();
+            }
+
             this.engine.Monitor.tick = this.engine.SimTick.tickValue;
         }
 
