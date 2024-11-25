@@ -124,17 +124,6 @@ namespace StargateNet
                     clientData.ReceiveInput(simulationInput);
                 }
             }
-
-            // RiptideLogger.Log(LogType.Error,
-            //     $"recv count:{inputCount}, actully input count get from pak:{this.clientConnections[args.FromConnection.Id].clientData.clientInput.Count}");
-
-            // 1为ack，0为input。现在已经弃用，客户端只会发input，input即是ack
-            // {
-            //     int confirmTick = msg.GetInt();
-            //     RiptideLogger.Log(LogType.Debug,
-            //         $"Server Tick:{this.Engine.simTick}:" +
-            //         $", Acked from {args.FromConnection.Id} at Tick {confirmTick}, RTT:{args.FromConnection.RTT}");
-            // }
         }
 
         private void OnConnect(object sender, ServerConnectedEventArgs args)

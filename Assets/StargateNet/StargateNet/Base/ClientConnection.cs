@@ -36,36 +36,34 @@ namespace StargateNet
         /// <param name="isMultiPak"></param>
         public unsafe bool WriteMeta(Message msg, List<int> cachedMeta, bool isMultiPak)
         {
-            Simulation simulation = this.engine.Simulation;
             WorldState worldState = this.engine.WorldState;
             Snapshot curSnapshot = worldState.CurrentSnapshot;
-            bool isFullPak = false;
+            int hisTickCount = this.engine.SimTick.tickValue - this.lastAckTick.tickValue;
+            // 不能用ClientTick == -1来判断是否是第一个包，因为有滞后性。这里默认客户端收到了首个包，如果后续有丢包，那客户端会通知服务端发全量包
+            bool isMissingTooManyFrames =
+                this.clientData.isFirstPak || hisTickCount > this.engine.WorldState.HistoryCount;
+
             if (isMultiPak)
             {
-                isFullPak = this.HandleMultiPacketMeta(msg, curSnapshot);
+                msg.AddBool(isMissingTooManyFrames); // 全量标识
+                this.HandleMultiPacketMeta(msg, curSnapshot, isMissingTooManyFrames, hisTickCount);
             }
             else
             {
+                msg.AddBool(false); // 全量标识
                 this.WriteCachedMeta(msg, curSnapshot, cachedMeta);
             }
 
             msg.AddInt(-1); // meta写入终止符号
-            return isFullPak;
+            return isMissingTooManyFrames;
         }
 
         /// <summary>
         /// 处理多包差分元数据逻辑
         /// </summary>
-        private bool HandleMultiPacketMeta(Message msg, Snapshot curSnapshot)
+        private void HandleMultiPacketMeta(Message msg, Snapshot curSnapshot, bool isMissingTooManyFrames,
+            int hisTickCount)
         {
-            this._cachedSnapshots.Clear();
-            int hisTickCount = this.engine.SimTick.tickValue - this.lastAckTick.tickValue;
-            // 不能用ClientTick == -1来判断是否是第一个包，因为有滞后性。
-            // 这里默认客户端收到了首个包，如果后续有丢包，那客户端会通知服务端发全量包
-            bool isMissingTooManyFrames =
-                this.clientData.isFirstPak || hisTickCount > this.engine.WorldState.HistoryCount;
-            msg.AddBool(isMissingTooManyFrames); // 全量标识
-
             // 发送全量数据
             if (isMissingTooManyFrames)
             {
@@ -84,8 +82,6 @@ namespace StargateNet
 
                 this.WriteDeltaMeta(msg, curSnapshot);
             }
-
-            return isMissingTooManyFrames;
         }
 
         /// <summary>
@@ -108,7 +104,7 @@ namespace StargateNet
         /// </summary>
         private void WriteDeltaMeta(Message msg, Snapshot curSnapshot)
         {
-            foreach(var hisSnapshot in this._cachedSnapshots)
+            foreach (var hisSnapshot in this._cachedSnapshots)
             {
                 for (int id = 0; id < this.engine.ConfigData.maxNetworkObjects; id++)
                 {
@@ -132,7 +128,6 @@ namespace StargateNet
         /// </summary>
         private void WriteCachedMeta(Message msg, Snapshot curSnapshot, List<int> cachedMeta)
         {
-            msg.AddBool(false); // 全量标识
             foreach (int id in cachedMeta)
             {
                 NetworkObjectMeta meta = curSnapshot.GetWorldObjectMeta(id);
