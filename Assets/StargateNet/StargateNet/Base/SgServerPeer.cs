@@ -60,7 +60,6 @@ namespace StargateNet
 
         public unsafe void SendServerPak()
         {
-            ClientData[] clientDatas = this.Engine.ServerSimulation.clientDatas;
             Snapshot curSnapshot = this.Engine.WorldState.CurrentSnapshot;
             this._cachedMetaIds.Clear();
             for (int idx = 0; idx < this.Engine.maxEntities; idx++)
@@ -83,7 +82,7 @@ namespace StargateNet
                 Tick lastAckedAuthorTick = clientConnection.clientData.clientLastAuthorTick;
                 msg.AddInt(authorTick.tickValue);
                 msg.AddInt(lastAckedAuthorTick.tickValue);
-                msg.AddDouble(clientDatas[i].deltaPakTime); // 两次收到客户端包的间隔
+                msg.AddDouble(clientConnection.clientData.deltaPakTime); // 两次收到客户端包的间隔
                 // ------------------ Data ------------------
                 msg.AddBool(isMultiPak);
                 clientConnection.WriteMeta(msg, isMultiPak, _cachedMetaIds);
