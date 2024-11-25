@@ -142,13 +142,12 @@ namespace StargateNet
 
                 int networkId = msg.GetInt();
                 int prefabId = msg.GetInt();
-                int stateWordSize = msg.GetInt();
                 bool destroyed = msg.GetBool();
                 this.Engine.EntityMetaManager.changedMetas.TryAdd(wordMetaIdx, new NetworkObjectMeta()
                 {
                     networkId = networkId,
                     prefabId = prefabId,
-                    stateWordSize = stateWordSize,
+                    // stateWordSize = stateWordSize,
                     destroyed = destroyed
                 });
             }

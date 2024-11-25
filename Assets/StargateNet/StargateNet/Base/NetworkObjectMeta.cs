@@ -9,12 +9,12 @@ namespace StargateNet
         {
             networkId = -1,
             prefabId = -1,
-            stateWordSize = -1,
+            // stateWordSize = -1,
             destroyed = true
         };
         public int networkId;
         public int prefabId;
-        public int stateWordSize; // 近state的大小，*2后才是Entity内存大小 
+        // public int stateWordSize; // 近state的大小，*2后才是Entity内存大小 
         public bool destroyed;
     }
 }

@@ -157,7 +157,7 @@ namespace StargateNet
             msg.AddInt(id);
             msg.AddInt(meta.networkId);
             msg.AddInt(meta.prefabId);
-            msg.AddInt(meta.stateWordSize);
+            // msg.AddInt(meta.stateWordSize);
             msg.AddBool(meta.destroyed);
         }
 

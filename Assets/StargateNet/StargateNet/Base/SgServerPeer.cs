@@ -86,7 +86,9 @@ namespace StargateNet
                 // ------------------ Data ------------------
                 msg.AddBool(isMultiPak);
                 clientConnection.WriteMeta(msg, isMultiPak, _cachedMetaIds);
+                RiptideLogger.Log(LogType.Debug, $"{msg.BytesInUse} meta size");
                 clientConnection.WriteState(msg, isMultiPak);
+                RiptideLogger.Log(LogType.Debug, $"{msg.BytesInUse} all size");
                 this.Server.Send(msg, (ushort)i);
                 clientConnection.clientData.isFirstPak = false;
             }

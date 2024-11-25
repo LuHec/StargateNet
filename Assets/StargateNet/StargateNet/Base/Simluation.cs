@@ -69,7 +69,7 @@ namespace StargateNet
             this.paddingToAddEntities.Add(entity);
             // 修改meta并标记
             meta.networkId = networkObjectRef.refValue;
-            meta.stateWordSize = stateWordSize;
+            // meta.stateWordSize = stateWordSize;
             meta.prefabId = networkObject.PrefabId;
             meta.destroyed = false;
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
