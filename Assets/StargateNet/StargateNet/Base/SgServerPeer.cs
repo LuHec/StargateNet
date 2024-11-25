@@ -71,22 +71,25 @@ namespace StargateNet
 
             for (int i = 1; i < this.clientConnections.Count; i++)
             {
-                if (!this.clientConnections[i].connected) continue;
+                ClientConnection clientConnection = this.clientConnections[i];
+                if (!clientConnection.connected) continue;
+                clientConnection.PrepareToWrite();
                 // ------------------ Header ------------------
                 Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
                 // 判断是否发送多帧包。现在是只要客户端不回话，服务端就会一直发多帧包
-                bool isMultiPak = this.clientConnections[i].clientData.isFirstPak || this.clientConnections[i].clientData.pakLoss;
+                bool isMultiPak = clientConnection.clientData.isFirstPak ||
+                                  clientConnection.clientData.pakLoss;
                 Tick authorTick = this.Engine.SimTick;
-                Tick lastAckedAuthorTick = clientDatas[i].clientLastAuthorTick;
-                msg.AddInt(authorTick.tickValue); 
-                msg.AddInt(lastAckedAuthorTick.tickValue); 
+                Tick lastAckedAuthorTick = clientConnection.clientData.clientLastAuthorTick;
+                msg.AddInt(authorTick.tickValue);
+                msg.AddInt(lastAckedAuthorTick.tickValue);
                 msg.AddDouble(clientDatas[i].deltaPakTime); // 两次收到客户端包的间隔
                 // ------------------ Data ------------------
                 msg.AddBool(isMultiPak);
-                bool isFullPak = this.clientConnections[i].WriteMeta(msg, _cachedMetaIds, isMultiPak);
-                this.clientConnections[i].WriteState(msg, isMultiPak); 
+                clientConnection.WriteMeta(msg, isMultiPak, _cachedMetaIds);
+                clientConnection.WriteState(msg, isMultiPak);
                 this.Server.Send(msg, (ushort)i);
-                this.clientConnections[i].clientData.isFirstPak = false;
+                clientConnection.clientData.isFirstPak = false;
             }
         }
 
