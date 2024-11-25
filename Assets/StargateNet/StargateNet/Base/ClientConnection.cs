@@ -11,7 +11,7 @@ namespace StargateNet
         internal Tick lastAckTick = Tick.InvalidTick;
         internal List<InterestGroup> interestGroup = new(1);
         internal StargateEngine engine;
-        private Queue<Snapshot> _cachedSnapshots = new(32);
+        private List<Snapshot> _cachedSnapshots = new(32);
         private bool[] _cachedDirtyIds;
 
         public ClientConnection(StargateEngine engine)
@@ -60,6 +60,8 @@ namespace StargateNet
         {
             this._cachedSnapshots.Clear();
             int hisTickCount = this.engine.SimTick.tickValue - this.lastAckTick.tickValue;
+            // 不能用ClientTick == -1来判断是否是第一个包，因为有滞后性。
+            // 这里默认客户端收到了首个包，如果后续有丢包，那客户端会通知服务端发全量包
             bool isMissingTooManyFrames =
                 this.clientData.isFirstPak || hisTickCount > this.engine.WorldState.HistoryCount;
             msg.AddBool(isMissingTooManyFrames); // 全量标识
@@ -76,7 +78,7 @@ namespace StargateNet
                 {
                     Snapshot snapshot = this.engine.WorldState.GetHistoryTick(hisTickCount - 1);
                     if (snapshot == null) break;
-                    this._cachedSnapshots.Enqueue(snapshot);
+                    this._cachedSnapshots.Add(snapshot);
                     hisTickCount--;
                 }
 
@@ -106,9 +108,8 @@ namespace StargateNet
         /// </summary>
         private void WriteDeltaMeta(Message msg, Snapshot curSnapshot)
         {
-            while (this._cachedSnapshots.Count > 0)
+            foreach(var hisSnapshot in this._cachedSnapshots)
             {
-                Snapshot hisSnapshot = this._cachedSnapshots.Dequeue();
                 for (int id = 0; id < this.engine.ConfigData.maxNetworkObjects; id++)
                 {
                     this._cachedDirtyIds[id] |= hisSnapshot.IsWorldMetaDirty(id);
@@ -156,7 +157,7 @@ namespace StargateNet
         {
             Simulation simulation = this.engine.Simulation;
             WorldState worldState = this.engine.WorldState;
-            // 第一次发送全量包，TODO：后续增加AOI
+            // 第一次发送全量包，TODO：增加AOI
             for (int worldIdx = 0; worldIdx < simulation.entities.Count; worldIdx++)
             {
                 Entity entity = simulation.entities[worldIdx];
@@ -176,6 +177,18 @@ namespace StargateNet
             }
 
             msg.AddInt(-1); // 状态写入终止符号
+        }
+
+        private void WriteFullState(Message msg)
+        {
+            Simulation simulation = this.engine.Simulation;
+            WorldState worldState = this.engine.WorldState;
+        }
+
+        private void WriteDeltaState(Message msg)
+        {
+            Simulation simulation = this.engine.Simulation;
+            WorldState worldState = this.engine.WorldState;
         }
     }
 }

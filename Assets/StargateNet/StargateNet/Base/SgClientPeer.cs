@@ -22,8 +22,11 @@ namespace StargateNet
             this.Client = new Client();
             this.Client.ConnectionFailed += this.OnConnectionFailed;
             this.Client.Connected += this.OnConnected;
+            this.Client.ClientDisconnected += this.OnDisConnected;
             this.Client.MessageReceived += this.OnReceiveMessage;
         }
+
+
 
         public void Connect(string serverIP, ushort port)
         {
@@ -73,9 +76,15 @@ namespace StargateNet
 
         private void OnConnectionFailed(object sender, ConnectionFailedEventArgs args)
         {
-            RiptideLogger.Log(LogType.Debug, "Client Connect Failed");
+            RiptideLogger.Log(LogType.Debug, "Client Connect Failed,trying again");
+            this.Client.Connect($"{ServerIP}:{Port}", useMessageHandlers: false);
         }
-
+        
+        private void OnDisConnected(object sender, ClientDisconnectedEventArgs e)
+        {
+            RiptideLogger.Log(LogType.Debug, "Client Connect break,trying again");
+            this.Client.Connect($"{ServerIP}:{Port}", useMessageHandlers: false);
+        }
 
         /// <summary>
         /// 客户端只会收到DS
