@@ -12,6 +12,7 @@ namespace StargateNet
         internal NetworkObjectRef networkId; // 客户端服务端一定是一致的
         internal int poolId = -1; // 内存的idx，客户端和服务端不一定一致
         internal int worldMetaId = -1; // meta的idx，客户端服务端一定是一致的
+        internal int InputSource => this.worldMetaId;
         internal StargateEngine engine;
         internal NetworkObject entityObject; // Truly Object
         internal int entityBlockWordSize; // Networked Field Size, 不包括bitmap大小(两者大小一致) 
@@ -33,7 +34,7 @@ namespace StargateNet
             this.entityObject = entityObject;
         }
 
-        public unsafe void Initialize(int* stateBlockPtr, int* bitmapPtr, int blockWordSize, int poolId,
+        internal unsafe void Initialize(int* stateBlockPtr, int* bitmapPtr, int blockWordSize, int poolId,
             int worldMetaId, NetworkBehavior[] networkBehaviors)
         {
             this._stateBlock = stateBlockPtr;
@@ -47,6 +48,11 @@ namespace StargateNet
                 networkBehaviors[i].StateBlock = this._stateBlock + wordOffset;
                 wordOffset += networkBehaviors[i].StateBlockSize / 4; // 懒得改ilprocessor，所以暂时用字节数
             }
+        }
+        
+        internal bool FetchInput<T>(out T input) where T : INetworkInput
+        {
+            return this.engine.FetchInput(out input, this.InputSource);
         }
 
         /// <summary>

@@ -13,7 +13,7 @@ namespace StargateNet
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe byte[] CopyTobytes(void* data, int size)
+        public static unsafe byte[] CopyToBytes(void* data, int size)
         {
             byte[] res = new byte[size];
             byte* byteData = (byte*)data;

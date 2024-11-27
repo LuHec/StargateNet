@@ -58,5 +58,10 @@ namespace StargateNet
             if (this.Engine.IsClient) throw new Exception("Only Server can spawn network objects");
             this.Engine.NetworkDestroy(gameObject);
         }
+
+        public void SetInput<T>(T input) where T : INetworkInput
+        {
+            this.Engine.SetInput<T>(input);
+        }
     }
 }

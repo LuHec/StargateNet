@@ -10,10 +10,9 @@ namespace StargateNet
     {
         internal Tick currentTick = Tick.InvalidTick;
         internal Tick predictedTick = Tick.InvalidTick;
-        internal Tick authoritativeTick = Tick.InvalidTick;  // 客户端接收到的AuthorTick,服务端Tick从10开始 
+        internal Tick authoritativeTick = Tick.InvalidTick; // 客户端接收到的AuthorTick,服务端Tick从10开始 
         internal List<StargateAllocator> predictedSnapshots; // 客户端用于预测snapshot，由于客户端不会预测物体的销毁和生成，所以只存属性
-        internal List<SimulationInput> inputs = new(512);
-        internal SimulationInput currentInput = new SimulationInput();
+        internal List<SimulationInput> inputs = new(128);
         internal StargateAllocator lastAuthorSnapShots;
         internal double serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
         private readonly int _maxPredictedTicks;
@@ -52,7 +51,8 @@ namespace StargateNet
             }
 
             // 检查正常包或多帧包,这里会把首个包丢失的情况也涵盖进去
-            if (this.IsValidNormalPacket(srvTick) || this.IsValidMultiPacket(srvTick, srvClientAuthorTick, isMultiPacket))
+            if (this.IsValidNormalPacket(srvTick) ||
+                this.IsValidMultiPacket(srvTick, srvClientAuthorTick, isMultiPacket))
             {
                 this.authoritativeTick = srvTick;
                 RiptideLogger.Log(LogType.Debug, $"Packet accepted. Updated Tick to {srvTick.tickValue}.");
@@ -91,7 +91,8 @@ namespace StargateNet
         /// </summary>
         private bool IsValidMultiPacket(Tick srvTick, Tick srvClientAuthorTick, bool isMultiPacket)
         {
-            return isMultiPacket && srvTick >= this.authoritativeTick + 1 && srvClientAuthorTick <= this.authoritativeTick;
+            return isMultiPacket && srvTick >= this.authoritativeTick + 1 &&
+                   srvClientAuthorTick <= this.authoritativeTick;
         }
 
 
@@ -109,8 +110,8 @@ namespace StargateNet
                 // 只有第一次模拟才创建输入，Clock后续的追帧模拟因为在同一unity帧内读取不到用户输入,所以不加入
                 // 否则会因为重复输入过多而冲掉了服务端后续接受到的有效帧数
                 // (服务端优先保留旧的输入，【待求证】如果优先新的帧数，可能导致服务端下一帧的输入被冲掉)
-                SimulationInput input = CreateInput(this.authoritativeTick, this.currentTick);
-                this.inputs.Add(input);
+                this.currentInput = CreateInput(this.authoritativeTick, this.currentTick);
+                this.inputs.Add(this.currentInput);
             }
 
             // 关于新输入把旧输入冲掉导致服务端丢失操作的问题：
@@ -127,6 +128,7 @@ namespace StargateNet
         internal override void PostFixedUpdate()
         {
             this.engine.Monitor.tick = this.currentTick.tickValue;
+            this.currentInput = null;
         }
 
         internal override void PreUpdate()

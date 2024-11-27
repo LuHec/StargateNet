@@ -215,6 +215,27 @@ namespace StargateNet
 
         // ------------- Engine Func ------------- //
 
+        public bool FetchInput<T>(out T input, int inputSource) where T : INetworkInput
+        {
+            input = default(T);
+            if (inputSource == -1) return false;
+            if (this.IsServer || this.IsConnected)
+            {
+                List<SimulationInput.InputBlock> inputBlocks = this.Simulation.currentInput.inputBlocks;
+                for (int i = 0; i < inputBlocks.Count; i++)
+                {
+                    if (inputBlocks[i].inputSource == inputSource)
+                    {
+                        input = (T)inputBlocks[i].input;
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        
         // ------------- Server Only ------------- //
         internal NetworkObject NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation)
         {
@@ -269,6 +290,12 @@ namespace StargateNet
                 this.Simulation.DrainPaddingRemovedEntity();
             }
             else throw new Exception($"Network Id:{networkId} is not exist");
+        }
+        
+        internal void SetInput<T>(T input) where T : INetworkInput
+        {
+            int inputSource = this.Client.Client.Id;
+            this.Simulation.SetInput(inputSource, input);
         }
     }
 }

@@ -8,10 +8,10 @@ public class NetworkTransform : NetworkBehavior
     [Networked] private Vector3 Movement { get; set; }
     public override void NetworkFixedUpdate()
     {
-        if (this.IsServer)
+        if (this.FetchInput(out NetworkInput input))
         {
             Movement += new Vector3(0.1f, 0.1f, 0.1f);
+            this.transform.position = Movement;   
         }
-        this.transform.position = Movement;
     }
 }
