@@ -15,8 +15,7 @@ namespace StargateNet
         internal Monitor Monitor { get; private set; }
 
         internal StargateAllocator WorldAllocator { get; private set; }
-
-        // internal StargateAllocator ObjectAllocator { get; private set; }
+        
         internal Tick SimTick { get; private set; } // 是客户端/服务端已经模拟的本地帧数。客户端的simTick与同步无关，服务端的simtick会作为AuthorTick传给客户端
         internal float LastDeltaTime { get; private set; }
         internal float LastTimeScale { get; private set; }
@@ -33,6 +32,7 @@ namespace StargateNet
         internal Simulation Simulation { get; private set; }
         internal ServerSimulation ServerSimulation { get; private set; }
         internal ClientSimulation ClientSimulation { get; private set; }
+        internal NetworkEventManager NetworkEventManager { get; private set; }
         internal bool Simulated { get; private set; }
         internal bool IsConnected { get; set; }
         internal IObjectSpawner ObjectSpawner { get; private set; }
@@ -54,6 +54,7 @@ namespace StargateNet
             this.ConfigData = configData;
             this.SimTick = new Tick(10);
             this.SimulationClock = new SimulationClock(this, this.FixedUpdate);
+            this.NetworkEventManager = new NetworkEventManager(this);
             // 给每一个Snapshot的分配器，上限是max snapshots
             // 初始化预制体的id
             this.PrefabsTable = new Dictionary<int, NetworkObject>(configData.networkPrefabs.Count);
@@ -133,7 +134,7 @@ namespace StargateNet
         internal void ShutDown()
         {
             if (this.IsShutDown) return;
-            
+
             this.IsShutDown = true;
             Peer.Disconnect();
             this.IsConnected = false;
@@ -219,25 +220,33 @@ namespace StargateNet
         {
             input = default(T);
             if (inputSource == -1) return false;
-            if (this.IsServer || this.IsConnected)
+            if (this.IsServer)
             {
-                List<SimulationInput.InputBlock> inputBlocks = this.Simulation.currentInput.inputBlocks;
-                for (int i = 0; i < inputBlocks.Count; i++)
-                {
-                    if (inputBlocks[i].inputSource == inputSource)
-                    {
-                        input = (T)inputBlocks[i].input;
-                        return true;
-                    }
-                }
+                return this.ServerSimulation.FetchInput<T>(out input, inputSource);
             }
-            
+
+            // 客户端保证只有本机的角色才能得到输入
+            if (this.IsClient && this.IsConnected && inputSource == this.Client.Client.Id)
+            {
+                return this.ClientSimulation.FetchInput<T>(out input);
+            }
+
             return false;
         }
-        
-        
+
+
         // ------------- Server Only ------------- //
-        internal NetworkObject NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="gameObject">预制体</param>
+        /// <param name="position"></param>
+        /// <param name="rotation"></param>
+        /// <param name="inputSource">输入源，和客户端id一致。服务端是0，客户端id从1开始</param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        internal NetworkObject NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation,
+            int inputSource = -1)
         {
             // 判断是服务端还是客户端(状态帧同步框架应该让所有涉及同步的部分都由服务端来决定，所以这里应该只由服务端来调用)
             // 生成物体，构造Entity，根据IM来决定要发给哪个客户端，同时加入pedding send集合中(每个client一个集合，这样可以根据IM的设置来决定是否要在指定客户端生成)
@@ -251,7 +260,7 @@ namespace StargateNet
                 NetworkObject networkObject = this.ObjectSpawner.Spawn(component, position, rotation);
                 // TODO: 把子节点如果是NetworkObject的也加入进去
                 this.Simulation.AddEntity(networkObject, ++this._networkIdCounter,
-                    this.EntityMetaManager.RequestWorldIdx(), new NetworkObjectMeta());
+                    this.EntityMetaManager.RequestWorldIdx(), inputSource);
                 return networkObject;
             }
             else throw new Exception($"GameObject {gameObject.name} is not a NetworkObject");
@@ -270,12 +279,13 @@ namespace StargateNet
         }
 
         // ------------- Client Only ------------- //
-        internal void ClientSpawn(int networkId, int worldIdx, int prefabId, Vector3 position, Quaternion rotation)
+        internal void ClientSpawn(int networkId, int worldIdx, int prefabId, int inputSource, Vector3 position,
+            Quaternion rotation)
         {
             if (prefabId == -1 || !this.PrefabsTable.TryGetValue(prefabId, out var value))
                 throw new Exception($"Prefab Id:{prefabId} is not exist");
             NetworkObject networkObject = this.ObjectSpawner.Spawn(value, position, rotation);
-            this.Simulation.AddEntity(networkObject, networkId, worldIdx, new NetworkObjectMeta());
+            this.Simulation.AddEntity(networkObject, networkId, worldIdx, inputSource);
             this.Simulation.DrainPaddingAddedEntity();
         }
 
@@ -291,11 +301,24 @@ namespace StargateNet
             }
             else throw new Exception($"Network Id:{networkId} is not exist");
         }
-        
+
         internal void SetInput<T>(T input) where T : INetworkInput
         {
-            int inputSource = this.Client.Client.Id;
-            this.Simulation.SetInput(inputSource, input);
+            int inputSource = -1;
+            if (this.IsClient && this.IsConnected)
+            {
+                inputSource = this.Client.Client.Id;
+            }
+
+            if (this.IsServer)
+            {
+                inputSource = 0;
+            }
+
+            if (inputSource != -1)
+            {
+                this.Simulation.SetInput(inputSource, input);
+            }
         }
     }
 }

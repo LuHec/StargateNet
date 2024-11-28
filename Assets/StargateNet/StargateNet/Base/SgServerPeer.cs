@@ -115,18 +115,41 @@ namespace StargateNet
             for (int i = 0; i < inputCount; i++)
             {
                 int targetTick = msg.GetInt();
-                if (targetTick <= clientData.LastTargetTick.tickValue)
+                int inputBlockCount = msg.GetInt();
+                SimulationInput simulationInput =
+                    this.Engine.ServerSimulation.CreateInput(Tick.InvalidTick, new Tick(targetTick));
+                while (inputBlockCount-- > 0)
                 {
-                    continue;
+                    SimulationInput.InputBlock inputBlock = new()
+                    {
+                        type = msg.GetInt(),
+                        input = new NetworkInput
+                        {
+                            input = new Vector2
+                            {
+                                x = msg.GetFloat(),
+                                y = msg.GetFloat(),
+                            },
+                            axis = new Vector2
+                            {
+                                x = msg.GetFloat(),
+                                y = msg.GetFloat(),
+                            }
+                        }
+                    };
+
+                    simulationInput.AddInputBlock(inputBlock);
                 }
 
                 // 优先保留旧输入，以免被冲掉
-                if (clientData.clientInput.Count < clientData.maxClientInput)
+                if (targetTick <= clientData.LastTargetTick.tickValue ||
+                    clientData.clientInput.Count < clientData.maxClientInput)
                 {
-                    SimulationInput simulationInput =
-                        this.Engine.ServerSimulation.CreateInput(Tick.InvalidTick, new Tick(targetTick));
-                    clientData.ReceiveInput(simulationInput);
+                    this.Engine.Simulation.RecycleInput(simulationInput);
+                    continue;
                 }
+
+                clientData.ReceiveInput(simulationInput);
             }
         }
 
@@ -139,6 +162,7 @@ namespace StargateNet
             clientConnections.Add(clientConnection);
             args.Client.TimeoutTime = 50 * 1000;
             this.Engine.Monitor.connectedClients = this.clientConnections.Count - 1; // 有一个idx为0的占位
+            this.Engine.NetworkEventManager.OnPlayerConnected(args.Client.Id);
         }
 
         private void OnDisConnect(object sender, ServerDisconnectedEventArgs args)

@@ -157,7 +157,7 @@ namespace StargateNet
             msg.AddInt(id);
             msg.AddInt(meta.networkId);
             msg.AddInt(meta.prefabId);
-            // msg.AddInt(meta.stateWordSize);
+            msg.AddInt(meta.inputSource);
             msg.AddBool(meta.destroyed);
         }
 
@@ -169,7 +169,6 @@ namespace StargateNet
         public void WriteState(Message msg, bool isMultiPak)
         {
             WorldState worldState = this.engine.WorldState;
-            Snapshot curSnapshot = worldState.CurrentSnapshot;
             Simulation simulation = this.engine.Simulation;
 
             if (isMultiPak)

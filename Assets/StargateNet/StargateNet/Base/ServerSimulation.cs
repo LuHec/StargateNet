@@ -19,17 +19,24 @@ namespace StargateNet
 
         internal override void PreFixedUpdate()
         {
-            ConsumeInputs(this.engine.SimTick);
+            this.ConsumeInputs(this.engine.SimTick);
+            this.currentInput = this.CreateInput(this.engine.SimTick, this.engine.SimTick);
         }
 
         internal override void PostFixedUpdate()
         {
+            this.RecycleInput(this.currentInput);
+            this.currentInput = null;
+            // 清除本帧使用的input
             for (int i = 0; i < clientDatas.Length; i++)
             {
                 if (clientDatas[i].Started)
                 {
-                    RecycleInput(clientDatas[i].currentInput);
-                    clientDatas[i].currentInput = CreateInput(Tick.InvalidTick, Tick.InvalidTick);
+                    if (clientDatas[i].currentInput != null)
+                    {
+                        this.RecycleInput(clientDatas[i].currentInput);
+                        clientDatas[i].currentInput = null;
+                    }
                 }
             }
 
@@ -43,6 +50,10 @@ namespace StargateNet
             this.engine.Monitor.tick = this.engine.SimTick.tickValue;
         }
 
+        /// <summary>
+        /// FixedUpdate开始前，剔除掉多余的Input
+        /// </summary>
+        /// <param name="targetTick"></param>
         private void ConsumeInputs(Tick targetTick)
         {
             for (int i = 0; i < clientDatas.Length; i++)
@@ -82,6 +93,32 @@ namespace StargateNet
                         $"ServerTick:{this.engine.SimTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick}, input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
                 }
             }
+        }
+
+        public bool FetchInput<T>(out T input, int inputSource) where T : INetworkInput
+        {
+            input = default(T);
+            if (inputSource == -1 || inputSource > this.clientDatas.Length || !this.clientDatas[inputSource].Started)
+                return false;
+
+            ClientData clientData = this.clientDatas[inputSource];
+            if (clientData.clientInput.Count == 0 || clientData.clientInput.Peek().targetTick != this.engine.SimTick)
+                return false;
+
+            if (clientData.currentInput == null)
+                clientData.currentInput = clientData.clientInput.Dequeue();
+
+            var inputBlocks = clientData.currentInput.inputBlocks;
+            for (int i = 0; i < inputBlocks.Count; i++)
+            {
+                if (inputBlocks[i].type == 0)
+                {
+                    input = (T)inputBlocks[i].input;
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

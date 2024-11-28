@@ -62,7 +62,8 @@ namespace StargateNet
         /// <param name="networkId">网络id</param>
         /// <param name="worldIdx">worldMeta的下标</param>
         /// <param name="meta"></param>
-        internal unsafe void AddEntity(NetworkObject networkObject, int networkId, int worldIdx, NetworkObjectMeta meta)
+        /// <param name="inputSource">输入源</param>
+        internal unsafe void AddEntity(NetworkObject networkObject, int networkId, int worldIdx, int inputSource)
         {
             NetworkObjectRef networkObjectRef = new NetworkObjectRef(networkId);
             Entity entity = this.CreateEntity(networkObject, networkObjectRef, worldIdx, out int stateWordSize);
@@ -70,10 +71,13 @@ namespace StargateNet
             this.entitiesTable.Add(networkObjectRef, entity);
             this.paddingToAddEntities.Add(entity);
             // 修改meta并标记
-            meta.networkId = networkObjectRef.refValue;
-            // meta.stateWordSize = stateWordSize;
-            meta.prefabId = networkObject.PrefabId;
-            meta.destroyed = false;
+            NetworkObjectMeta meta = new NetworkObjectMeta
+            {
+                networkId = networkObjectRef.refValue,
+                inputSource = inputSource,
+                prefabId = networkObject.PrefabId,
+                destroyed = false
+            };
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
 
             currentSnapshot.SetWorldObjectMeta(worldIdx, meta);
@@ -196,8 +200,10 @@ namespace StargateNet
             return resInput;
         }
 
-        protected void RecycleInput(SimulationInput input)
+        internal void RecycleInput(SimulationInput input)
         {
+            if (input == null) return;
+            input.Clear();
             this.inputPool.Enqueue(input);
         }
 

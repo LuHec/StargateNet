@@ -48,10 +48,12 @@ namespace StargateNet
                 {
                     this.engine.ClientDestroy(localMeta.networkId);
                 }
+
                 // 如果服务端生成新的物体，客户端也生成
                 if (remoteMeta.networkId != localMeta.networkId && !remoteMeta.destroyed)
                 {
-                    this.engine.ClientSpawn(remoteMeta.networkId, metaId, remoteMeta.prefabId, Vector3.zero,
+                    this.engine.ClientSpawn(remoteMeta.networkId, metaId, remoteMeta.prefabId, remoteMeta.inputSource,
+                        Vector3.zero,
                         Quaternion.identity);
                 }
             }

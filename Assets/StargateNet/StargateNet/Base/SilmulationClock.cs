@@ -89,8 +89,8 @@ namespace StargateNet
             double serverBiasTick = (serverInputRcvTimeAvg - _fixedDelta) / this._fixedDelta; // 基于服务端的接受延迟和一帧时间差值的调整值，
             double delayTime = (serverTick + targetDelayTick + serverBiasTick + 2 - currentTick) * this._fixedDelta;
             double delayStd = 0.4 * this._fixedDelta; // 标准差值
-            RiptideLogger.Log(LogType.Error,
-                $"Delay Time {delayTime}, Delay std {delayStd}， Client Tick {currentTick}, Server Tick{serverTick}, target Delay Tick {targetDelayTick}, pak Time {pakTime}, client RTT {latency}");
+            // RiptideLogger.Log(LogType.Error,
+            //     $"Delay Time {delayTime}, Delay std {delayStd}， Client Tick {currentTick}, Server Tick{serverTick}, target Delay Tick {targetDelayTick}, pak Time {pakTime}, client RTT {latency}");
             //[-std, std]这个范围内都是正常区间
             // 比标准值大，说明慢了，要加速
             if (delayTime > delayStd)

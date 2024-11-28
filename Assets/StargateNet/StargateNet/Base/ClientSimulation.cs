@@ -128,6 +128,7 @@ namespace StargateNet
         internal override void PostFixedUpdate()
         {
             this.engine.Monitor.tick = this.currentTick.tickValue;
+            this.RecycleInput(this.currentInput);
             this.currentInput = null;
         }
 
@@ -185,6 +186,21 @@ namespace StargateNet
                     this.inputs.RemoveAt(0);
                 }
             }
+        }
+
+        internal bool FetchInput<T>(out T input) where T : INetworkInput
+        {
+            input = default(T);
+            List<SimulationInput.InputBlock> inputBlocks = this.currentInput.inputBlocks;
+            for (int i = 0; i < inputBlocks.Count; i++)
+            {
+                if (inputBlocks[i].type == 0)
+                {
+                    input = (T)inputBlocks[i].input;
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

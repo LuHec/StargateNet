@@ -9,7 +9,7 @@ namespace StargateNet
         public Queue<SimulationInput> clientInput = new(); //  ow gdc所说的input缓冲区        
         public Tick LastTargetTick { get; private set; }
         public bool Started { get; private set; }
-        public SimulationInput currentInput = new SimulationInput();
+        public SimulationInput currentInput;
         public double lastPakTime;
         public double deltaPakTime;
         public bool pakLoss = false;

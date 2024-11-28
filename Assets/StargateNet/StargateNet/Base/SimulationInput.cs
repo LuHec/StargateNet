@@ -9,7 +9,7 @@ namespace StargateNet
     {
         public struct InputBlock
         {
-            public int inputSource;
+            public int type;
             public INetworkInput input;
         }
 
@@ -17,6 +17,16 @@ namespace StargateNet
         public Tick targetTick = Tick.InvalidTick;
         public List<InputBlock> inputBlocks = new(4);
 
+        public void AddInputBlock(InputBlock inputBlock)
+        {
+            inputBlocks.Add(inputBlock);
+        }
+        
+        public void AddInputBlock(int type, INetworkInput input)
+        {
+            this.inputBlocks.Add(new InputBlock { type = type, input = input });
+        }
+        
         public void Clear()
         {
             this.srvTick = Tick.InvalidTick;

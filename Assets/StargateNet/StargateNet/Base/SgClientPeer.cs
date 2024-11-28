@@ -116,6 +116,9 @@ namespace StargateNet
             this.Engine.WorldState.CurrentSnapshot.CleanMap(); // CurrentSnapshot将作为本帧的开始，必须要清理干净，否则下次收到包，delta就出错了
         }
 
+        /// <summary>
+        /// 客户端发送输入。TODO：当前的输入是暂时用来测试的，只有一个类型，后续会改成unmanaged，支持任意类型写入
+        /// </summary>
         public void SendClientPak()
         {
             Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToServer);
@@ -128,6 +131,18 @@ namespace StargateNet
             for (int i = 0; i < clientInputs.Count; i++)
             {
                 msg.AddInt(clientInputs[i].targetTick.tickValue);
+                msg.AddInt(clientInputs[i].inputBlocks.Count);
+                // 写入Input，暂时只有NetworkInput
+                for (int j = 0; j < clientInputs[i].inputBlocks.Count; j++)
+                {
+                    SimulationInput.InputBlock inputBlock = clientInputs[i].inputBlocks[i];
+                    NetworkInput networkInput = (NetworkInput)inputBlock.input;
+                    msg.AddInt(inputBlock.type);
+                    msg.AddFloat(networkInput.input.x);
+                    msg.AddFloat(networkInput.input.y);
+                    msg.AddFloat(networkInput.axis.x);
+                    msg.AddFloat(networkInput.axis.x);
+                }
             }
 
             this.Client.Send(msg);
@@ -142,12 +157,13 @@ namespace StargateNet
 
                 int networkId = msg.GetInt();
                 int prefabId = msg.GetInt();
+                int inputSource = msg.GetInt();
                 bool destroyed = msg.GetBool();
                 this.Engine.EntityMetaManager.changedMetas.TryAdd(wordMetaIdx, new NetworkObjectMeta()
                 {
                     networkId = networkId,
                     prefabId = prefabId,
-                    // stateWordSize = stateWordSize,
+                    inputSource = inputSource,
                     destroyed = destroyed
                 });
             }
