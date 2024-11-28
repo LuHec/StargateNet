@@ -89,8 +89,8 @@ namespace StargateNet
                     }
 
 
-                    RiptideLogger.Log(LogType.Warning,
-                        $"ServerTick:{this.engine.SimTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick}, input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
+                    // RiptideLogger.Log(LogType.Warning,
+                    //     $"ServerTick:{this.engine.SimTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick}, input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
                 }
             }
         }

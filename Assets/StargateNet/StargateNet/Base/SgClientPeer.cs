@@ -133,9 +133,10 @@ namespace StargateNet
                 msg.AddInt(clientInputs[i].targetTick.tickValue);
                 msg.AddInt(clientInputs[i].inputBlocks.Count);
                 // 写入Input，暂时只有NetworkInput
-                for (int j = 0; j < clientInputs[i].inputBlocks.Count; j++)
+                var blocks = clientInputs[i].inputBlocks;
+                for (int j = 0; j < blocks.Count; j++)
                 {
-                    SimulationInput.InputBlock inputBlock = clientInputs[i].inputBlocks[i];
+                    SimulationInput.InputBlock inputBlock = blocks[j];
                     NetworkInput networkInput = (NetworkInput)inputBlock.input;
                     msg.AddInt(inputBlock.type);
                     msg.AddFloat(networkInput.input.x);

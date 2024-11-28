@@ -136,7 +136,7 @@ namespace StargateNet
         internal override void PostFixedUpdate()
         {
             this.engine.Monitor.tick = this.currentTick.tickValue;
-            this.RecycleInput(this.currentInput);
+            // 这里不回收！！！currentInput用的东西在列表里，要用来做resim的
             this.currentInput = null;
         }
 
@@ -174,9 +174,9 @@ namespace StargateNet
         {
             for (int i = 0; i < this.inputs.Count; i++)
             {
-                RecycleInput(this.inputs[0]);
-                this.inputs.Clear();
+                RecycleInput(this.inputs[i]);
             }
+            this.inputs.Clear();
         }
 
         private void RemoveInputBefore(Tick targetTick)

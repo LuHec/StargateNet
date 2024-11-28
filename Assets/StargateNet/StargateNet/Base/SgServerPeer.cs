@@ -143,7 +143,7 @@ namespace StargateNet
 
                 // 优先保留旧输入，以免被冲掉
                 if (targetTick <= clientData.LastTargetTick.tickValue ||
-                    clientData.clientInput.Count < clientData.maxClientInput)
+                    clientData.clientInput.Count > clientData.maxClientInput)
                 {
                     this.Engine.Simulation.RecycleInput(simulationInput);
                     continue;
