@@ -2,18 +2,16 @@
 
 namespace StargateNet
 {
-    public class NetworkEventManager
+    public class NetworkEventManager : MonoBehaviour
     {
-        internal StargateEngine engine;
-
-        public NetworkEventManager(StargateEngine engine)
+        public virtual void OnReadInput(SgNetworkGalaxy galaxy)
         {
-            this.engine = engine;
+            
         }
         
-        internal void OnPlayerConnected(int playerId)
+        public virtual void OnPlayerConnected(SgNetworkGalaxy galaxy, int playerId)
         {
-            this.engine.NetworkSpawn(this.engine.PrefabsTable[0].gameObject, Vector3.zero, Quaternion.identity, playerId);
+            
         }
     }
 }

@@ -8,4 +8,19 @@ public class FPSController : NetworkBehavior
     [Networked] private float Pitch { get; set; }
     [Networked] private NetworkBool IsFiring { get; set; }
     [Networked] private Vector3 Movement { get; set; }
+
+    public override void NetworkFixedUpdate()
+    {
+        if (this.FetchInput(out NetworkInput input))
+        {
+            Movement += new Vector3(0.1f, 0.1f, 0.1f);
+            this.transform.position = Movement;   
+            Debug.Log(input);
+        }
+    }
+
+    public override void NetworkUpdate()
+    {
+        
+    }
 }

@@ -10,12 +10,13 @@ namespace StargateNet
 {
     public sealed class StargateEngine
     {
+        public SgNetworkGalaxy SgNetworkGalaxy { get; private set; }
         internal WorldState WorldState { get; private set; }
         internal SimulationClock SimulationClock { get; private set; }
         internal Monitor Monitor { get; private set; }
 
         internal StargateAllocator WorldAllocator { get; private set; }
-        
+
         internal Tick SimTick { get; private set; } // 是客户端/服务端已经模拟的本地帧数。客户端的simTick与同步无关，服务端的simtick会作为AuthorTick传给客户端
         internal float LastDeltaTime { get; private set; }
         internal float LastTimeScale { get; private set; }
@@ -45,16 +46,18 @@ namespace StargateNet
         {
         }
 
-        internal unsafe void Start(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor,
-            IMemoryAllocator allocator, IObjectSpawner objectSpawner)
+        internal unsafe void Start(SgNetworkGalaxy galaxy, StartMode startMode, StargateConfigData configData,
+            ushort port, Monitor monitor,
+            IMemoryAllocator allocator, IObjectSpawner objectSpawner, NetworkEventManager networkEventManager)
         {
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
             MemoryAllocation.Allocator = allocator;
+            this.SgNetworkGalaxy = galaxy;
             this.Monitor = monitor;
             this.ConfigData = configData;
             this.SimTick = new Tick(10);
             this.SimulationClock = new SimulationClock(this, this.FixedUpdate);
-            this.NetworkEventManager = new NetworkEventManager(this);
+            this.NetworkEventManager = networkEventManager;
             // 给每一个Snapshot的分配器，上限是max snapshots
             // 初始化预制体的id
             this.PrefabsTable = new Dictionary<int, NetworkObject>(configData.networkPrefabs.Count);
@@ -159,6 +162,7 @@ namespace StargateNet
             this.SimulationClock.PreUpdate();
             this.Peer.NetworkUpdate();
             this.Simulation.PreUpdate();
+            this.NetworkEventManager.OnReadInput(this.SgNetworkGalaxy);
             this.Simulation.ExecuteNetworkUpdate();
             this.SimulationClock.Update();
         }

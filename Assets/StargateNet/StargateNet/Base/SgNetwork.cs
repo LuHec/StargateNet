@@ -46,7 +46,7 @@ namespace StargateNet
                     savedSnapshotsCount = config.SavedSnapshotsCount,
                     maxPredictedTicks = config.MaxPredictedTicks,
                     networkPrefabs = config.NetworkObjects,
-                    maxObjectStateBytes = config.maxObjectStateBytes 
+                    maxObjectStateBytes = config.maxObjectStateBytes
                 },
                 port = port
             });
@@ -86,8 +86,11 @@ namespace StargateNet
 
             SgNetwork.Instance._sgNetworkGalaxy = new SgNetworkGalaxy();
             SgNetwork.Instance.monitor = new Monitor();
+            NetworkEventManager[] networkEventManagers = FindObjectsOfType<NetworkEventManager>();
+            NetworkEventManager networkEventManager = networkEventManagers.Length > 0 ? networkEventManagers[0] : null;
             SgNetwork.Instance._sgNetworkGalaxy.Init(startMode, launchConfig.configData, launchConfig.port,
-                SgNetwork.Instance.monitor, allocator ?? new UnityAllocator(), spawner ?? new UnityObjectSpawner());
+                SgNetwork.Instance.monitor, allocator ?? new UnityAllocator(), spawner ?? new UnityObjectSpawner(),
+                networkEventManager);
             return SgNetwork.Instance._sgNetworkGalaxy;
         }
 

@@ -112,6 +112,14 @@ namespace StargateNet
                 // (服务端优先保留旧的输入，【待求证】如果优先新的帧数，可能导致服务端下一帧的输入被冲掉)
                 this.currentInput = CreateInput(this.authoritativeTick, this.currentTick);
                 this.inputs.Add(this.currentInput);
+                foreach (var pair in this.clientInputs)
+                {
+                    this.currentInput.inputBlocks.Add(new SimulationInput.InputBlock
+                    {
+                        type = pair.Key,
+                        input = pair.Value,
+                    });
+                }
             }
 
             // 关于新输入把旧输入冲掉导致服务端丢失操作的问题：
@@ -191,6 +199,7 @@ namespace StargateNet
         internal bool FetchInput<T>(out T input) where T : INetworkInput
         {
             input = default(T);
+            if (this.currentInput == null) return false;
             List<SimulationInput.InputBlock> inputBlocks = this.currentInput.inputBlocks;
             for (int i = 0; i < inputBlocks.Count; i++)
             {
@@ -200,6 +209,7 @@ namespace StargateNet
                     return true;
                 }
             }
+
             return false;
         }
     }

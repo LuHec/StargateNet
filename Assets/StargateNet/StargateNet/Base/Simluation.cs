@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using Riptide.Utils;
 
 namespace StargateNet
 {
     public abstract class Simulation
     {
         internal StargateEngine engine;
-        internal Dictionary<int, INetworkInput> clientInputs = new (64); // 存放输入，服务端存放所有InputSource的输入，客户端只存自己的输入
+        internal Dictionary<int, INetworkInput> clientInputs = new(64); // 存放输入，服务端存放所有InputSource的输入，客户端只存自己的输入
         internal Dictionary<NetworkObjectRef, Entity> entitiesTable; // 记录当前的Entities，但并不直接执行这些实例
         internal List<Entity> entities; // 用于存储此帧所有的entities，ds不需要这个信息，回放模式可以通过meta还原，延迟补偿不会用到已经删除的实体
         internal List<Entity> paddingToAddEntities = new(32); // 待加入模拟的实体，用于延迟添加到模拟列表。Entity会在这之前就被添加到table中
@@ -14,7 +15,7 @@ namespace StargateNet
         internal SimulationInput currentInput;
         protected Queue<SimulationInput> inputPool = new(32);
         protected Queue<Entity> reuseEntities = new(32);
-    
+
 
         internal Simulation(StargateEngine engine)
         {
@@ -32,7 +33,7 @@ namespace StargateNet
         }
 
         private unsafe Entity CreateEntity(NetworkObject networkObject, NetworkObjectRef networkObjectRef,
-            int worldIdx, out int stateWordSize)
+            int worldIdx, int inputSource, out int stateWordSize)
         {
             // 用全局的内存来分配，在一帧结束后，内存会被拷贝到WorldState中
             StargateAllocator stateAllocator = this.engine.WorldState.CurrentSnapshot.NetworkStates;
@@ -50,7 +51,7 @@ namespace StargateNet
             int* poolData = (int*)stateAllocator.pools[poolId].data;
             int* bitmap = poolData; //bitmap放在首部
             int* state = poolData + stateWordSize;
-            entity.Initialize(state, bitmap, stateWordSize, poolId, worldIdx, networkBehaviors);
+            entity.Initialize(state, bitmap, stateWordSize, poolId, worldIdx, inputSource, networkBehaviors);
 
             return entity;
         }
@@ -66,7 +67,8 @@ namespace StargateNet
         internal unsafe void AddEntity(NetworkObject networkObject, int networkId, int worldIdx, int inputSource)
         {
             NetworkObjectRef networkObjectRef = new NetworkObjectRef(networkId);
-            Entity entity = this.CreateEntity(networkObject, networkObjectRef, worldIdx, out int stateWordSize);
+            Entity entity = this.CreateEntity(networkObject, networkObjectRef, worldIdx, inputSource,
+                out int stateWordSize);
             networkObject.Initialize(this.engine, entity, networkObject.GetComponentsInChildren<IStargateScript>());
             this.entitiesTable.Add(networkObjectRef, entity);
             this.paddingToAddEntities.Add(entity);
@@ -181,12 +183,12 @@ namespace StargateNet
         /// </summary>
         internal void SetInput(int inputSource, INetworkInput networkInput)
         {
-            if (!this.clientInputs.TryAdd(inputSource, networkInput))
+            if (!this.clientInputs.TryAdd(0, networkInput))
             {
-                clientInputs[inputSource] = networkInput;
+                clientInputs[0] = networkInput;
             }
         }
-        
+
         internal SimulationInput CreateInput(Tick srvTick, Tick targetTick)
         {
             if (inputPool.Count == 0)

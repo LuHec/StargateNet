@@ -162,7 +162,7 @@ namespace StargateNet
             clientConnections.Add(clientConnection);
             args.Client.TimeoutTime = 50 * 1000;
             this.Engine.Monitor.connectedClients = this.clientConnections.Count - 1; // 有一个idx为0的占位
-            this.Engine.NetworkEventManager.OnPlayerConnected(args.Client.Id);
+            this.Engine.NetworkEventManager.OnPlayerConnected(this.Engine.SgNetworkGalaxy, args.Client.Id);
         }
 
         private void OnDisConnect(object sender, ServerDisconnectedEventArgs args)

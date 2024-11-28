@@ -17,10 +17,10 @@ namespace StargateNet
         }
 
         public void Init(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor,
-            IMemoryAllocator allocator, IObjectSpawner spawner)
+            IMemoryAllocator allocator, IObjectSpawner spawner, NetworkEventManager networkEventManager)
         {
             this.Engine = new StargateEngine();
-            this.Engine.Start(startMode, configData, port, monitor, allocator, spawner);
+            this.Engine.Start(this, startMode, configData, port, monitor, allocator, spawner, networkEventManager);
         }
 
         public void Connect(string ip, ushort port)
@@ -62,6 +62,12 @@ namespace StargateNet
         public void SetInput<T>(T input) where T : INetworkInput
         {
             this.Engine.SetInput<T>(input);
+        }
+
+        public void TestOnPlayerConnected(int playerId)
+        {
+            this.Engine.NetworkSpawn(this.Engine.PrefabsTable[0].gameObject, Vector3.zero, Quaternion.identity,
+                playerId);
         }
     }
 }
