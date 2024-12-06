@@ -51,7 +51,7 @@ namespace StargateNet
         /// 尽量压缩到1400字节左右防止分包。
         /// </summary>
         /// <param name="clientId">客户端的id</param>
-        /// <param name="msg">数据</param>
+        /// <param name="msg">数据</param> 
         public void SendMessageUnreliable(ushort clientId, Message msg)
         {
             if (clientConnections[clientId].connected)

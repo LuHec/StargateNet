@@ -48,6 +48,7 @@ public class WorldState
 
     internal void Init(Tick tick)
     {
+        this.HasInitialized = true;
         this.fromTick = tick;
         this._currentSnapshot.Init(tick);
     }
@@ -64,12 +65,6 @@ public class WorldState
         this.fromTick = tick;
         this.FromSnapshot.Init(tick);
         this._currentSnapshot.snapshotTick = tick;
-        if (!this.HasInitialized)
-        {
-            this.HasInitialized = true;
-            return;
-        }
-        
         this._tickCount++;
         this.CurrentSnapshot.CopyStateTo(this.FromSnapshot);
         this.CurrentSnapshot.CleanMap();

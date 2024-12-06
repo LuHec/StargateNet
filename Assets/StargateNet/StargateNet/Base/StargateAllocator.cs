@@ -80,7 +80,7 @@ namespace StargateNet
             if (byteSize < 0) throw new Exception("SgAllocator can't create negative size!");
             void* data = this.Malloc(byteSize);
             MemoryPool pool;
-            pool.data = data;
+            pool.dataPtr = data;
             pool.used = true;
             pool.byteSize = byteSize;
             if (this._recycledPoolId.Count > 0)
@@ -101,9 +101,9 @@ namespace StargateNet
             if (id > this.pools.Count) throw new Exception("PoolId out of range!");
             MemoryPool pool = this.pools[id];
             if (!pool.used) return;
-            this.Free(pool.data);
+            this.Free(pool.dataPtr);
             pool.byteSize = -1;
-            pool.data = null;
+            pool.dataPtr = null;
             pool.used = false;
             this.pools[id] = pool;
             this._recycledPoolId.Enqueue(id);
@@ -123,12 +123,12 @@ namespace StargateNet
                 MemoryPool destMemoryPool;
                 destMemoryPool.used = thisMemoryPool.used;
                 destMemoryPool.byteSize = thisMemoryPool.used ? thisMemoryPool.byteSize : -1;
-                destMemoryPool.data = thisMemoryPool.used ? dest.Malloc(thisMemoryPool.byteSize) : null;
+                destMemoryPool.dataPtr = thisMemoryPool.used ? dest.Malloc(thisMemoryPool.byteSize) : null;
                 if (thisMemoryPool.used)
                 {
                     for (int byteIdx = 0; byteIdx < thisMemoryPool.byteSize; byteIdx++)
                     {
-                        ((byte*)destMemoryPool.data)[byteIdx] = ((byte*)thisMemoryPool.data)[byteIdx];
+                        ((byte*)destMemoryPool.dataPtr)[byteIdx] = ((byte*)thisMemoryPool.dataPtr)[byteIdx];
                     }
                 }
 
@@ -146,9 +146,9 @@ namespace StargateNet
             {
                 MemoryPool pool = pools[i];
                 if (!pool.used) continue;
-                this.Free(pool.data);
+                this.Free(pool.dataPtr);
                 pool.byteSize = -1;
-                pool.data = null;
+                pool.dataPtr = null;
                 pools[i] = pool;
                 _recycledPoolId.Enqueue(i);
             }
@@ -160,7 +160,7 @@ namespace StargateNet
         public struct MemoryPool
         {
             public bool used;
-            public void* data;
+            public void* dataPtr;
             public long byteSize;
         }
     }

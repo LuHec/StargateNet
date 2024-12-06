@@ -289,7 +289,7 @@ namespace StargateNet
                 NetworkObjectMeta meta = snapshot.GetWorldObjectMeta(worldMetaId);
                 if (meta.networkId != entity.networkId.refValue) break;
                 StargateAllocator.MemoryPool statePool = snapshot.NetworkStates.pools[entity.poolId];
-                int* poolData = (int*)statePool.data;
+                int* poolData = (int*)statePool.dataPtr;
                 int* bitmap = poolData; //bitmap放在首部
 
                 for (int stateId = 0; stateId < entity.entityBlockWordSize; stateId++)

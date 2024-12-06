@@ -13,9 +13,9 @@ namespace StargateNet
         internal Tick authoritativeTick = Tick.InvalidTick; // 客户端接收到的AuthorTick,服务端Tick从10开始 
         internal List<StargateAllocator> predictedSnapshots; // 客户端用于预测snapshot，由于客户端不会预测物体的销毁和生成，所以只存属性
         internal List<SimulationInput> inputs = new(128);
-        internal StargateAllocator lastAuthorSnapShots;
         internal double serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
         private readonly int _maxPredictedTicks;
+        private List<Entity> _predictedEntities = new(32);
 
 
         internal ClientSimulation(StargateEngine engine) : base(engine)
@@ -159,10 +159,24 @@ namespace StargateNet
 
             if (this.currentTick.IsValid && delayTickCount < this._maxPredictedTicks) // 回滚+重模拟
             {
+                // 移除ACK的input，然后重新模拟一遍
                 RemoveInputBefore(this.authoritativeTick);
+                Snapshot lastAuthorSnapshot = this.engine.WorldState.FromSnapshot;
+                this._predictedEntities.Clear();
+                foreach (var entity in this.entities)
+                {
+                    if(entity != null)
+                        this._predictedEntities.Add(entity);
+                }
+                if (lastAuthorSnapshot != null && lastAuthorSnapshot.NetworkStates.pools.Count > 0)
+                    this.RollBackGroup(this._predictedEntities, lastAuthorSnapshot);
+
+                
                 for (int i = 0; i < this.inputs.Count; i++)
                 {
                     this.currentTick++;
+                    this.currentInput = this.inputs[i];
+                    this.ExecuteNetworkFixedUpdate();
                 }
             }
 
@@ -176,6 +190,7 @@ namespace StargateNet
             {
                 RecycleInput(this.inputs[i]);
             }
+
             this.inputs.Clear();
         }
 
@@ -194,6 +209,32 @@ namespace StargateNet
                     this.inputs.RemoveAt(0);
                 }
             }
+        }
+
+        /// <summary>
+        /// RollBack保证回滚的目标帧和当前预测帧物体meta一致。因为预测不会消除物体
+        /// TODO:AOI的区域划分会只回滚玩家所在sector
+        /// </summary>
+        private void RollBackGroup(List<Entity> group, Snapshot authorSnapshot)
+        {
+            foreach (var entity in group)
+            {
+                this.RollBackEntity(entity, authorSnapshot);
+            }
+        }
+
+        private unsafe void RollBackEntity(Entity entity, Snapshot authorSnapshot)
+        {
+            StargateAllocator predictedState = this.engine.WorldState.CurrentSnapshot.NetworkStates;
+            StargateAllocator authorState = authorSnapshot.NetworkStates;
+            int poolId = entity.poolId;
+            int* predictedData = (int*)predictedState.pools[poolId].dataPtr + entity.entityBlockWordSize; // 跳过dirtyMap
+            int* authorData = (int*)authorState.pools[poolId].dataPtr + entity.entityBlockWordSize;
+            for (int i = 0; i < entity.entityBlockWordSize; i++) // 回滚数据
+            {
+                predictedData[i] = authorData[i];
+            }
+            
         }
 
         internal bool FetchInput<T>(out T input) where T : INetworkInput

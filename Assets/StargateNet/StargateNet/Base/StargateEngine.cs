@@ -104,7 +104,6 @@ namespace StargateNet
                 this.ServerSimulation = new ServerSimulation(this);
                 this.Simulation = this.ServerSimulation;
                 this.Server.StartServer(port, configData.maxClientCount);
-                // 客户端的worldState需要在RecvBuffer时更新
                 this.WorldState.Init(this.SimTick);
             }
             else
@@ -113,7 +112,7 @@ namespace StargateNet
                 this.Peer = this.Client;
                 this.ClientSimulation = new ClientSimulation(this);
                 this.Simulation = this.ClientSimulation;
-                this.WorldState.Init(Tick.InvalidTick);
+                // 客户端的worldState需要在RecvBuffer时更新
             }
 
             this.Simulated = true;

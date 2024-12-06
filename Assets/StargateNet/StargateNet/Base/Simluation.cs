@@ -48,7 +48,7 @@ namespace StargateNet
             stateWordSize = byteSize / 4;
             // 给每个脚本切割内存和bitmap
             stateAllocator.AddPool(byteSize * 2, out int poolId);
-            int* poolData = (int*)stateAllocator.pools[poolId].data;
+            int* poolData = (int*)stateAllocator.pools[poolId].dataPtr;
             int* bitmap = poolData; //bitmap放在首部
             int* state = poolData + stateWordSize;
             entity.Initialize(state, bitmap, stateWordSize, poolId, worldIdx, inputSource, networkBehaviors);
