@@ -61,30 +61,25 @@ namespace StargateNet
                 if (clientDatas[i].Started)
                 {
                     Queue<SimulationInput> clientInput = clientDatas[i].clientInput;
-                    string ticks = "";
-                    if (clientInput.Count > 0)
-                    {
-                        var array = clientInput.ToArray();
-                        for (int j = 0; j < array.Length; j++)
-                        {
-                            ticks += ',';
-                            ticks += array[j].targetTick;
-                        }
-                    }
-
+                    // string ticks = "";
+                    // if (clientInput.Count > 0)
+                    // {
+                    //     var array = clientInput.ToArray();
+                    //     for (int j = 0; j < array.Length; j++)
+                    //     {
+                    //         ticks += ',';
+                    //         ticks += array[j].targetTick;
+                    //     }
+                    // }
+                    /*{ticks}*/
                     RiptideLogger.Log(LogType.Warning,
-                        $"ServerTick:{this.engine.SimTick}, {ticks} input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
-                    while (clientInput.Count > 0 && clientInput.Peek().targetTick <= targetTick)
+                        $"ServerTick:{this.engine.SimTick},  input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
+                    while (clientInput.Count > 0 && clientInput.Peek().targetTick < targetTick)
                     {
                         var input = clientInput.Dequeue();
                         if (input.targetTick < targetTick)
                         {
-                            RecycleInput(input);
-                        }
-                        else if (input.targetTick == targetTick)
-                        {
-                            RecycleInput(clientDatas[i].currentInput);
-                            clientDatas[i].currentInput = input;
+                            this.RecycleInput(input);
                         }
                     }
 
@@ -98,7 +93,7 @@ namespace StargateNet
         public bool FetchInput<T>(out T input, int inputSource) where T : INetworkInput
         {
             input = default(T);
-            if (inputSource == -1 || inputSource > this.clientDatas.Length || !this.clientDatas[inputSource].Started)
+            if (inputSource == -1 || inputSource >= this.clientDatas.Length || !this.clientDatas[inputSource].Started)
                 return false;
 
             ClientData clientData = this.clientDatas[inputSource];
@@ -107,7 +102,7 @@ namespace StargateNet
 
             if (clientData.currentInput == null)
                 clientData.currentInput = clientData.clientInput.Dequeue();
-
+            
             var inputBlocks = clientData.currentInput.inputBlocks;
             for (int i = 0; i < inputBlocks.Count; i++)
             {

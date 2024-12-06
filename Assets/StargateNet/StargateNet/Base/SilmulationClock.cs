@@ -124,7 +124,6 @@ namespace StargateNet
                 this._scaledDelta = delayTime < -this._fixedDelta * 3.0f
                     ? 1.04f * this._fixedDelta
                     : 1.01f * this._fixedDelta;
-                ;
             }
             //在正常区间
             else
