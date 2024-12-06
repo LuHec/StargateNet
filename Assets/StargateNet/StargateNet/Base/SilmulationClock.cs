@@ -85,8 +85,7 @@ namespace StargateNet
             // 用各种延迟计算出一个Tick的合理区间然后比较当前的Tick差，最后三种结果：加速，减速，不变
             // 如果想让客户端在高延迟下多预测几帧，优先应该调整的是【delayTime】
             double pakTime = this.Time - this._lastPacketTime;
-            double targetDelayTick =
-                (pakTime + latency) / this._fixedDelta; //  从上一次收到包时间到包发到服务端后，服务端的增加帧数(RTT+PakTimeDelta)
+            double targetDelayTick = (pakTime + latency) / this._fixedDelta; //  从上一次收到包时间到包发到服务端后，服务端的增加帧数(RTT+PakTimeDelta)
             double serverBiasTick = (serverInputRcvTimeAvg - _fixedDelta) / this._fixedDelta; // 基于服务端的接受延迟和一帧时间差值的调整值，
             double delayTime = (serverTick + targetDelayTick + serverBiasTick + 2 - currentTick) * this._fixedDelta;
             double delayStd = 0.4 * this._fixedDelta; // 标准差值
@@ -99,14 +98,14 @@ namespace StargateNet
                 this._clockLevel = 2;
                 // 分为两种情况：直接追帧和加速
                 // 第一次连上服务端，追帧
-                if (this.Time - this._lastAdjustTime > 0.5 && this._initAdjust && this.Time - this._connectTime > 0.5)
+                if (this.Time - this._lastAdjustTime > 0.3 && this._initAdjust && this.Time - this._connectTime > 0.5)
                 {
                     this._accumulator += latency * 2;
                     this._initAdjust = false;
                 }
 
                 // 和理论值差了3帧以上，就直接让下一帧多模拟几次追上去
-                if (this.Time - this._lastAdjustTime > 0.5 && delayTime > this._fixedDelta * 3.0 &&
+                if (this.Time - this._lastAdjustTime > 0.3 && delayTime > this._fixedDelta * 3.0 &&
                     this._accumulator < this._fixedDelta * 3.0)
                 {
                     this._lastAdjustTime = this.Time;
