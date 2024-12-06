@@ -111,6 +111,7 @@ namespace StargateNet
             {
                 this.entities[entity.worldMetaId] = entity;
                 this.AddToSimulation(entity);
+                entity.InitObject();
             }
 
             this.paddingToAddEntities.Clear();

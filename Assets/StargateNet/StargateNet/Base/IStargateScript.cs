@@ -2,10 +2,10 @@ namespace StargateNet
 {
     public interface IStargateScript
     {
-        void NetworkStart();
-        void NetworkUpdate();
-        void NetworkFixedUpdate();
-        void NetworkRender();
-        void NetworkDestroy();
+        void NetworkStart(SgNetworkGalaxy galaxy);
+        void NetworkUpdate(SgNetworkGalaxy galaxy);
+        void NetworkFixedUpdate(SgNetworkGalaxy galaxy);
+        void NetworkRender(SgNetworkGalaxy galaxy);
+        void NetworkDestroy(SgNetworkGalaxy galaxy);
     }
 }

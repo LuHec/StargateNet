@@ -8,6 +8,7 @@ namespace StargateNet
         internal double Time { get; private set; }
         internal bool IsFirstCall { get; private set; }
         internal bool IsLastCall { get; private set; }
+        public float FixedDeltaTime => this._fixedDelta;
         private Action _action;
 
         private StargateEngine _engine;

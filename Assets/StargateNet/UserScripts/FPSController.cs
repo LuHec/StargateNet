@@ -5,21 +5,23 @@ using UnityEngine;
 
 public class FPSController : NetworkBehavior
 {
-    [Networked] private float Pitch { get; set; }
-    [Networked] private NetworkBool IsFiring { get; set; }
-    [Networked] private Vector3 Movement { get; set; }
+    protected NetworkTransform networkTransform;
 
-    public override void NetworkFixedUpdate()
+    public override void NetworkStart(SgNetworkGalaxy galaxy)
+    {
+        networkTransform = GetComponent<NetworkTransform>();
+    }
+    
+    public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
         if (this.FetchInput(out NetworkInput input))
         {
-            Movement += new Vector3(0.1f, 0.1f, 0.1f);
-            this.transform.position = Movement;   
-            Debug.Log(input);
+            Vector3 deltaMovement = new Vector3(input.input.x, 0, input.input.y) * galaxy.NetworkDeltaTime;
+            networkTransform.Transform += deltaMovement;
         }
     }
 
-    public override void NetworkUpdate()
+    public override void NetworkUpdate(SgNetworkGalaxy galaxy)
     {
         
     }

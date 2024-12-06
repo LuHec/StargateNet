@@ -11,6 +11,7 @@ namespace StargateNet
     {
         public StargateEngine Engine { private set; get; }
         public StargateConfigData ConfigData { private set; get; }
+        public float NetworkDeltaTime => Engine.SimulationClock.FixedDeltaTime; 
 
         public SgNetworkGalaxy()
         {

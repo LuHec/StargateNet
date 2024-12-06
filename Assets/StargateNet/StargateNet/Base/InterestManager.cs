@@ -21,7 +21,7 @@ namespace StargateNet
                 foreach (var netScript in entity.entityObject.NetworkScripts)
                 {
                     if (currentSnapshot.IsObjectDestroyed(entity.worldMetaId)) break;
-                    netScript.NetworkUpdate();
+                    netScript.NetworkUpdate(this.engine.SgNetworkGalaxy);
                 }
             }
         }
@@ -34,7 +34,7 @@ namespace StargateNet
                 foreach (var netScript in entity.entityObject.NetworkScripts)
                 {
                     if (currentSnapshot.IsObjectDestroyed(entity.worldMetaId)) break;
-                    netScript.NetworkRender();
+                    netScript.NetworkRender(this.engine.SgNetworkGalaxy);
                 }
             }
         }
@@ -47,7 +47,7 @@ namespace StargateNet
                 foreach (var netScript in entity.entityObject.NetworkScripts)
                 {
                     if (currentSnapshot.IsObjectDestroyed(entity.worldMetaId)) break;
-                    netScript.NetworkFixedUpdate();
+                    netScript.NetworkFixedUpdate(this.engine.SgNetworkGalaxy);
                 }
             }
         }

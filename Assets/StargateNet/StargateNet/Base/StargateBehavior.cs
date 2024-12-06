@@ -22,23 +22,23 @@ namespace StargateNet
         {
         }
 
-        public virtual void NetworkStart()
+        public virtual void NetworkStart(SgNetworkGalaxy galaxy)
         {
         }
 
-        public virtual void NetworkUpdate()
+        public virtual void NetworkUpdate(SgNetworkGalaxy galaxy)
         {
         }
 
-        public virtual void NetworkFixedUpdate()
+        public virtual void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
         {
         }
 
-        public virtual void NetworkRender()
+        public virtual void NetworkRender(SgNetworkGalaxy galaxy)
         {
         }
 
-        public virtual void NetworkDestroy()
+        public virtual void NetworkDestroy(SgNetworkGalaxy galaxy)
         {
         }
     }

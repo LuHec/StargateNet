@@ -50,6 +50,14 @@ namespace StargateNet
                 wordOffset += networkBehaviors[i].StateBlockSize / 4; // 懒得改ilprocessor，所以暂时用字节数
             }
         }
+
+        internal void InitObject()
+        {
+            foreach (var script in entityObject.NetworkScripts) 
+            {
+                script.NetworkStart(this.engine.SgNetworkGalaxy);
+            }
+        }
         
         internal bool FetchInput<T>(out T input) where T : INetworkInput
         {

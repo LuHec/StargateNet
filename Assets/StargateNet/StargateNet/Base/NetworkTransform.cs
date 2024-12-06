@@ -1,15 +1,13 @@
+using System.Collections;
+using System.Collections.Generic;
+using StargateNet;
 using UnityEngine;
 
-namespace StargateNet
+public class NetworkTransform : NetworkBehavior
 {
-    public class NetworkTransform : NetworkBehavior
+    [Networked] public Vector3 Transform { get; set; }
+    public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
-        private Vector3 _networkPosition;
-
-        // TODO:
-        private void OnPositionChanged()
-        {
-            
-        }
+        this.transform.position = this.Transform;
     }
 }
