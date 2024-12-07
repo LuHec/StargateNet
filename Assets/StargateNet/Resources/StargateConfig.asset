@@ -12,12 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcef7b76748c4590a84e4e76e098d6b5, type: 3}
   m_Name: StargateConfig
   m_EditorClassIdentifier: 
-  FPS: 64
+  FPS: 8
   MaxClientCount: 16
   RunAsHeadless: 1
   maxNetworkObject: 200
   SavedSnapshotsCount: 64
-  MaxPredictedTicks: 30
+  MaxPredictedTicks: 32
   NetworkObjects:
   - {fileID: 7095134503880436856, guid: 69e03efa710929f47b22396aa0160455, type: 3}
+  - {fileID: 7095134503880436856, guid: 8d3dc2fde6a162047a445be0dff25124, type: 3}
   maxObjectStateBytes: 12

@@ -39,7 +39,7 @@ namespace StargateNet
         internal override void NetworkUpdate()
         {
             this.Client.Update();
-            this.Engine.Monitor.rtt = this.Client.RTT;
+            this.Engine.Monitor.rtt = this.Client.RTT; 
             this.Engine.Monitor.smothRTT = this.Client.SmoothRTT;
         }
 

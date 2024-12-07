@@ -108,7 +108,7 @@ namespace StargateNet
             }
             else
             {
-                this.Client = new SgClientPeer(this, configData);
+                this.Client = new SgClientPeer(this, configData); 
                 this.Peer = this.Client;
                 this.ClientSimulation = new ClientSimulation(this);
                 this.Simulation = this.ClientSimulation;

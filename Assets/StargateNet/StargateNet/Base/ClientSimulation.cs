@@ -151,26 +151,27 @@ namespace StargateNet
         {
             int delayTickCount = Math.Abs(this.currentTick - this.authoritativeTick);
             this.currentTick = this.authoritativeTick; // currentTick复制authorTick，并从这一帧开始重新模拟
-            if (delayTickCount > this._maxPredictedTicks) // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了
+            if (this.currentTick.IsValid && delayTickCount >= this._maxPredictedTicks) // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了
             {
                 this.engine.Client.HeavyPakLoss = true;
                 RemoveAllInputs();
             }
 
-            if (this.currentTick.IsValid && delayTickCount < this._maxPredictedTicks) // 回滚+重模拟
+            if (delayTickCount < this._maxPredictedTicks)
             {
                 // 移除ACK的input，然后重新模拟一遍
-                RemoveInputBefore(this.authoritativeTick);
-                Snapshot lastAuthorSnapshot = this.engine.WorldState.FromSnapshot;
+                RemoveInputBefore(this.authoritativeTick); // 服务端发来的最新Tick
+                Snapshot lastAuthorSnapshot = this.engine.WorldState.FromSnapshot; // 服务端发来的最新Snapshot
                 this._predictedEntities.Clear();
                 foreach (var entity in this.entities)
                 {
-                    if(entity != null)
+                    if (entity != null)
                         this._predictedEntities.Add(entity);
                 }
-                if (lastAuthorSnapshot != null && lastAuthorSnapshot.NetworkStates.pools.Count > 0)
+                
+                if (lastAuthorSnapshot != null && lastAuthorSnapshot.NetworkStates.pools.Count > 0) // 回滚
                     this.RollBackGroup(this._predictedEntities, lastAuthorSnapshot);
-
+                
                 
                 for (int i = 0; i < this.inputs.Count; i++)
                 {
@@ -234,7 +235,6 @@ namespace StargateNet
             {
                 predictedData[i] = authorData[i];
             }
-            
         }
 
         internal bool FetchInput<T>(out T input) where T : INetworkInput

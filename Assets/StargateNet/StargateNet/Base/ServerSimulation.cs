@@ -61,19 +61,19 @@ namespace StargateNet
                 if (clientDatas[i].Started)
                 {
                     Queue<SimulationInput> clientInput = clientDatas[i].clientInput;
-                    // string ticks = "";
-                    // if (clientInput.Count > 0)
-                    // {
-                    //     var array = clientInput.ToArray();
-                    //     for (int j = 0; j < array.Length; j++)
-                    //     {
-                    //         ticks += ',';
-                    //         ticks += array[j].targetTick;
-                    //     }
-                    // }
-                    /*{ticks}*/
+                    string ticks = "";
+                    if (clientInput.Count > 0)
+                    {
+                        var array = clientInput.ToArray();
+                        for (int j = 0; j < array.Length; j++)
+                        {
+                            ticks += ',';
+                            ticks += array[j].targetTick;
+                        }
+                    }
+                    
                     RiptideLogger.Log(LogType.Warning,
-                        $"ServerTick:{this.engine.SimTick},  input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
+                        $"ServerTick:{this.engine.SimTick}，{ticks}  input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
                     while (clientInput.Count > 0 && clientInput.Peek().targetTick < targetTick)
                     {
                         var input = clientInput.Dequeue();
@@ -85,7 +85,7 @@ namespace StargateNet
 
 
                     // RiptideLogger.Log(LogType.Warning,
-                    //     $"ServerTick:{this.engine.SimTick}, ClientInput targetTick:{this.clientDatas[i].currentInput.targetTick}, input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
+                        // $"ServerTick:{this.engine.SimTick}, ClientInput targetTick:{this.clientDatas[i].currentInput?.targetTick}, input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
                 }
             }
         }

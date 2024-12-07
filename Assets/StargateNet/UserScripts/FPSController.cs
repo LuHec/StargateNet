@@ -17,8 +17,10 @@ public class FPSController : NetworkBehavior
         if (this.FetchInput(out NetworkInput input))
         {
             Vector3 deltaMovement = new Vector3(input.input.x, 0, input.input.y) * galaxy.NetworkDeltaTime;
-            networkTransform.Transform += deltaMovement;
+            networkTransform.Position += deltaMovement;
         }
+        
+        Debug.Log("FPS Controller " + transform.position);
     }
 
     public override void NetworkUpdate(SgNetworkGalaxy galaxy)

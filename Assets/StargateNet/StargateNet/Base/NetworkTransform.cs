@@ -5,9 +5,9 @@ using UnityEngine;
 
 public class NetworkTransform : NetworkBehavior
 {
-    [Networked] public Vector3 Transform { get; set; }
+    [Networked] public Vector3 Position { get; set; }
     public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
-        this.transform.position = this.Transform;
+        this.transform.position = this.Position;
     }
 }
