@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcef7b76748c4590a84e4e76e098d6b5, type: 3}
   m_Name: StargateConfig
   m_EditorClassIdentifier: 
-  FPS: 8
+  FPS: 20
   MaxClientCount: 16
   RunAsHeadless: 1
   maxNetworkObject: 200
