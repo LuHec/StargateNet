@@ -153,7 +153,7 @@ namespace StargateNet
         {
             int delayTickCount = Math.Abs(this.currentTick - this.authoritativeTick);
             this.currentTick = this.authoritativeTick; // currentTick复制authorTick，并从这一帧开始重新模拟
-            if (this.currentTick.IsValid && delayTickCount >= this._maxPredictedTicks) // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了
+            if (this.currentTick.IsValid && delayTickCount >= this._maxPredictedTicks) // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了，下一帧则会从头开始模拟
             {
                 this.engine.Client.HeavyPakLoss = true;
                 RemoveAllInputs();
@@ -162,7 +162,7 @@ namespace StargateNet
             if (delayTickCount < this._maxPredictedTicks)
             {
                 // 移除ACK的input，然后重新模拟一遍
-                RemoveInputBefore(this.authoritativeTick); // 服务端发来的最新Tick
+                RemoveInputBefore(this.authoritativeTick); // 移除服务器接收到的输入(即使丢包了也不管，服务器不会重新模拟)
                 Snapshot lastAuthorSnapshot = this.engine.WorldState.FromSnapshot; // 服务端发来的最新Snapshot
                 this._predictedEntities.Clear();
                 foreach (var entity in this.entities)
@@ -179,6 +179,7 @@ namespace StargateNet
                 {
                     this.currentTick++;
                     this.currentInput = this.inputs[i];
+                    Debug.Log($"currentTick :{this.currentTick}, resim input targetTick:" + currentInput.targetTick);
                     this.ExecuteNetworkFixedUpdate();
                 }
             }

@@ -6,12 +6,13 @@ using UnityEngine;
 public class FPSController : NetworkBehavior
 {
     protected NetworkTransform networkTransform;
+    private Tick _lastTick = Tick.InvalidTick;
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
         networkTransform = GetComponent<NetworkTransform>();
     }
-    
+
     public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
         if (this.FetchInput(out NetworkInput input))
@@ -20,11 +21,11 @@ public class FPSController : NetworkBehavior
             networkTransform.Position += deltaMovement;
         }
         
-        Debug.Log("FPS Controller " + transform.position);
+        Debug.Log("FPS Controller At Engine Tick:" + galaxy.EngineTick + " CurrentTick:"  + galaxy.CurrentTick + ",Position:" + transform.position);
+        _lastTick = galaxy.CurrentTick;
     }
 
     public override void NetworkUpdate(SgNetworkGalaxy galaxy)
     {
-        
     }
 }
