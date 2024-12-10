@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using StargateNet;
 
@@ -7,6 +8,7 @@ public class WorldState
     public int MaxSnapshotsCount { private set; get; }
 
     public int FromSnapshotIdx => fromTick.IsValid ? fromTick.tickValue % MaxSnapshotsCount : -1;
+    internal StargateEngine Engine { private get; set; }
     internal Snapshot FromSnapshot => fromTick.IsValid ? snapshots[FromSnapshotIdx] : null;
 
     /// <summary>
@@ -24,18 +26,19 @@ public class WorldState
     internal List<Snapshot> snapshots;
 
     internal Tick fromTick = Tick.InvalidTick;
-    internal bool HasInitialized { private set; get; }
+    // internal bool HasInitialized { private set; get; }
     internal int HistoryCount => _tickCount > this.MaxSnapshotsCount ? MaxSnapshotsCount : _tickCount;
     private int _tickCount = 0;
     private Snapshot _currentSnapshot;
 
 
-    internal WorldState(int maxSnapCnt, Snapshot currentSnapshot)
+    internal WorldState(StargateEngine engine, int maxSnapCnt, Snapshot currentSnapshot)
     {
+        this.Engine = engine;
         this.MaxSnapshotsCount = maxSnapCnt;
         this._currentSnapshot = currentSnapshot;
         this.snapshots = new List<Snapshot>(maxSnapCnt);
-        this.HasInitialized = false;
+        // this.HasInitialized = false;
     }
 
     internal void HandledRelease()
@@ -48,8 +51,8 @@ public class WorldState
 
     internal void Init(Tick tick)
     {
-        this.HasInitialized = true;
-        this.fromTick = tick;
+        // this.HasInitialized = true;
+        // this.fromTick = tick;
         this._currentSnapshot.Init(tick);
     }
 
@@ -57,17 +60,31 @@ public class WorldState
     /// 更新Snapshot和Tick。
     /// FromTick指的是本帧，FromTickSnapshot指的是本帧开始时的状态，CurrentSnapshot此时是上一帧的最后结果。此函数将CurrentSnapshot拷贝到FromTick，作为本帧的初始状态
     /// 接下来StargateEngine就会更新CurrentSnapshot，下一帧时CurrentSnapshot会再次拷贝到新的FromTickSnapshot。
-    /// 对于客户端，真正的权威是WorldState::snapshots，客户端预测时可以修改CurrentSnapshot
     /// </summary>
     /// <param name="tick"></param>
-    internal void Update(Tick tick)
+    internal void ServerUpdateState(Tick tick)
     {
+        if(this.Engine.IsClient) throw new Exception("Can't update world state in a client");
         this.fromTick = tick;
         this.FromSnapshot.Init(tick);
         this._currentSnapshot.snapshotTick = tick;
         this._tickCount++;
         this.CurrentSnapshot.CopyStateTo(this.FromSnapshot);
         this.CurrentSnapshot.CleanMap();
+    }
+
+    /// <summary>
+    /// 对于客户端，真正的权威是WorldState::Snapshots，客户端预测时可以修改CurrentSnapshot
+    /// </summary>
+    /// <param name="tick"></param>
+    /// <param name="buffer"></param>
+    internal void ClientUpdateState(Tick tick, Snapshot buffer)
+    {
+        if(this.Engine.IsServer) throw new Exception("Can't update world state in a server");
+        this.fromTick = tick;
+        this.FromSnapshot.Init(tick);
+        buffer.CopyTo(this.FromSnapshot);
+        this._tickCount++;
     }
 
     /// <summary>

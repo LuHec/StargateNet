@@ -98,14 +98,14 @@ namespace StargateNet
                 this._clockLevel = 2;
                 // 分为两种情况：直接追帧和加速
                 // 第一次连上服务端，追帧
-                if (this.Time - this._lastAdjustTime > 0.3 && this._initAdjust && this.Time - this._connectTime > 0.5)
+                if (this.Time - this._lastAdjustTime > 0.5 && this._initAdjust && this.Time - this._connectTime > 0.5)
                 {
                     this._accumulator += latency * 2;
                     this._initAdjust = false;
                 }
 
                 // 和理论值差了3帧以上，就直接让下一帧多模拟几次追上去
-                if (this.Time - this._lastAdjustTime > 0.3 && delayTime > this._fixedDelta * 3.0 &&
+                if (this.Time - this._lastAdjustTime > 0.5 && delayTime > this._fixedDelta * 3.0 &&
                     this._accumulator < this._fixedDelta * 3.0)
                 {
                     this._lastAdjustTime = this.Time;
@@ -113,7 +113,7 @@ namespace StargateNet
                 }
                 else
                 {
-                    this._scaledDelta = 0.95f * this._fixedDelta;
+                    this._scaledDelta = 0.98f * this._fixedDelta;
                 }
             }
             // 小于0，说明快了，要减速

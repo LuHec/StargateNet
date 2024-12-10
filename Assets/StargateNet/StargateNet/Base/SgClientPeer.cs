@@ -27,7 +27,6 @@ namespace StargateNet
         }
 
 
-
         public void Connect(string serverIP, ushort port)
         {
             this.ServerIP = serverIP;
@@ -39,7 +38,7 @@ namespace StargateNet
         internal override void NetworkUpdate()
         {
             this.Client.Update();
-            this.Engine.Monitor.rtt = this.Client.RTT; 
+            this.Engine.Monitor.rtt = this.Client.RTT;
             this.Engine.Monitor.smothRTT = this.Client.SmoothRTT;
         }
 
@@ -79,7 +78,7 @@ namespace StargateNet
             RiptideLogger.Log(LogType.Debug, "Client Connect Failed,trying again");
             this.Client.Connect($"{ServerIP}:{Port}", useMessageHandlers: false);
         }
-        
+
         private void OnDisConnected(object sender, ClientDisconnectedEventArgs e)
         {
             RiptideLogger.Log(LogType.Debug, "Client Connect break,trying again");
@@ -107,14 +106,18 @@ namespace StargateNet
                 this.PakLoss = true;
                 return;
             }
-            
+
             // 用服务端下发的结果更新环形队列
-            if(!this.Engine.WorldState.HasInitialized) this.Engine.WorldState.Init(srvTick);
+            // if (!this.Engine.WorldState.HasInitialized) this.Engine.WorldState.Init(srvTick);
+            Snapshot buffer = this.Engine.ClientSimulation.rcvBuffer;
+            buffer.Init(srvTick);
             this.ReceiveMeta(msg, isFullPacket);
             this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta，处理服务端生成和销毁的物体
-            this.ReceiveState(msg);
+            this.CopyMetaToBuffer();
+            this.CopyFromStateToBuffer();
+            this.ReceiveStateToBuffer(msg); // 这里不直接把状态更新到WorldState中
             this.Engine.WorldState.CurrentSnapshot.CleanMap(); // CurrentSnapshot将作为本帧的开始，必须要清理干净，否则下次收到包，delta就出错了
-            this.Engine.WorldState.Update(srvTick); // 对于客户端来说FromTick才是权威，CurrentTick可以被修改
+            this.Engine.WorldState.ClientUpdateState(srvTick, buffer); // 对于客户端来说FromTick才是权威，CurrentTick可以被修改
         }
 
         /// <summary>
@@ -180,21 +183,81 @@ namespace StargateNet
             }
         }
 
-        private void ReceiveState(Message msg)
+        /// <summary>
+        /// 把完整的内存构造拷贝到buffer
+        /// </summary>
+        private void CopyMetaToBuffer()
         {
+            Snapshot buffer = this.Engine.ClientSimulation.rcvBuffer;
+            Snapshot currentSnapshot = this.Engine.WorldState.CurrentSnapshot;
+            currentSnapshot.CopyTo(buffer);
+        }
+
+        /// <summary>
+        /// 拷贝上一server帧的数据(只拷贝meta存在的物体)。
+        /// 如果是首次接收，那就不用这一步。状态会在Reconcile时写入CurrentSnapshot
+        /// </summary>
+        private unsafe void CopyFromStateToBuffer()
+        {
+            Snapshot buffer = this.Engine.ClientSimulation.rcvBuffer;
+            Snapshot fromSnapshot = this.Engine.WorldState.FromSnapshot;
+            if (fromSnapshot == null) return;
+
+            var destPools = buffer.NetworkStates.pools;
+            var fromPools = fromSnapshot.NetworkStates.pools;
+            var entitiesTable = this.Engine.Simulation.entitiesTable;
+            foreach (var pair in entitiesTable)
+            {
+                NetworkObjectRef networkObjectRef = pair.Key;
+                Entity entity = pair.Value;
+                int poolId = entity.poolId;
+                // From和buffer的关系是服务端前后帧，所以同一个物体的poolId肯定是一致的
+                if (poolId < fromPools.Count && fromPools[poolId].used)
+                {
+                    char* fromDataPtr = (char*)fromPools[poolId].dataPtr;
+                    long fromByteSize = fromPools[poolId].byteSize;
+                    char* destDataPtr = (char*)destPools[poolId].dataPtr;
+                    long destByteSize = destPools[poolId].byteSize;
+
+                    for (int i = 0; i < fromByteSize; i++)
+                    {
+                        destDataPtr[i] = fromDataPtr[i];
+                    }
+                }
+            }
+        }
+
+        private unsafe void ReceiveStateToBuffer(Message msg)
+        {
+            Snapshot buffer = this.Engine.ClientSimulation.rcvBuffer;
             // 外层是找meta，内层找object state
+            // while (true)
+            // {
+            //     int worldMetaIdx = msg.GetInt();
+            //     if (worldMetaIdx < 0) break;
+            //     int networkId = this.Engine.WorldState.CurrentSnapshot.GetWorldObjectMeta(worldMetaIdx).networkId;
+            //     Entity entity = this.Engine.Simulation.entitiesTable[new NetworkObjectRef(networkId)];
+            //     while (true)
+            //     {
+            //         int dirtyStateId = msg.GetInt();
+            //         if (dirtyStateId < 0) break;
+            //         int data = msg.GetInt();
+            //         entity.SetState(dirtyStateId, data); // 客户端直接设置即可，dirty没什么用
+            //     }
+            // }
             while (true)
             {
                 int worldMetaIdx = msg.GetInt();
                 if (worldMetaIdx < 0) break;
-                int networkId = this.Engine.WorldState.CurrentSnapshot.GetWorldObjectMeta(worldMetaIdx).networkId;
+                int networkId = buffer.GetWorldObjectMeta(worldMetaIdx).networkId;
                 Entity entity = this.Engine.Simulation.entitiesTable[new NetworkObjectRef(networkId)];
+                int* dataPtr = (int*)buffer.NetworkStates.pools[entity.poolId].dataPtr + entity.entityBlockWordSize;
                 while (true)
                 {
                     int dirtyStateId = msg.GetInt();
                     if (dirtyStateId < 0) break;
                     int data = msg.GetInt();
-                    entity.SetState(dirtyStateId, data); // 客户端直接设置即可，dirty没什么用
+                    dataPtr[dirtyStateId] = data;
                 }
             }
         }

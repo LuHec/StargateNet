@@ -11,6 +11,7 @@ namespace StargateNet
         internal Tick currentTick = Tick.InvalidTick;
         internal Tick predictedTick = Tick.InvalidTick;
         internal Tick authoritativeTick = Tick.InvalidTick; // 客户端接收到的AuthorTick,服务端Tick从10开始 
+        internal Snapshot rcvBuffer;//接收时存放最新的server snapshot
         internal List<StargateAllocator> predictedSnapshots; // 客户端用于预测snapshot，由于客户端不会预测物体的销毁和生成，所以只存属性
         internal List<SimulationInput> inputs = new(128);
         internal double serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
@@ -105,14 +106,8 @@ namespace StargateNet
                 return;
 
             if (this.engine.SimulationClock.IsFirstCall)
-            {
-                Reconcile();
-                // 只有第一次模拟才创建输入，Clock后续的追帧模拟因为在同一unity帧内读取不到用户输入,所以不加入
-                // 否则会因为重复输入过多而冲掉了服务端后续接受到的有效帧数
-                // (服务端优先保留旧的输入，【待求证】如果优先新的帧数，可能导致服务端下一帧的输入被冲掉)
-               
-            }
-            
+                this.Reconcile();
+
             this.currentInput = CreateInput(this.authoritativeTick, this.currentTick);
             this.inputs.Add(this.currentInput);
             foreach (var pair in this.clientInputs)
@@ -153,16 +148,17 @@ namespace StargateNet
         {
             int delayTickCount = Math.Abs(this.currentTick - this.authoritativeTick);
             this.currentTick = this.authoritativeTick; // currentTick复制authorTick，并从这一帧开始重新模拟
-            if (this.currentTick.IsValid && delayTickCount >= this._maxPredictedTicks) // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了，下一帧则会从头开始模拟
+            if (this.currentTick.IsValid &&
+                delayTickCount >= this._maxPredictedTicks) // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了，下一帧则会从头开始模拟
             {
                 this.engine.Client.HeavyPakLoss = true;
-                RemoveAllInputs();
+                this.RemoveAllInputs();
             }
 
             if (delayTickCount < this._maxPredictedTicks)
             {
                 // 移除ACK的input，然后重新模拟一遍
-                RemoveInputBefore(this.authoritativeTick); // 移除服务器接收到的输入(即使丢包了也不管，服务器不会重新模拟)
+                this.RemoveInputBefore(this.authoritativeTick); // 移除服务器接收到的输入(即使丢包了也不管，服务器不会重新模拟)
                 Snapshot lastAuthorSnapshot = this.engine.WorldState.FromSnapshot; // 服务端发来的最新Snapshot
                 this._predictedEntities.Clear();
                 foreach (var entity in this.entities)
@@ -170,11 +166,11 @@ namespace StargateNet
                     if (entity != null)
                         this._predictedEntities.Add(entity);
                 }
-                
+
                 if (lastAuthorSnapshot != null && lastAuthorSnapshot.NetworkStates.pools.Count > 0) // 回滚
                     this.RollBackGroup(this._predictedEntities, lastAuthorSnapshot);
-                
-                
+
+
                 for (int i = 0; i < this.inputs.Count; i++)
                 {
                     this.currentTick++;

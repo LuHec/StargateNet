@@ -82,10 +82,11 @@ namespace StargateNet
             //用于物体Sync var的内存大小
             long totalObjectStateByteSize =
                 configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
-            this.WorldState = new WorldState(configData.savedSnapshotsCount, new Snapshot(
+            this.WorldState = new WorldState(this, configData.savedSnapshotsCount, new Snapshot(
                 (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
                 (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
                 new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities)); //专门用于物体Sync var的分配器
+            this.WorldState.Init(this.SimTick);
             for (int i = 0; i < this.WorldState.MaxSnapshotsCount; i++)
             {
                 this.WorldState.snapshots.Add(new Snapshot(
@@ -104,17 +105,20 @@ namespace StargateNet
                 this.ServerSimulation = new ServerSimulation(this);
                 this.Simulation = this.ServerSimulation;
                 this.Server.StartServer(port, configData.maxClientCount);
-                this.WorldState.Init(this.SimTick);
             }
             else
             {
-                this.Client = new SgClientPeer(this, configData); 
+                this.Client = new SgClientPeer(this, configData);
                 this.Peer = this.Client;
                 this.ClientSimulation = new ClientSimulation(this);
                 this.Simulation = this.ClientSimulation;
+                this.ClientSimulation.rcvBuffer = new Snapshot(
+                    (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
+                    (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
+                    new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities);
                 // 客户端的worldState需要在RecvBuffer时更新
             }
-
+            
             this.Simulated = true;
             this.IsRunning = true;
         }
@@ -197,9 +201,11 @@ namespace StargateNet
                 this.Simulation.DrainPaddingRemovedEntity(); // 发送后再清除Entity占用的内存和id
                 if (this.IsServer) // 更新FromTick
                 {
-                    this.WorldState.Update(this.SimTick);
+                    this.WorldState.ServerUpdateState(this.SimTick);
                 }
 
+                if (this.IsClient && this.ClientSimulation.currentTick.IsValid)
+                    this.ClientSimulation.currentTick++; // 客户端tick增加。FixedUpdate会被时钟在一帧调用多次，相应的currentTick也要更新
                 this.SimTick++; // 下一次Tick是11
                 this.Simulation.PostFixedUpdate();
             }
