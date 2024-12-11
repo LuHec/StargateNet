@@ -114,8 +114,9 @@ namespace StargateNet
             this.ReceiveMeta(msg, isFullPacket);
             this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta，处理服务端生成和销毁的物体
             this.CopyMetaToBuffer();
-            this.CopyFromStateToBuffer();
+            this.CopyFromStateToBuffer(); // 这一步也需要ChangedMeta
             this.ReceiveStateToBuffer(msg); // 这里不直接把状态更新到WorldState中
+            this.Engine.EntityMetaManager.PostChanged(); // 清除Changed
             this.Engine.WorldState.CurrentSnapshot.CleanMap(); // CurrentSnapshot将作为本帧的开始，必须要清理干净，否则下次收到包，delta就出错了
             this.Engine.WorldState.ClientUpdateState(srvTick, buffer); // 对于客户端来说FromTick才是权威，CurrentTick可以被修改
         }
@@ -194,8 +195,9 @@ namespace StargateNet
         }
 
         /// <summary>
-        /// 拷贝上一server帧的数据(只拷贝meta存在的物体)。
-        /// 如果是首次接收，那就不用这一步。状态会在Reconcile时写入CurrentSnapshot
+        /// 拷贝上一server帧的数据(只拷贝meta存在的物体)。这一步之前新的Meta对应的状态是空的
+        /// 如果是首次接收，那就不用这一步。状态会在Reconcile时写入CurrentSnapshot。
+        /// 这一步以Buffer为基准，排除ChangedMeta,拷贝所有从上一帧继承下来的物体状态。
         /// </summary>
         private unsafe void CopyFromStateToBuffer()
         {
@@ -203,6 +205,7 @@ namespace StargateNet
             Snapshot fromSnapshot = this.Engine.WorldState.FromSnapshot;
             if (fromSnapshot == null) return;
 
+            var changedMetas = this.Engine.EntityMetaManager.changedMetas;
             var destPools = buffer.NetworkStates.pools;
             var fromPools = fromSnapshot.NetworkStates.pools;
             var entitiesTable = this.Engine.Simulation.entitiesTable;
@@ -210,19 +213,16 @@ namespace StargateNet
             {
                 NetworkObjectRef networkObjectRef = pair.Key;
                 Entity entity = pair.Value;
-                int poolId = entity.poolId;
-                // From和buffer的关系是服务端前后帧，所以同一个物体的poolId肯定是一致的
-                if (poolId < fromPools.Count && fromPools[poolId].used)
-                {
-                    char* fromDataPtr = (char*)fromPools[poolId].dataPtr;
-                    long fromByteSize = fromPools[poolId].byteSize;
-                    char* destDataPtr = (char*)destPools[poolId].dataPtr;
-                    long destByteSize = destPools[poolId].byteSize;
+                if (changedMetas.ContainsKey(entity.worldMetaId)) continue;
 
-                    for (int i = 0; i < fromByteSize; i++)
-                    {
-                        destDataPtr[i] = fromDataPtr[i];
-                    }
+                int poolId = entity.poolId;
+                // From和buffer的关系是服务端前后帧，同一个物体的poolId肯定是一致的
+                int* fromStatePtr = (int*)fromPools[poolId].dataPtr + entity.entityBlockWordSize;
+                int* destStatePtr = (int*)destPools[poolId].dataPtr + entity.entityBlockWordSize;
+
+                for (int i = 0; i < entity.entityBlockWordSize; i++)
+                {
+                    destStatePtr[i] = fromStatePtr[i];
                 }
             }
         }

@@ -69,7 +69,8 @@ public class WorldState
         this.FromSnapshot.Init(tick);
         this._currentSnapshot.snapshotTick = tick;
         this._tickCount++;
-        this.CurrentSnapshot.CopyStateTo(this.FromSnapshot);
+        // this.CurrentSnapshot.CopyStateTo(this.FromSnapshot);
+        this.CurrentSnapshot.CopyTo(this.FromSnapshot);
         this.CurrentSnapshot.CleanMap();
     }
 

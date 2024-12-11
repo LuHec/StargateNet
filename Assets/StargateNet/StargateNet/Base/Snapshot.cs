@@ -83,7 +83,7 @@ namespace StargateNet
         /// 拷贝状态
         /// </summary>
         /// <param name="dest"></param>
-        internal unsafe void CopyStateTo(Snapshot dest)
+        internal void CopyStateTo(Snapshot dest)
         {
             this.NetworkStates.CopyTo(dest.NetworkStates);
         }

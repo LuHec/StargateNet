@@ -8,7 +8,7 @@ namespace StargateNet
     {
         internal readonly int maxEntities;
         internal StargateEngine engine;
-        internal Dictionary<int, NetworkObjectMeta> changedMetas = new(32);
+        internal Dictionary<int, NetworkObjectMeta> changedMetas = new(32); // worldIdx : meta
         private int _worldIdCounter = -1;
         private Queue<int> _recycledWorldIdx = new(32);
 
@@ -57,7 +57,10 @@ namespace StargateNet
                         Quaternion.identity);
                 }
             }
+        }
 
+        public void PostChanged()
+        {
             this.changedMetas.Clear();
         }
     }

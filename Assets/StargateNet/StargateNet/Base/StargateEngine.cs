@@ -76,8 +76,7 @@ namespace StargateNet
             int totalObjectMetaByteSize = configData.maxNetworkObjects * sizeof(NetworkObjectMeta);
             int totalObjectMapByteSize = this.maxEntities * 4;
             //全局的分配器, 存map和meta
-            long worldAllocatedBytes = (totalObjectMetaByteSize + totalObjectMapByteSize * 2) *
-                                       (this.ConfigData.savedSnapshotsCount + 1) * 2; // 多乘个2是为了给control和header留空间，下同
+            long worldAllocatedBytes = (totalObjectMetaByteSize + totalObjectMapByteSize * 2) * (this.ConfigData.savedSnapshotsCount + 1) * 2; // 多乘个2是为了给control和header留空间，下同
             this.WorldAllocator = new StargateAllocator(worldAllocatedBytes, monitor);
             //用于物体Sync var的内存大小
             long totalObjectStateByteSize =
@@ -119,7 +118,7 @@ namespace StargateNet
                 // 客户端的worldState需要在RecvBuffer时更新
             }
             
-            this.Simulated = true;
+            this.Simulated = true; 
             this.IsRunning = true;
         }
 
