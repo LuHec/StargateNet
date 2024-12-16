@@ -9,11 +9,10 @@ namespace StargateNet
     /// </summary>
     public class SgNetworkGalaxy
     {
-        public StargateEngine Engine { private set; get; }
+        internal StargateEngine Engine { private set; get; }
         public StargateConfigData ConfigData { private set; get; }
-        public float NetworkDeltaTime => Engine.SimulationClock.FixedDeltaTime;
-        public Tick CurrentTick => Engine.IsServer ? Engine.SimTick : Engine.ClientSimulation.currentTick;
-        public Tick EngineTick => Engine.SimTick;
+        public float NetworkDeltaTime => this.Engine.SimulationClock.FixedDeltaTime;
+        public bool IsServer => this.Engine.IsServer;
 
         public SgNetworkGalaxy()
         {

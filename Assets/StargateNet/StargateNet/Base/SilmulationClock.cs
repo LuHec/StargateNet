@@ -1,5 +1,6 @@
 using System;
 using Riptide.Utils;
+using UnityEngine;
 
 namespace StargateNet
 {
@@ -8,6 +9,17 @@ namespace StargateNet
         internal double Time { get; private set; }
         internal bool IsFirstCall { get; private set; }
         internal bool IsLastCall { get; private set; }
+
+        /// <summary>
+        /// 两帧之间的alpha值，用于插值。计算方式是当前积攒时间/ScaledDeltaTime，含义是当前帧到下一帧已经消耗的时间百分比
+        /// </summary>
+        internal float Alpha { get; private set; }
+
+        /// <summary>
+        /// 累计的帧时间，消耗该时间可以tick一次，帧数过低时，这个值在两帧之间会变大
+        /// </summary>
+        internal double Accumulator { private set; get; }
+
         public float FixedDeltaTime => this._fixedDelta;
         private Action _action;
 
@@ -17,7 +29,7 @@ namespace StargateNet
         private float _deltaTime; // update delta time(not fixed)
         private float _fixedDelta; // config ms/frame
         private float _scaledDelta; // scaled ms/frame
-        private double _accumulator; // 累计的帧时间，消耗该时间可以tick一次，帧数过低时，这个值在两帧之间会变大
+
 
         private int _clockLevel = 1;
 
@@ -33,13 +45,15 @@ namespace StargateNet
             this._action = action;
             this._fixedDelta = 1.0f / engine.ConfigData.tickRate;
             this._scaledDelta = _fixedDelta;
+            this.Alpha = .0f;
         }
 
         internal void PreUpdate()
         {
             this._deltaTime = this._engine.LastDeltaTime / this._engine.LastTimeScale;
-            this._accumulator += this._deltaTime;
+            this.Accumulator += this._deltaTime;
             this.Time += this._deltaTime;
+            this.Alpha = Mathf.Clamp01((float)this.Accumulator / this._scaledDelta);
         }
 
         internal void Update()
@@ -47,23 +61,25 @@ namespace StargateNet
             this.IsFirstCall = true;
             this.IsLastCall = false;
             // 10次只是一个阈值，用来限制处理低帧率的次数。在60tick的情况下，得低于6帧才会在一帧内处理10次，在帧数足够的情况下只会触发一次
-            for (int i = 0; i < 10 && this._accumulator > this._scaledDelta; i++)
+            for (int i = 0; i < 10 && this.Accumulator > this._scaledDelta; i++)
             {
                 this._engine.Monitor.clockLevel = this._clockLevel;
-                this._accumulator -= this._scaledDelta;
-                this.IsLastCall = this._accumulator < this._scaledDelta;
+                this.Accumulator -= this._scaledDelta;
+                this.IsLastCall = this.Accumulator < this._scaledDelta;
+                this.Alpha = Mathf.Clamp01((float)this.Accumulator / this._scaledDelta);
                 // 只有每帧的第一次模拟会触发回滚+Resim
                 this._action?.Invoke();
                 this.IsFirstCall = false;
             }
 
             this._engine.Monitor.deltaTime = this._scaledDelta;
+            this.Alpha = Mathf.Clamp01((float)this.Accumulator / this._scaledDelta);
             // 客户端会根据延迟来加速自己的模拟
             if (!this._engine.IsClient || this._engine.Client.Client.RTT == -1 ||
                 !this._engine.ClientSimulation.currentTick.IsValid ||
                 !this._engine.ClientSimulation.authoritativeTick.IsValid)
                 return;
-            
+
             if (this._engine.Client.HeavyPakLoss)
             {
                 this._scaledDelta = this._fixedDelta;
@@ -85,7 +101,8 @@ namespace StargateNet
             // 用各种延迟计算出一个Tick的合理区间然后比较当前的Tick差，最后三种结果：加速，减速，不变
             // 如果想让客户端在高延迟下多预测几帧，优先应该调整的是【delayTime】
             double pakTime = this.Time - this._lastPacketTime;
-            double targetDelayTick = (pakTime + latency) / this._fixedDelta; //  从上一次收到包时间到包发到服务端后，服务端的增加帧数(RTT+PakTimeDelta)
+            double targetDelayTick =
+                (pakTime + latency) / this._fixedDelta; //  从上一次收到包时间到包发到服务端后，服务端的增加帧数(RTT+PakTimeDelta)
             double serverBiasTick = (serverInputRcvTimeAvg - _fixedDelta) / this._fixedDelta; // 基于服务端的接受延迟和一帧时间差值的调整值，
             double delayTime = (serverTick + targetDelayTick + serverBiasTick + 2 - currentTick) * this._fixedDelta;
             double delayStd = 0.4 * this._fixedDelta; // 标准差值
@@ -100,16 +117,16 @@ namespace StargateNet
                 // 第一次连上服务端，追帧
                 if (this.Time - this._lastAdjustTime > 0.5 && this._initAdjust && this.Time - this._connectTime > 0.5)
                 {
-                    this._accumulator += latency * 2;
+                    this.Accumulator += latency * 2;
                     this._initAdjust = false;
                 }
 
                 // 和理论值差了3帧以上，就直接让下一帧多模拟几次追上去
                 if (this.Time - this._lastAdjustTime > 0.5 && delayTime > this._fixedDelta * 3.0 &&
-                    this._accumulator < this._fixedDelta * 3.0)
+                    this.Accumulator < this._fixedDelta * 3.0)
                 {
                     this._lastAdjustTime = this.Time;
-                    this._accumulator += this._fixedDelta * 5.0f;
+                    this.Accumulator += this._fixedDelta * 5.0f;
                 }
                 else
                 {

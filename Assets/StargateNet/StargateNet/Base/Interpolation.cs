@@ -2,28 +2,24 @@
 {
     public abstract class Interpolation
     {
-        public Tick FromTick { get; private set; }
+        internal StargateEngine Engine { private set; get; }
+        internal Snapshot FromSnapshot { get; set; }
+        internal Snapshot ToSnapshot { get; set; }
+        internal abstract Tick FromTick { get; }
 
-        public Tick ToTick { get; private set; }
-        public Snapshot FromSnapshot { get; private set; }
-        public Snapshot ToSnapshot { get; private set; }
-        public bool HasSnapshot => this.FromSnapshot != null && this.ToSnapshot != null; 
+        internal abstract Tick ToTick { get; }
 
-        public float Alpha { get; private set; }
-        public float InterpolationTime { get; private set; }
-        
-        public Interpolation()
+        internal abstract bool HasSnapshot { get; }
+
+        internal abstract float Alpha { get; }
+        /// <summary>
+        /// 暂时没什么用
+        /// </summary>
+        internal abstract float InterpolationTime { get; }
+
+        public Interpolation(StargateEngine stargateEngine)
         {
-            this.FromTick = Tick.InvalidTick;
-            this.ToTick = Tick.InvalidTick;
-        }
-
-        internal void Update(Snapshot toSnapshot, Tick toTick)
-        {
-            this.FromSnapshot = this.ToSnapshot;
-            this.ToSnapshot = toSnapshot;
-            this.FromTick = this.ToTick;
-            this.ToTick = toTick;
+            this.Engine = stargateEngine;
         }
     }
 }

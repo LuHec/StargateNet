@@ -16,8 +16,8 @@ namespace StargateNet
         internal Monitor Monitor { get; private set; }
 
         internal StargateAllocator WorldAllocator { get; private set; }
-
-        internal Tick SimTick { get; private set; } // 是客户端/服务端已经模拟的本地帧数。客户端的simTick与同步无关，服务端的simtick会作为AuthorTick传给客户端
+        internal Tick Tick => this.IsServer ? this.SimTick : this.ClientSimulation.currentTick;
+        internal Tick SimTick { get; private set; } // 是客户端/服务端已经模拟的本地帧数。客户端的simTick仅代表EnginTick，服务端的SimTick就是AuthorTick
         internal float LastDeltaTime { get; private set; }
         internal float LastTimeScale { get; private set; }
         internal StargateConfigData ConfigData { get; private set; }
@@ -59,6 +59,7 @@ namespace StargateNet
             this.SimTick = new Tick(10);
             this.SimulationClock = new SimulationClock(this, this.FixedUpdate);
             this.NetworkEventManager = networkEventManager;
+            this.ObjectSpawner = objectSpawner;
             // 给每一个Snapshot的分配器，上限是max snapshots
             // 初始化预制体的id
             this.PrefabsTable = new Dictionary<int, NetworkObject>(configData.networkPrefabs.Count);
@@ -77,11 +78,10 @@ namespace StargateNet
             int totalObjectMetaByteSize = configData.maxNetworkObjects * sizeof(NetworkObjectMeta);
             int totalObjectMapByteSize = this.maxEntities * 4;
             //全局的分配器, 存map和meta
-            long worldAllocatedBytes = (totalObjectMetaByteSize + totalObjectMapByteSize * 2) * (this.ConfigData.savedSnapshotsCount + 1) * 2; // 多乘个2是为了给control和header留空间，下同
+            long worldAllocatedBytes = (totalObjectMetaByteSize + totalObjectMapByteSize * 2) * (this.ConfigData.savedSnapshotsCount + 3) * 2; // 多乘个2是为了给control和header留空间，下同.snapshot数量：savedSnapshotsCount + buffer + from + to
             this.WorldAllocator = new StargateAllocator(worldAllocatedBytes, monitor);
             //用于物体Sync var的内存大小
-            long totalObjectStateByteSize =
-                configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
+            long totalObjectStateByteSize = configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
             this.WorldState = new WorldState(this, configData.savedSnapshotsCount, new Snapshot(
                 (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
                 (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
@@ -95,9 +95,8 @@ namespace StargateNet
                     new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities)
                 );
             }
-
-            this.ObjectSpawner = objectSpawner;
-
+            
+            this.InterpolationLocal = new InterpolationLocal(this);
             if (startMode == StartMode.Server)
             {
                 this.Server = new SgServerPeer(this, configData);
@@ -119,9 +118,14 @@ namespace StargateNet
                 // 客户端的worldState需要在RecvBuffer时更新
             }
 
-            this.InterpolationLocal = new InterpolationLocal();
-            
-            this.Simulated = true; 
+            // 插值用
+            this.Simulation.fromSnapshot = this.WorldState.CurrentSnapshot;
+            this.Simulation.toSnapshot = new Snapshot(
+                (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
+                (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
+                new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities);
+
+            this.Simulated = true;
             this.IsRunning = true;
         }
 
@@ -178,8 +182,8 @@ namespace StargateNet
         internal void Render()
         {
             if (!IsRunning) return;
-            // Server can also have rendering
-            if (this.IsServer && !this.ConfigData.runAsHeadless || this.IsConnected)
+            this.InterpolationLocal.Update();
+            if ((this.IsServer && !this.ConfigData.runAsHeadless) || (this.IsClient && this.IsConnected))
             {
                 this.Simulation.ExecuteNetworkRender();
             }

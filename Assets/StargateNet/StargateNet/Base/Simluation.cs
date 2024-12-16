@@ -6,6 +6,8 @@ namespace StargateNet
     public abstract class Simulation
     {
         internal StargateEngine engine;
+        internal Snapshot fromSnapshot;
+        internal Snapshot toSnapshot;
         internal Dictionary<int, INetworkInput> clientInputs = new(64); // 存放输入，服务端存放所有InputSource的输入，客户端只存自己的输入
         internal Dictionary<NetworkObjectRef, Entity> entitiesTable; // 记录当前的Entities，但并不直接执行这些实例
         internal List<Entity> entities; // 用于存储此帧所有的entities，ds不需要这个信息，回放模式可以通过meta还原，延迟补偿不会用到已经删除的实体

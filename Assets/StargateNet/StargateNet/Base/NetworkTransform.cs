@@ -7,6 +7,7 @@ public class NetworkTransform : NetworkBehavior
 {
     [Networked] public Vector3 Position { get; set; }
     [SerializeField] public Transform renderTransform;
+    private Vector3 _renderPosition;
     public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
         this.transform.position = this.Position;
@@ -19,6 +20,7 @@ public class NetworkTransform : NetworkBehavior
 
     private unsafe void Render(SgNetworkGalaxy galaxy)
     {
+        bool isServer = galaxy.IsServer;
         Interpolation interpolation = galaxy.Engine.InterpolationLocal;
         if (!interpolation.HasSnapshot) return;
         
@@ -27,6 +29,7 @@ public class NetworkTransform : NetworkBehavior
         // 获取FromState的数值
         Snapshot fromSnapshot = interpolation.FromSnapshot;
         Snapshot toSnapshot = interpolation.ToSnapshot;
+        //排除前FromSnapshot不存在的物体
         var fromObjectMeta = fromSnapshot.GetWorldObjectMeta(this.Entity.worldMetaId);
         if(fromObjectMeta.networkId != this.Entity.networkId.refValue) return;
 
@@ -37,7 +40,6 @@ public class NetworkTransform : NetworkBehavior
         Vector3 fromPosition = StargateNetUtil.GetVector3(fromPositionPtr);
         Vector3 lerpPosition = Vector3.Lerp(fromPosition, targetPosition, alpha);
         renderTransform.position = lerpPosition;
-        
     }
 }
   

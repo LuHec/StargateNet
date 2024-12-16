@@ -5,10 +5,14 @@ using StargateNet;
 
 public class WorldState
 {
-    public int MaxSnapshotsCount { private set; get; }
-
-    public int FromSnapshotIdx => fromTick.IsValid ? fromTick.tickValue % MaxSnapshotsCount : -1;
     internal StargateEngine Engine { private get; set; }
+    internal int MaxSnapshotsCount { private set; get; }
+
+    internal int FromSnapshotIdx => fromTick.IsValid ? fromTick.tickValue % MaxSnapshotsCount : -1;
+
+    /// <summary>
+    /// 获取上一帧最终状态/本帧初始状态
+    /// </summary>
     internal Snapshot FromSnapshot => fromTick.IsValid ? snapshots[FromSnapshotIdx] : null;
 
     /// <summary>
@@ -26,6 +30,7 @@ public class WorldState
     internal List<Snapshot> snapshots;
 
     internal Tick fromTick = Tick.InvalidTick;
+
     // internal bool HasInitialized { private set; get; }
     internal int HistoryCount => _tickCount > this.MaxSnapshotsCount ? MaxSnapshotsCount : _tickCount;
     private int _tickCount = 0;
@@ -64,7 +69,7 @@ public class WorldState
     /// <param name="tick"></param>
     internal void ServerUpdateState(Tick tick)
     {
-        if(this.Engine.IsClient) throw new Exception("Can't update world state in a client");
+        if (this.Engine.IsClient) throw new Exception("Can't update world state in a client");
         this.fromTick = tick;
         this.FromSnapshot.Init(tick);
         this._currentSnapshot.snapshotTick = tick;
@@ -81,20 +86,11 @@ public class WorldState
     /// <param name="buffer"></param>
     internal void ClientUpdateState(Tick tick, Snapshot buffer)
     {
-        if(this.Engine.IsServer) throw new Exception("Can't update world state in a server");
+        if (this.Engine.IsServer) throw new Exception("Can't update world state in a server");
         this.fromTick = tick;
         this.FromSnapshot.Init(tick);
         buffer.CopyTo(this.FromSnapshot);
         this._tickCount++;
-    }
-
-    /// <summary>
-    /// 获取上一帧最终状态/本帧初始状态
-    /// </summary>
-    /// <returns></returns>
-    internal Snapshot GetFromTick()
-    {
-        return this.FromSnapshot;
     }
 
     /// <summary>
