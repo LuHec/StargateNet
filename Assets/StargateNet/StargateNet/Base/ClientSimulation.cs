@@ -228,7 +228,7 @@ namespace StargateNet
             StargateAllocator predictedState = this.engine.WorldState.CurrentSnapshot.NetworkStates;
             StargateAllocator authorState = authorSnapshot.NetworkStates;
             int poolId = entity.poolId;
-            int* predictedData = (int*)predictedState.pools[poolId].dataPtr + entity.entityBlockWordSize; // 跳过dirtyMap
+            int* predictedData = (int*)predictedState.pools[poolId].dataPtr + entity.entityBlockWordSize;
             int* authorData = (int*)authorState.pools[poolId].dataPtr + entity.entityBlockWordSize;
             for (int i = 0; i < entity.entityBlockWordSize; i++) // 回滚数据
             {

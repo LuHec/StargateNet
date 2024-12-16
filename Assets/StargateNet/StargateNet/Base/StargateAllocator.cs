@@ -161,7 +161,10 @@ namespace StargateNet
         {
             public bool used;
             public void* dataPtr;
-            public long byteSize;
+            /// <summary>
+            /// 这个不是给state用的！！！！包含了tlsf的尾部合并信息！！！！不要用这个！！！！
+            /// </summary>
+            public long byteSize; 
         }
     }
 }

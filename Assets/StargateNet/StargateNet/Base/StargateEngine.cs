@@ -33,6 +33,7 @@ namespace StargateNet
         internal Simulation Simulation { get; private set; }
         internal ServerSimulation ServerSimulation { get; private set; }
         internal ClientSimulation ClientSimulation { get; private set; }
+        internal InterpolationLocal InterpolationLocal { get; private set; }
         internal NetworkEventManager NetworkEventManager { get; private set; }
         internal bool Simulated { get; private set; }
         internal bool IsConnected { get; set; }
@@ -117,6 +118,8 @@ namespace StargateNet
                     new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities);
                 // 客户端的worldState需要在RecvBuffer时更新
             }
+
+            this.InterpolationLocal = new InterpolationLocal();
             
             this.Simulated = true; 
             this.IsRunning = true;
