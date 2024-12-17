@@ -78,7 +78,9 @@ namespace StargateNet
             int totalObjectMetaByteSize = configData.maxNetworkObjects * sizeof(NetworkObjectMeta);
             int totalObjectMapByteSize = this.maxEntities * 4;
             //全局的分配器, 存map和meta
-            long worldAllocatedBytes = (totalObjectMetaByteSize + totalObjectMapByteSize * 2) * (this.ConfigData.savedSnapshotsCount + 3) * 2; // 多乘个2是为了给control和header留空间，下同.snapshot数量：savedSnapshotsCount + buffer + from + to
+            long worldAllocatedBytes =
+                (totalObjectMetaByteSize + totalObjectMapByteSize * 2) * (this.ConfigData.savedSnapshotsCount + 3) *
+                2; // 多乘个2是为了给control和header留空间，下同.snapshot数量：savedSnapshotsCount + buffer + from + to
             this.WorldAllocator = new StargateAllocator(worldAllocatedBytes, monitor);
             //用于物体Sync var的内存大小
             long totalObjectStateByteSize = configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
@@ -95,7 +97,7 @@ namespace StargateNet
                     new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities)
                 );
             }
-            
+
             this.InterpolationLocal = new InterpolationLocal(this);
             if (startMode == StartMode.Server)
             {
@@ -260,8 +262,7 @@ namespace StargateNet
         /// <param name="inputSource">输入源，和客户端id一致。服务端是0，客户端id从1开始</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        internal NetworkObject NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation,
-            int inputSource = -1)
+        internal NetworkObject NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation, int inputSource = -1)
         {
             // 判断是服务端还是客户端(状态帧同步框架应该让所有涉及同步的部分都由服务端来决定，所以这里应该只由服务端来调用)
             // 生成物体，构造Entity，根据IM来决定要发给哪个客户端，同时加入pedding send集合中(每个client一个集合，这样可以根据IM的设置来决定是否要在指定客户端生成)
@@ -334,6 +335,22 @@ namespace StargateNet
             {
                 this.Simulation.SetInput(inputSource, input);
             }
+        }
+
+        internal T GetInput<T>() where T : INetworkInput
+        {
+            int inputSource = -1;
+            if (this.IsClient && this.IsConnected)
+            {
+                inputSource = this.Client.Client.Id;
+            }
+
+            if (this.IsServer)
+            {
+                inputSource = 0;
+            }
+
+            return this.Simulation.GetInput<T>(inputSource);
         }
     }
 }

@@ -6,12 +6,14 @@ using UnityEngine;
 public class NetworkTransform : NetworkBehavior
 {
     [Networked] public Vector3 Position { get; set; }
+    [Networked] public Vector3 Rotation { get; set; }
     [SerializeField] public Transform renderTransform;
     private Vector3 _renderPosition;
 
     public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
         this.transform.position = this.Position;
+        this.transform.rotation = Quaternion.Euler(this.Rotation);
     }
 
     public override void NetworkRender(SgNetworkGalaxy galaxy)
@@ -35,6 +37,7 @@ public class NetworkTransform : NetworkBehavior
         var fromObjectMeta = fromSnapshot.GetWorldObjectMeta(this.Entity.worldMetaId);
         if (fromObjectMeta.networkId != this.Entity.networkId.refValue) return;
 
+        // position lerp
         float alpha = interpolation.Alpha;
         int* fromPositionPtr = (int*)fromSnapshot.NetworkStates.pools[this.Entity.poolId].dataPtr + this.Entity.entityBlockWordSize + stateBlockIdx;
         int* toPositionPtr = (int*)toSnapshot.NetworkStates.pools[this.Entity.poolId].dataPtr + this.Entity.entityBlockWordSize + stateBlockIdx;
@@ -42,5 +45,13 @@ public class NetworkTransform : NetworkBehavior
         Vector3 toPosition = StargateNetUtil.GetVector3(toPositionPtr);
         Vector3 renderPosition = Vector3.Lerp(fromPosition, toPosition, alpha);
         renderTransform.position = renderPosition;
+
+        // rotation lerp
+        int* fromRotationPtr = fromPositionPtr + 3;
+        int* toRotationPtr = toPositionPtr + 3;
+        Vector3 fromRotation = StargateNetUtil.GetVector3(fromRotationPtr);
+        Vector3 toRotation = StargateNetUtil.GetVector3(toRotationPtr);
+        Vector3 renderRotation = Vector3.Lerp(fromRotation, toRotation, alpha);
+        renderTransform.rotation = Quaternion.Euler(renderRotation);  
     }
 }

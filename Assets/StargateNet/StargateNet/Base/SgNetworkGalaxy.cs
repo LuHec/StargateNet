@@ -13,6 +13,8 @@ namespace StargateNet
         public StargateConfigData ConfigData { private set; get; }
         public float NetworkDeltaTime => this.Engine.SimulationClock.FixedDeltaTime;
         public bool IsServer => this.Engine.IsServer;
+        public bool IsClient => this.Engine.IsClient;
+        public int PlayerId => this.Engine.IsServer ? -1 : this.Engine.Client.Client.Id;
 
         public SgNetworkGalaxy()
         {
@@ -49,10 +51,11 @@ namespace StargateNet
         /// <param name="gameObject"></param>
         /// <param name="position"></param>
         /// <param name="rotation"></param>
-        public NetworkObject NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation)
+        /// <param name="inputSource"></param>
+        public NetworkObject NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation, int inputSource = -1)
         {
             if (this.Engine.IsClient) throw new Exception("Only Server can spawn network objects");
-            return this.Engine.NetworkSpawn(gameObject, position, rotation);
+            return this.Engine.NetworkSpawn(gameObject, position, rotation, inputSource);
         }
 
         public void NetworkDestroy(GameObject gameObject)
@@ -66,10 +69,9 @@ namespace StargateNet
             this.Engine.SetInput<T>(input);
         }
 
-        public void TestOnPlayerConnected(int playerId)
+        public T GetInput<T>() where T : INetworkInput
         {
-            this.Engine.NetworkSpawn(this.Engine.PrefabsTable[0].gameObject, Vector3.zero, Quaternion.identity,
-                playerId);
+            return this.Engine.GetInput<T>();
         }
     }
 }

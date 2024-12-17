@@ -185,7 +185,7 @@ namespace StargateNet
         }
 
         /// <summary>
-        /// 在Update期间调整NetworkInput
+        /// 在Update期间调整NetworkInput.需要注意这里InputSource是假参数！！！！字典的key是input的类型！！！！
         /// </summary>
         internal void SetInput(int inputSource, INetworkInput networkInput)
         {
@@ -193,6 +193,17 @@ namespace StargateNet
             {
                 clientInputs[0] = networkInput;
             }
+        }
+        
+        internal T GetInput<T>(int inputSource)
+        {
+            T input = default(T);
+            if (!this.clientInputs.ContainsKey(inputSource))
+            {
+                input = (T)this.clientInputs[inputSource];
+            }
+
+            return input;
         }
 
         internal SimulationInput CreateInput(Tick srvTick, Tick targetTick)

@@ -13,5 +13,10 @@ namespace StargateNet
         {
             
         }
+
+        public virtual void OnPlayerPawnLoad(SgNetworkGalaxy galaxy, int playerId, NetworkObject networkObject)
+        {
+            
+        }
     }
 }

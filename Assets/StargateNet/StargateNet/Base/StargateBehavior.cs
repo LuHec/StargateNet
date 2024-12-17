@@ -41,5 +41,15 @@ namespace StargateNet
         public virtual void NetworkDestroy(SgNetworkGalaxy galaxy)
         {
         }
+
+        public virtual void SerializeToNetcode()
+        {
+            
+        }
+
+        public virtual void DeserializeToGameCode()
+        {
+            
+        }
     }
 }

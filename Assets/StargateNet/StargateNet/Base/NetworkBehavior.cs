@@ -10,5 +10,7 @@ namespace StargateNet
         {
             return this.Entity.FetchInput(out input);
         }
+
+        protected bool IsLocalPlayer() => this.Entity.engine.IsClient && this.Entity.inputSource == this.Entity.engine.Client.Client.Id;
     }
 }
