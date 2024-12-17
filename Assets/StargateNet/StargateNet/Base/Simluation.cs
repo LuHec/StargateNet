@@ -6,7 +6,10 @@ namespace StargateNet
     public abstract class Simulation
     {
         internal StargateEngine engine;
-        internal Snapshot fromSnapshot;
+        /// <summary>
+        /// 在CS都是WorldState.CurrentState
+        /// </summary>
+        internal Snapshot fromSnapshot; 
         internal Snapshot toSnapshot;
         internal Dictionary<int, INetworkInput> clientInputs = new(64); // 存放输入，服务端存放所有InputSource的输入，客户端只存自己的输入
         internal Dictionary<NetworkObjectRef, Entity> entitiesTable; // 记录当前的Entities，但并不直接执行这些实例

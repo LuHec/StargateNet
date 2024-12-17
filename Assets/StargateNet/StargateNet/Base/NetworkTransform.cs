@@ -15,7 +15,7 @@ public class NetworkTransform : NetworkBehavior
 
     public override void NetworkRender(SgNetworkGalaxy galaxy)
     {
-        this.Render(galaxy);
+        // this.Render(galaxy);
     }
 
     private unsafe void Render(SgNetworkGalaxy galaxy)

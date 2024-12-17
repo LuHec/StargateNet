@@ -11,7 +11,7 @@ namespace StargateNet
         internal Tick currentTick = Tick.InvalidTick;
         internal Tick predictedTick = Tick.InvalidTick;
         internal Tick authoritativeTick = Tick.InvalidTick; // 客户端接收到的AuthorTick,服务端Tick从10开始 
-        internal Snapshot rcvBuffer;//接收时存放最新的server snapshot
+        internal Snapshot rcvBuffer; // 接收时存放最新的server snapshot
         internal List<StargateAllocator> predictedSnapshots; // 客户端用于预测snapshot，由于客户端不会预测物体的销毁和生成，所以只存属性
         internal List<SimulationInput> inputs = new(128);
         internal double serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
@@ -103,7 +103,9 @@ namespace StargateNet
         internal override void PreFixedUpdate()
         {
             if (!this.authoritativeTick.IsValid)
+            {
                 return;
+            }
 
             if (this.engine.SimulationClock.IsFirstCall)
                 this.Reconcile();
@@ -155,6 +157,8 @@ namespace StargateNet
                 this.RemoveAllInputs();
             }
 
+            // 拷贝上一帧的结果用于local插值。只会发生在FirstCall，即插值只会插正常的两帧(非一帧内多次的帧)
+            this.engine.WorldState.CurrentSnapshot.CopyTo(this.fromSnapshot);
             if (delayTickCount < this._maxPredictedTicks)
             {
                 // 移除ACK的input，然后重新模拟一遍
