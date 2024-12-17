@@ -95,7 +95,7 @@ namespace StargateNet
         internal unsafe long GetStateBlockIdx(int* stateBlockPtr)
         {
             long idx = this._stateBlock - stateBlockPtr;
-            if(idx < 0 || idx > entityBlockWordSize) throw new Exception("State idx is out of range");
+            if(idx < 0 || idx > entityBlockWordSize) throw new Exception("State block idx is out of range");
             return idx;
         }
 

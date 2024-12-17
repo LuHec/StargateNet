@@ -92,8 +92,7 @@ namespace StargateNet
         /// </summary>
         private bool IsValidMultiPacket(Tick srvTick, Tick srvClientAuthorTick, bool isMultiPacket)
         {
-            return isMultiPacket && srvTick >= this.authoritativeTick + 1 &&
-                   srvClientAuthorTick <= this.authoritativeTick;
+            return isMultiPacket && srvTick >= this.authoritativeTick + 1 && srvClientAuthorTick <= this.authoritativeTick;
         }
 
 

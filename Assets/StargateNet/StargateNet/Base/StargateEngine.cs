@@ -119,11 +119,11 @@ namespace StargateNet
             }
 
             // 插值用
-            this.Simulation.fromSnapshot = this.WorldState.CurrentSnapshot;
-            this.Simulation.toSnapshot = new Snapshot(
+            this.Simulation.fromSnapshot = new Snapshot(
                 (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
                 (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
                 new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities);
+            this.Simulation.toSnapshot = this.WorldState.CurrentSnapshot;
 
             this.Simulated = true;
             this.IsRunning = true;
