@@ -180,9 +180,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cameraPoint: {fileID: 2942176371875200917}
-  moveSpeed: 5
-  lookSpeedX: 2
-  lookSpeedY: 2
+  moveSpeed: 10
+  lookSpeedX: 5
+  lookSpeedY: 5
 --- !u!1 &8879167412728206321
 GameObject:
   m_ObjectHideFlags: 0

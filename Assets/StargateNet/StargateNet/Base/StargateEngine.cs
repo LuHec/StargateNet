@@ -201,8 +201,10 @@ namespace StargateNet
 
             if (this.IsServer || (this.IsClient && this.IsConnected))
             {
+                this.Simulation.DeserializeToGameCode();
                 this.Simulation.PreFixedUpdate(); // 对于客户端，先在这里处理回滚，然后再模拟下一帧
                 this.Simulation.FixedUpdate();
+                this.Simulation.SerializeToNetcode();
                 if (this.SimulationClock.IsLastCall) // 此时toSnapshot已经是完整的信息了，清理前先发送
                     this.Send();
                 this.Simulation.DrainPaddingAddedEntity(); // 发送后再添加到模拟中
@@ -339,18 +341,7 @@ namespace StargateNet
 
         internal T GetInput<T>() where T : INetworkInput
         {
-            int inputSource = -1;
-            if (this.IsClient && this.IsConnected)
-            {
-                inputSource = this.Client.Client.Id;
-            }
-
-            if (this.IsServer)
-            {
-                inputSource = 0;
-            }
-
-            return this.Simulation.GetInput<T>(inputSource);
+            return this.Simulation.GetInput<T>(0);
         }
     }
 }

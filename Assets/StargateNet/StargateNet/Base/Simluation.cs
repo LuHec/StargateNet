@@ -157,6 +157,16 @@ namespace StargateNet
         {
         }
 
+        internal void SerializeToNetcode()
+        {
+            this.engine.IM.SerializeToNetcode();
+        }
+
+        internal void DeserializeToGameCode()
+        {
+            this.engine.IM.DeserializeToGameCode();
+        }
+
         /// <summary>
         /// Simulate world in fixed update
         /// </summary>
@@ -195,12 +205,12 @@ namespace StargateNet
             }
         }
         
-        internal T GetInput<T>(int inputSource)
+        internal T GetInput<T>(int type)
         {
             T input = default(T);
-            if (!this.clientInputs.ContainsKey(inputSource))
+            if (!this.clientInputs.ContainsKey(type))
             {
-                input = (T)this.clientInputs[inputSource];
+                input = (T)this.clientInputs[type];
             }
 
             return input;

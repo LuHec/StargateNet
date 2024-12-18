@@ -51,5 +51,31 @@ namespace StargateNet
                 }
             }
         }
+
+        public void SerializeToNetcode()
+        {
+            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
+            foreach (var entity in simulationList)
+            {
+                foreach (var netScript in entity.entityObject.NetworkScripts)
+                {
+                    if (currentSnapshot.IsObjectDestroyed(entity.worldMetaId)) break;
+                    netScript.SerializeToNetcode();
+                }
+            }
+        }
+        
+        public void DeserializeToGameCode()
+        {
+            Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
+            foreach (var entity in simulationList)
+            {
+                foreach (var netScript in entity.entityObject.NetworkScripts)
+                {
+                    if (currentSnapshot.IsObjectDestroyed(entity.worldMetaId)) break;
+                    netScript.DeserializeToGameCode();
+                }
+            }
+        }
     }
 }

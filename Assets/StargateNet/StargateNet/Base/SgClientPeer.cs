@@ -144,10 +144,10 @@ namespace StargateNet
                     SimulationInput.InputBlock inputBlock = blocks[j];
                     NetworkInput networkInput = (NetworkInput)inputBlock.input;
                     msg.AddInt(inputBlock.type);
-                    msg.AddFloat(networkInput.input.x);
-                    msg.AddFloat(networkInput.input.y);
-                    msg.AddFloat(networkInput.axis.x);
-                    msg.AddFloat(networkInput.axis.x);
+                    msg.AddFloat(networkInput.Input.x);
+                    msg.AddFloat(networkInput.Input.y);
+                    msg.AddFloat(networkInput.YawPitch.x);
+                    msg.AddFloat(networkInput.YawPitch.x);
                 }
             }
 

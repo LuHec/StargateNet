@@ -22,6 +22,18 @@ public class NetworkTransform : NetworkBehavior
             this.Render(galaxy);
     }
 
+    public override void SerializeToNetcode()
+    {
+        this.Position = this.transform.position;
+        this.Rotation = this.transform.rotation.eulerAngles;
+    }
+
+    public override void DeserializeToGameCode()
+    {
+        this.transform.position = this.Position;
+        this.transform.rotation = Quaternion.Euler(this.Rotation);
+    }
+
     private unsafe void Render(SgNetworkGalaxy galaxy)
     {
         bool isServer = galaxy.IsServer;

@@ -106,7 +106,7 @@ namespace StargateNet
             bool clientLossPacket = msg.GetBool();
             int clientLastAuthorTick = msg.GetInt();
             int inputCount = msg.GetInt();
-            ClientData clientData = this.clientConnections[args.FromConnection.Id].clientData;
+            ClientData clientData = this.clientConnections[args.FromConnection.Id].clientData; 
             clientData.deltaPakTime = this.Engine.SimulationClock.Time - clientData.lastPakTime;
             clientData.lastPakTime = this.Engine.SimulationClock.Time;
             clientData.clientLastAuthorTick = new Tick(clientLastAuthorTick);
@@ -125,12 +125,12 @@ namespace StargateNet
                         type = msg.GetInt(),
                         input = new NetworkInput
                         {
-                            input = new Vector2
+                            Input = new Vector2
                             {
                                 x = msg.GetFloat(),
                                 y = msg.GetFloat(),
                             },
-                            axis = new Vector2
+                            YawPitch = new Vector2
                             {
                                 x = msg.GetFloat(),
                                 y = msg.GetFloat(),

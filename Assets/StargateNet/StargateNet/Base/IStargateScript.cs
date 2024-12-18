@@ -7,5 +7,7 @@ namespace StargateNet
         void NetworkFixedUpdate(SgNetworkGalaxy galaxy);
         void NetworkRender(SgNetworkGalaxy galaxy);
         void NetworkDestroy(SgNetworkGalaxy galaxy);
+        void SerializeToNetcode();
+        void DeserializeToGameCode();
     }
 }

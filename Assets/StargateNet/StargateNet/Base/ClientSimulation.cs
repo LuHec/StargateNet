@@ -172,7 +172,7 @@ namespace StargateNet
 
                 if (lastAuthorSnapshot != null && lastAuthorSnapshot.NetworkStates.pools.Count > 0) // 回滚
                     this.RollBackGroup(this._predictedEntities, lastAuthorSnapshot);
-
+                this.DeserializeToGameCode();
 
                 for (int i = 0; i < this.inputs.Count; i++)
                 {
@@ -180,6 +180,7 @@ namespace StargateNet
                     this.currentInput = this.inputs[i];
                     Debug.Log($"currentTick :{this.currentTick}, resim input targetTick:" + currentInput.targetTick);
                     this.ExecuteNetworkFixedUpdate();
+                    this.SerializeToNetcode();
                 }
             }
 

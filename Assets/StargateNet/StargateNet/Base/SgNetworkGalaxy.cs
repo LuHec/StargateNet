@@ -69,6 +69,11 @@ namespace StargateNet
             this.Engine.SetInput<T>(input);
         }
 
+        /// <summary>
+        /// 不要用！！！
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T GetInput<T>() where T : INetworkInput
         {
             return this.Engine.GetInput<T>();
