@@ -10,12 +10,6 @@ public class NetworkTransform : NetworkBehavior
     [SerializeField] public Transform renderTransform;
     private Vector3 _renderPosition;
 
-    public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
-    {
-        this.transform.position = this.Position;
-        this.transform.rotation = Quaternion.Euler(this.Rotation);
-    }
-
     public override void NetworkRender(SgNetworkGalaxy galaxy)
     {
         if (this.renderTransform != null)
@@ -27,7 +21,7 @@ public class NetworkTransform : NetworkBehavior
         this.Position = this.transform.position;
         this.Rotation = this.transform.rotation.eulerAngles;
     }
-
+    
     public override void DeserializeToGameCode()
     {
         this.transform.position = this.Position;
@@ -63,7 +57,10 @@ public class NetworkTransform : NetworkBehavior
         int* toRotationPtr = toPositionPtr + 3;
         Vector3 fromRotation = StargateNetUtil.GetVector3(fromRotationPtr);
         Vector3 toRotation = StargateNetUtil.GetVector3(toRotationPtr);
-        Vector3 renderRotation = Vector3.Lerp(fromRotation, toRotation, alpha);
-        renderTransform.rotation = Quaternion.Euler(renderRotation);  
+        // 使用四元数插值来处理旋转，避免350->10度这种情况
+        Quaternion fromQuat = Quaternion.Euler(fromRotation);
+        Quaternion toQuat = Quaternion.Euler(toRotation);
+        Quaternion renderRotationQuat = Quaternion.Slerp(fromQuat, toQuat, alpha);
+        renderTransform.rotation = renderRotationQuat;
     }
 }

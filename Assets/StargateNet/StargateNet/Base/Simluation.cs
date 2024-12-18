@@ -6,10 +6,12 @@ namespace StargateNet
     public abstract class Simulation
     {
         internal StargateEngine engine;
+
         /// <summary>
         /// 在CS都是WorldState.CurrentState
         /// </summary>
-        internal Snapshot fromSnapshot; 
+        internal Snapshot fromSnapshot;
+
         internal Snapshot toSnapshot;
         internal Dictionary<int, INetworkInput> clientInputs = new(64); // 存放输入，服务端存放所有InputSource的输入，客户端只存自己的输入
         internal Dictionary<NetworkObjectRef, Entity> entitiesTable; // 记录当前的Entities，但并不直接执行这些实例
@@ -159,10 +161,11 @@ namespace StargateNet
 
         internal void SerializeToNetcode()
         {
+            this.SyncPhysicTransform();
             this.engine.IM.SerializeToNetcode();
         }
 
-        internal void DeserializeToGameCode()
+        internal void DeserializeToGamecode()
         {
             this.engine.IM.DeserializeToGameCode();
         }
@@ -191,7 +194,16 @@ namespace StargateNet
         internal void ExecuteNetworkFixedUpdate()
         {
             if (!this.engine.Simulated) return;
+            this.engine.PhysicSimluationUpdate.Simulate(this.engine.SimulationClock.FixedDeltaTime);
             this.engine.IM.ExecuteNetworkFixedUpdate();
+        }
+
+        /// <summary>
+        /// 同步物理
+        /// </summary>
+        internal void SyncPhysicTransform()
+        {
+            UnityEngine.Physics.SyncTransforms();
         }
 
         /// <summary>
@@ -204,7 +216,7 @@ namespace StargateNet
                 clientInputs[0] = networkInput;
             }
         }
-        
+
         internal T GetInput<T>(int type)
         {
             T input = default(T);

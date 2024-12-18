@@ -40,6 +40,7 @@ namespace StargateNet
                 configData = new StargateConfigData()
                 {
                     tickRate = config.FPS,
+                    isPhysic2D = config.IsPhysic2D,
                     maxClientCount = config.MaxClientCount,
                     runAsHeadless = config.RunAsHeadless,
                     maxNetworkObjects = config.maxNetworkObject,
@@ -60,6 +61,7 @@ namespace StargateNet
                 configData = new StargateConfigData()
                 {
                     tickRate = config.FPS,
+                    isPhysic2D = config.IsPhysic2D,
                     maxClientCount = config.MaxClientCount,
                     runAsHeadless = config.RunAsHeadless,
                     maxNetworkObjects = config.maxNetworkObject,

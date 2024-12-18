@@ -8,8 +8,9 @@ namespace StargateNet
     [CreateAssetMenu(fileName = "StargateConfig", menuName = "StargateNet/StargateConfig")]
     public class StargateConfig : ScriptableObject
     {
-        [Range(8, 120)]public int FPS = 30; // fps
-        [Range(8, ushort.MaxValue)]public ushort MaxClientCount = 16;
+        [Range(2, 120)]public int FPS = 30; // fps
+        [Range(2, ushort.MaxValue)]public ushort MaxClientCount = 16;
+        public bool IsPhysic2D = false;
         public bool RunAsHeadless = true;
         [Range(4, ushort.MaxValue)]public int maxNetworkObject = 10;
         [Range(1, 64)] public int SavedSnapshotsCount = 32;

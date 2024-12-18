@@ -28,6 +28,7 @@ namespace StargateNet
         internal SgServerPeer Server { get; private set; }
         internal bool IsServer => Peer.IsServer;
         internal bool IsClient => Peer.IsClient;
+        internal StargatePhysic PhysicSimluationUpdate { get; private set; }
         internal EntityMetaManager EntityMetaManager { get; private set; }
         internal InterestManager IM { get; private set; }
         internal Simulation Simulation { get; private set; }
@@ -50,7 +51,11 @@ namespace StargateNet
         internal unsafe void Start(SgNetworkGalaxy galaxy, StartMode startMode, StargateConfigData configData,
             ushort port, Monitor monitor,
             IMemoryAllocator allocator, IObjectSpawner objectSpawner, NetworkEventManager networkEventManager)
-        {
+        { 
+            if (configData.isPhysic2D)
+                Physics2D.simulationMode = SimulationMode2D.Script;
+            else
+                Physics.simulationMode = SimulationMode.Script;
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
             MemoryAllocation.Allocator = allocator;
             this.SgNetworkGalaxy = galaxy;
@@ -68,6 +73,7 @@ namespace StargateNet
                 PrefabsTable.Add(i, configData.networkPrefabs[i].GetComponent<NetworkObject>());
             }
 
+            this.PhysicSimluationUpdate = new StargatePhysic(configData.isPhysic2D);
             this.IM = new InterestManager(configData.maxNetworkObjects, this);
             // ------------------------ 申请所有需要用到的内存 ------------------------ //
             this.maxEntities = (configData.maxNetworkObjects & 1) == 1
@@ -83,7 +89,8 @@ namespace StargateNet
                 2; // 多乘个2是为了给control和header留空间，下同.snapshot数量：savedSnapshotsCount + buffer + from + to
             this.WorldAllocator = new StargateAllocator(worldAllocatedBytes, monitor);
             //用于物体Sync var的内存大小
-            long totalObjectStateByteSize = configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
+            long totalObjectStateByteSize =
+                configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
             this.WorldState = new WorldState(this, configData.savedSnapshotsCount, new Snapshot(
                 (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
                 (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
@@ -167,7 +174,6 @@ namespace StargateNet
         internal void Update(float deltaTime, float timeScale)
         {
             if (!this.IsRunning) return;
-
             this.LastDeltaTime = deltaTime;
             this.LastTimeScale = timeScale;
             this.SimulationClock.PreUpdate();
@@ -201,7 +207,7 @@ namespace StargateNet
 
             if (this.IsServer || (this.IsClient && this.IsConnected))
             {
-                this.Simulation.DeserializeToGameCode();
+                this.Simulation.DeserializeToGamecode();
                 this.Simulation.PreFixedUpdate(); // 对于客户端，先在这里处理回滚，然后再模拟下一帧
                 this.Simulation.FixedUpdate();
                 this.Simulation.SerializeToNetcode();
@@ -264,7 +270,8 @@ namespace StargateNet
         /// <param name="inputSource">输入源，和客户端id一致。服务端是0，客户端id从1开始</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        internal NetworkObject NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation, int inputSource = -1)
+        internal NetworkObject NetworkSpawn(GameObject gameObject, Vector3 position, Quaternion rotation,
+            int inputSource = -1)
         {
             // 判断是服务端还是客户端(状态帧同步框架应该让所有涉及同步的部分都由服务端来决定，所以这里应该只由服务端来调用)
             // 生成物体，构造Entity，根据IM来决定要发给哪个客户端，同时加入pedding send集合中(每个client一个集合，这样可以根据IM的设置来决定是否要在指定客户端生成)

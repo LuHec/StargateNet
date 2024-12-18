@@ -19,11 +19,14 @@ public class FPSController : NetworkBehavior
             Camera mainCamera = Camera.main;
             if (cameraPoint != null && mainCamera != null)
             {
+                mainCamera.GetComponent<Camera>().fieldOfView = 120f;
                 Transform transform1 = mainCamera.transform;
                 transform1.forward = transform.forward;
                 transform1.SetParent(cameraPoint);
                 transform1.localPosition = Vector3.zero;
             }
+            
+            Cursor.lockState = CursorLockMode.Locked;
         }
     }
 

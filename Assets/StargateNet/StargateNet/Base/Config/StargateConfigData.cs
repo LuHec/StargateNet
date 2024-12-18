@@ -6,6 +6,7 @@ namespace StargateNet
     public struct StargateConfigData
     {
         public int tickRate;
+        public bool isPhysic2D;
         public ushort maxClientCount;
         public int maxNetworkObjects;
         public bool runAsHeadless;

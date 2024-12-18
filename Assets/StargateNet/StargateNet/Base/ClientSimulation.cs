@@ -172,7 +172,8 @@ namespace StargateNet
 
                 if (lastAuthorSnapshot != null && lastAuthorSnapshot.NetworkStates.pools.Count > 0) // 回滚
                     this.RollBackGroup(this._predictedEntities, lastAuthorSnapshot);
-                this.DeserializeToGameCode();
+                this.DeserializeToGamecode();
+                this.SyncPhysicTransform();
 
                 for (int i = 0; i < this.inputs.Count; i++)
                 {

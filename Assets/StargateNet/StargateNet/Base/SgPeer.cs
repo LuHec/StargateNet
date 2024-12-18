@@ -13,5 +13,5 @@ namespace StargateNet
         internal abstract void NetworkUpdate();
 
         public abstract void Disconnect();
-    }
+    } 
 }
