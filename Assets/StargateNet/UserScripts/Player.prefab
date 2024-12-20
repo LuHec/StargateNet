@@ -359,11 +359,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cc: {fileID: 5574289517947133850}
   cameraPoint: {fileID: 2942176371875200917}
-  moveSpeed: 5
+  moveSpeed: 10
   lookSpeedX: 2
   lookSpeedY: 2
-  jumpSpeed: 16
-  gravity: 15
+  jumpSpeed: 12
+  gravity: 24
 --- !u!136 &6545378038382737771
 CapsuleCollider:
   m_ObjectHideFlags: 0

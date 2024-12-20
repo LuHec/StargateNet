@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace StargateNet
 {
@@ -32,6 +33,11 @@ namespace StargateNet
             this.srvTick = Tick.InvalidTick;
             this.targetTick = Tick.InvalidTick;
             inputBlocks.Clear();
+        }
+
+        ~SimulationInput()
+        {
+            Debug.Log("dieeee");
         }
     }
 }
