@@ -7,8 +7,13 @@ public class NetworkTransform : NetworkBehavior
 {
     [Networked] public Vector3 Position { get; set; }
     [Networked] public Vector3 Rotation { get; set; }
-    [SerializeField] public Transform renderTransform;
-    private Vector3 _renderPosition;
+
+    [Header("Basic Settings")] [SerializeField]
+    public Transform renderTransform;
+
+    [Header("Client Lerp Settings")] 
+    [SerializeField]
+    private float _clienTeleportDistance = 10f; // 触发强拉的距离
 
     public override void NetworkRender(SgNetworkGalaxy galaxy)
     {
@@ -21,7 +26,7 @@ public class NetworkTransform : NetworkBehavior
         this.Position = this.transform.position;
         this.Rotation = this.transform.rotation.eulerAngles;
     }
-    
+
     public override void DeserializeToGameCode()
     {
         this.transform.position = this.Position;

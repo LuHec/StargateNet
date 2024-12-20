@@ -11,7 +11,7 @@ namespace StargateNet
     {
         internal StargateEngine Engine { private set; get; }
         public StargateConfigData ConfigData { private set; get; }
-        public float NetworkDeltaTime => this.Engine.SimulationClock.FixedDeltaTime;
+        public float FixedDeltaTime => this.Engine.SimulationClock.FixedDeltaTime;
         public bool IsServer => this.Engine.IsServer;
         public bool IsClient => this.Engine.IsClient;
         public int PlayerId => this.Engine.IsServer ? -1 : this.Engine.Client.Client.Id;

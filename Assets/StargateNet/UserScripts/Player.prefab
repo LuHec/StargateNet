@@ -291,8 +291,8 @@ GameObject:
   - component: {fileID: 975325873021264254}
   - component: {fileID: -7935119376189863334}
   - component: {fileID: 6307345499606157632}
-  - component: {fileID: 3973066026067110110}
   - component: {fileID: 6545378038382737771}
+  - component: {fileID: 5574289517947133850}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -354,37 +354,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44dded61d4d71644fb5c11f69351e136, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  cc: {fileID: 5574289517947133850}
   cameraPoint: {fileID: 2942176371875200917}
   moveSpeed: 10
   lookSpeedX: 2
   lookSpeedY: 2
---- !u!54 &3973066026067110110
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7095134503880436856}
-  serializedVersion: 4
-  m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 122
-  m_CollisionDetection: 0
+  jumpSpeed: 20
+  gravity: 25
 --- !u!136 &6545378038382737771
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -407,6 +383,32 @@ CapsuleCollider:
   m_Radius: 0.5
   m_Height: 2
   m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!143 &5574289517947133850
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7095134503880436856}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 2
+  m_Radius: 0.5
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8879167412728206321
 GameObject:

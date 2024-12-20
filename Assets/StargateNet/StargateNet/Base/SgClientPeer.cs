@@ -148,6 +148,8 @@ namespace StargateNet
                     msg.AddFloat(networkInput.Input.y);
                     msg.AddFloat(networkInput.YawPitch.x);
                     msg.AddFloat(networkInput.YawPitch.x);
+                    msg.AddBool(networkInput.IsJump);
+                    msg.AddBool(networkInput.IsFire);
                 }
             }
 

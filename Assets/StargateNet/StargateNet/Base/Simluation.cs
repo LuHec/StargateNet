@@ -194,8 +194,8 @@ namespace StargateNet
         internal void ExecuteNetworkFixedUpdate()
         {
             if (!this.engine.Simulated) return;
-            this.engine.PhysicSimluationUpdate.Simulate(this.engine.SimulationClock.FixedDeltaTime);
             this.engine.IM.ExecuteNetworkFixedUpdate();
+            this.engine.PhysicSimluationUpdate.Simulate(this.engine.SimulationClock.FixedDeltaTime);
         }
 
         /// <summary>

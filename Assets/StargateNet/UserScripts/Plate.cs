@@ -15,7 +15,7 @@ public class Plate : NetworkBehavior
     public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
         Vector3 position = _networkTransform.Position;
-        position += galaxy.NetworkDeltaTime * new Vector3(1, 1, 0);
+        position += galaxy.FixedDeltaTime * new Vector3(1, 1, 0);
         _networkTransform.Position = position;
     }
 } 
