@@ -12,8 +12,8 @@ public class FPSController : NetworkBehavior
     public float moveSpeed = 5f;
     public float lookSpeedX = 2f;
     public float lookSpeedY = 2f;
-    public float jumpSpeed = 2f;
-    public float gravity = 10;
+    public float jumpSpeed = 18f;
+    public float gravity = 15;
     private Vector2 _localYawPitch;
     /// <summary>
     /// 跳跃和重力的速度

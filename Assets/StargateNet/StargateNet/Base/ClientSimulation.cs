@@ -17,12 +17,23 @@ namespace StargateNet
         internal double serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
         private readonly int _maxPredictedTicks;
         private List<Entity> _predictedEntities = new(32);
+        private List<IClientSimulationCallbacks> _clientSimulationCallbacksList = new(128);
 
 
         internal ClientSimulation(StargateEngine engine) : base(engine)
         {
             this._maxPredictedTicks = engine.ConfigData.maxPredictedTicks;
             this.predictedSnapshots = new List<StargateAllocator>(this._maxPredictedTicks);
+        }
+
+        internal void AddClientSimulationCallbacks(IClientSimulationCallbacks callbacks)
+        {
+            this._clientSimulationCallbacksList.Add(callbacks);
+        }
+
+        internal void RemoveClientSimulationCallbacks(IClientSimulationCallbacks callbacks)
+        {
+            this._clientSimulationCallbacksList.Remove(callbacks);
         }
 
         internal override void HandledRelease()
@@ -56,12 +67,12 @@ namespace StargateNet
                 this.IsValidMultiPacket(srvTick, srvClientAuthorTick, isMultiPacket))
             {
                 this.authoritativeTick = srvTick;
-                RiptideLogger.Log(LogType.Debug, $"Packet accepted. Updated Tick to {srvTick.tickValue}.");
+                // RiptideLogger.Log(LogType.Debug, $"Packet accepted. Updated Tick to {srvTick.tickValue}.");
                 return true;
             }
 
             // 非法包
-            RiptideLogger.Log(LogType.Warning, $"Rejected packet with invalid Tick: {srvTick.tickValue}.");
+            // RiptideLogger.Log(LogType.Warning, $"Rejected packet with invalid Tick: {srvTick.tickValue}.");
             return false;
         }
 
@@ -93,6 +104,22 @@ namespace StargateNet
         private bool IsValidMultiPacket(Tick srvTick, Tick srvClientAuthorTick, bool isMultiPacket)
         {
             return isMultiPacket && srvTick >= this.authoritativeTick + 1 && srvClientAuthorTick <= this.authoritativeTick;
+        }
+
+        private void InvokeClientOnPreRollBack()
+        {
+            foreach (var callbacks in this._clientSimulationCallbacksList)
+            {
+                callbacks?.OnPreRollBack();
+            }
+        }
+
+        private void InvokeClientOnPostResimulation()
+        {
+            foreach (var callbacks in this._clientSimulationCallbacksList)
+            {
+                callbacks?.OnPostResimulation();
+            }
         }
 
 
@@ -134,8 +161,7 @@ namespace StargateNet
         internal override void PostFixedUpdate()
         {
             this.engine.Monitor.tick = this.currentTick.tickValue;
-            // 这里不回收！！！currentInput用的东西在列表里，要用来做resim的
-            this.currentInput = null;
+            this.currentInput = null; // 这里不回收输入！！！currentInput用的东西在列表里，要用来做Resimulation的
         }
 
         internal override void PreUpdate()
@@ -162,6 +188,7 @@ namespace StargateNet
             {
                 // 移除ACK的input，然后重新模拟一遍
                 this.RemoveInputBefore(this.authoritativeTick); // 移除服务器接收到的输入(即使丢包了也不管，服务器不会重新模拟)
+                this.InvokeClientOnPreRollBack();
                 Snapshot lastAuthorSnapshot = this.engine.WorldState.FromSnapshot; // 服务端发来的最新Snapshot
                 this._predictedEntities.Clear();
                 foreach (var entity in this.entities)
@@ -179,10 +206,12 @@ namespace StargateNet
                 {
                     this.currentTick++;
                     this.currentInput = this.inputs[i];
-                    Debug.Log($"currentTick :{this.currentTick}, resim input targetTick:" + currentInput.targetTick);
+                    // Debug.Log($"currentTick :{this.currentTick}, resim input targetTick:" + currentInput.targetTick);
                     this.ExecuteNetworkFixedUpdate();
                     this.SerializeToNetcode();
                 }
+                
+                this.InvokeClientOnPostResimulation();
             }
 
             this.engine.Monitor.resims = this.currentTick - this.authoritativeTick;

@@ -3,17 +3,57 @@ using System.Collections.Generic;
 using StargateNet;
 using UnityEngine;
 
-public class NetworkTransform : NetworkBehavior
+public class NetworkTransform : NetworkBehavior, IClientSimulationCallbacks
 {
-    [Networked] public Vector3 Position { get; set; }
-    [Networked] public Vector3 Rotation { get; set; }
+    [Networked]
+    public Vector3 Position { get; set; }
+
+    [Networked]
+    public Vector3 Rotation { get; set; }
 
     [Header("Basic Settings")] [SerializeField]
     public Transform renderTransform;
 
-    [Header("Client Lerp Settings")] 
+    [Header("Client Settings")] [SerializeField]
+    private bool needCorrect = true;
+
     [SerializeField]
-    private float _clienTeleportDistance = 10f; // 触发强拉的距离
+    private float errorMagnitude = 1.8f;
+
+    [SerializeField, Range(0f, 10f)]
+    private float correctionMultiplier = 1.28f;
+
+    private TransformErrorCorrect _corrector;
+
+    public override void NetworkStart(SgNetworkGalaxy galaxy)
+    {
+        if (this.IsClient && needCorrect && this._corrector == null)
+            _corrector = new TransformErrorCorrect();
+
+        if (this.IsClient)
+        {
+            galaxy.Engine.ClientSimulation.AddClientSimulationCallbacks(this);
+        }
+    }
+
+    public override void NetworkDestroy(SgNetworkGalaxy galaxy)
+    {
+        if (this.IsClient)
+        {
+            galaxy.Engine.ClientSimulation.RemoveClientSimulationCallbacks(this);
+        }
+    }
+
+    public void OnPreRollBack()
+    {
+        this._corrector?.OnPreRollback(this.transform.position, this.transform.rotation);
+    }
+
+    public void OnPostResimulation()
+    {
+        this._corrector?.OnPostResimulation();
+    }
+
 
     public override void NetworkRender(SgNetworkGalaxy galaxy)
     {
@@ -55,7 +95,7 @@ public class NetworkTransform : NetworkBehavior
         Vector3 fromPosition = StargateNetUtil.GetVector3(fromPositionPtr);
         Vector3 toPosition = StargateNetUtil.GetVector3(toPositionPtr);
         Vector3 renderPosition = Vector3.Lerp(fromPosition, toPosition, alpha);
-        renderTransform.position = renderPosition;
+
 
         // rotation lerp
         int* fromRotationPtr = fromPositionPtr + 3;
@@ -66,6 +106,16 @@ public class NetworkTransform : NetworkBehavior
         Quaternion fromQuat = Quaternion.Euler(fromRotation);
         Quaternion toQuat = Quaternion.Euler(toRotation);
         Quaternion renderRotationQuat = Quaternion.Slerp(fromQuat, toQuat, alpha);
+
+
+        // 开始Error Correct
+        if (this.IsClient)
+        {
+            _corrector.Render(ref renderPosition, ref renderRotationQuat, errorMagnitude, correctionMultiplier);
+        }
+
+
+        renderTransform.position = renderPosition;
         renderTransform.rotation = renderRotationQuat;
     }
 }

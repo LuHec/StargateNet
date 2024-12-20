@@ -19,8 +19,7 @@ namespace StargateNet
         private unsafe int* _stateBlock; // Networked Field memory block base address
         private unsafe int* _dirtyMap; // bit dirtymap
         internal bool dirty = false;
-
-
+        
         /// <summary>
         /// 初始化脚本等.获取大小等等
         /// </summary>

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Riptide.Utils;
 
@@ -22,7 +23,6 @@ namespace StargateNet
         internal SimulationInput currentInput;
         protected Queue<SimulationInput> inputPool = new(32);
         protected Queue<Entity> reuseEntities = new(32);
-
 
         internal Simulation(StargateEngine engine)
         {
@@ -195,7 +195,7 @@ namespace StargateNet
         {
             if (!this.engine.Simulated) return;
             this.engine.IM.ExecuteNetworkFixedUpdate();
-            this.engine.PhysicSimluationUpdate.Simulate(this.engine.SimulationClock.FixedDeltaTime);
+            this.engine.PhysicSimulationUpdate.Simulate(this.engine.SimulationClock.FixedDeltaTime);
         }
 
         /// <summary>

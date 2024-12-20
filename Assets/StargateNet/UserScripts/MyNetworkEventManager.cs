@@ -14,27 +14,6 @@ public class MyNetworkEventManager : NetworkEventManager
         galaxy.NetworkSpawn(playerPawn, Vector3.zero, Quaternion.identity, playerId);
     }
 
-    // public override void OnReadInput(SgNetworkGalaxy galaxy)
-    // {
-    //     NetworkInput networkInput = new NetworkInput();
-    //
-    //     if (_mainCamera == null)
-    //         _mainCamera = Camera.main;
-    //
-    //     if (_mainCamera != null)
-    //     {
-    //         Vector3 forward = _mainCamera.transform.forward;
-    //         
-    //     }
-    //     
-    //     
-    //     Vector2 deltaAngles = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
-    //     deltaAngles = deltaAngles.normalized;
-    //     this._viewAngles += deltaAngles;
-    //     networkInput.input = this._viewAngles;
-    //     galaxy.SetInput(networkInput);
-    // }
-
     public override void OnPlayerPawnLoad(SgNetworkGalaxy galaxy, int playerId, NetworkObject networkObject)
     {
         if (galaxy.IsClient && playerId == galaxy.PlayerId)

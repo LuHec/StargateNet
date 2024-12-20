@@ -290,7 +290,7 @@ GameObject:
   - component: {fileID: 5953008201462269410}
   - component: {fileID: 975325873021264254}
   - component: {fileID: -7935119376189863334}
-  - component: {fileID: 6307345499606157632}
+  - component: {fileID: 6298116642484953821}
   - component: {fileID: 6545378038382737771}
   - component: {fileID: 5574289517947133850}
   m_Layer: 0
@@ -342,7 +342,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   renderTransform: {fileID: 3063326188549370508}
---- !u!114 &6307345499606157632
+  needCorrect: 1
+  errorMagnitude: 1.8
+  correctionMultiplier: 1.2
+--- !u!114 &6298116642484953821
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -356,11 +359,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cc: {fileID: 5574289517947133850}
   cameraPoint: {fileID: 2942176371875200917}
-  moveSpeed: 10
+  moveSpeed: 5
   lookSpeedX: 2
   lookSpeedY: 2
-  jumpSpeed: 20
-  gravity: 25
+  jumpSpeed: 16
+  gravity: 15
 --- !u!136 &6545378038382737771
 CapsuleCollider:
   m_ObjectHideFlags: 0

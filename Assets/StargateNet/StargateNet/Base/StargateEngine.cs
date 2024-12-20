@@ -28,7 +28,7 @@ namespace StargateNet
         internal SgServerPeer Server { get; private set; }
         internal bool IsServer => Peer.IsServer;
         internal bool IsClient => Peer.IsClient;
-        internal StargatePhysic PhysicSimluationUpdate { get; private set; }
+        internal StargatePhysic PhysicSimulationUpdate { get; private set; }
         internal EntityMetaManager EntityMetaManager { get; private set; }
         internal InterestManager IM { get; private set; }
         internal Simulation Simulation { get; private set; }
@@ -73,7 +73,7 @@ namespace StargateNet
                 PrefabsTable.Add(i, configData.networkPrefabs[i].GetComponent<NetworkObject>());
             }
 
-            this.PhysicSimluationUpdate = new StargatePhysic(configData.isPhysic2D);
+            this.PhysicSimulationUpdate = new StargatePhysic(configData.isPhysic2D);
             this.IM = new InterestManager(configData.maxNetworkObjects, this);
             // ------------------------ 申请所有需要用到的内存 ------------------------ //
             this.maxEntities = (configData.maxNetworkObjects & 1) == 1
@@ -296,6 +296,7 @@ namespace StargateNet
             if (gameObject.TryGetComponent(out NetworkObject networkObject))
             {
                 NetworkObjectRef networkObjectRef = networkObject.NetworkId;
+                this.OnEntityDestroy(networkObject);
                 this.Simulation.RemoveEntity(networkObjectRef);
                 this.ObjectSpawner.Despawn(gameObject);
             }
@@ -320,6 +321,7 @@ namespace StargateNet
             NetworkObjectRef networkObjectRef = new NetworkObjectRef(networkId);
             if (this.Simulation.entitiesTable.TryGetValue(networkObjectRef, out Entity entity))
             {
+                this.OnEntityDestroy(entity.entityObject);
                 this.ObjectSpawner.Despawn(entity.entityObject.gameObject);
                 this.Simulation.RemoveEntity(networkObjectRef);
                 this.Simulation.DrainPaddingRemovedEntity();
@@ -349,6 +351,15 @@ namespace StargateNet
         internal T GetInput<T>() where T : INetworkInput
         {
             return this.Simulation.GetInput<T>(0);
+        }
+
+        private void OnEntityDestroy(NetworkObject networkObject)
+        {
+            var scripts = networkObject.NetworkScripts;
+            foreach (var script in scripts)
+            {
+                script.NetworkDestroy(this.SgNetworkGalaxy);
+            }
         }
     }
 }
