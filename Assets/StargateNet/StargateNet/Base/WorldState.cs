@@ -86,6 +86,7 @@ public class WorldState
     /// <param name="buffer"></param>
     internal void ClientUpdateState(Tick tick, Snapshot buffer)
     {
+        tick -= 1;  
         if (this.Engine.IsServer) throw new Exception("Can't update world state in a server");
         this.fromTick = tick;
         this.FromSnapshot.Init(tick);

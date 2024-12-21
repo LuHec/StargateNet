@@ -220,9 +220,9 @@ namespace StargateNet
         internal T GetInput<T>(int type)
         {
             T input = default(T);
-            if (!this.clientInputs.ContainsKey(type))
+            if (this.clientInputs.TryGetValue(0, out var clientInput))
             {
-                input = (T)this.clientInputs[type];
+                input = (T)clientInput;
             }
 
             return input;

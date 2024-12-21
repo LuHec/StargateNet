@@ -279,6 +279,37 @@ Transform:
   - {fileID: 4724073803801859655}
   m_Father: {fileID: 5953008201462269410}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7054427280506295180
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5762399165700279374}
+  m_Layer: 0
+  m_Name: Foot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5762399165700279374
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7054427280506295180}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -1.002, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5953008201462269410}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7095134503880436856
 GameObject:
   m_ObjectHideFlags: 0
@@ -291,7 +322,6 @@ GameObject:
   - component: {fileID: 975325873021264254}
   - component: {fileID: -7935119376189863334}
   - component: {fileID: 6298116642484953821}
-  - component: {fileID: 6545378038382737771}
   - component: {fileID: 5574289517947133850}
   m_Layer: 0
   m_Name: Player
@@ -314,6 +344,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3063326188549370508}
+  - {fileID: 5762399165700279374}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &975325873021264254
@@ -342,9 +373,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   renderTransform: {fileID: 3063326188549370508}
-  needCorrect: 1
-  errorMagnitude: 1.8
-  correctionMultiplier: 1.2
+  needCorrect: 0
+  errorMagnitude: 50
+  correctionMultiplier: 3
 --- !u!114 &6298116642484953821
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -359,34 +390,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cc: {fileID: 5574289517947133850}
   cameraPoint: {fileID: 2942176371875200917}
+  foot: {fileID: 5762399165700279374}
+  groundDis: 1
   moveSpeed: 10
   lookSpeedX: 2
   lookSpeedY: 2
   jumpSpeed: 12
   gravity: 24
---- !u!136 &6545378038382737771
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7095134503880436856}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
-  m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!143 &5574289517947133850
 CharacterController:
   m_ObjectHideFlags: 0
@@ -411,7 +421,7 @@ CharacterController:
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
-  m_MinMoveDistance: 0.001
+  m_MinMoveDistance: 0
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8879167412728206321
 GameObject:

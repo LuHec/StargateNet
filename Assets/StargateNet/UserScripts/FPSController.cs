@@ -9,6 +9,8 @@ public class FPSController : NetworkBehavior
 {
     public CharacterController cc;
     public Transform cameraPoint;
+    public Transform foot;
+    public float groundDis = 2f;
     public float moveSpeed = 10f;
     public float lookSpeedX = 2f;
     public float lookSpeedY = 2f;
@@ -27,7 +29,7 @@ public class FPSController : NetworkBehavior
             Camera mainCamera = Camera.main;
             if (cameraPoint != null && mainCamera != null)
             {
-                mainCamera.GetComponent<Camera>().fieldOfView = 120f;
+                mainCamera.GetComponent<Camera>().fieldOfView = 105f;
                 Transform transform1 = mainCamera.transform;
                 transform1.forward = transform.forward;
                 transform1.SetParent(cameraPoint);
@@ -46,11 +48,11 @@ public class FPSController : NetworkBehavior
             cameraPoint.localRotation = Quaternion.Euler(yawPitch.y, 0, 0);
 
             Vector3 movement = new Vector3(input.Input.x, 0, input.Input.y) * moveSpeed;
-            bool isGrounded = cc.isGrounded;
+            bool isGrounded = Physics.Raycast(foot.position, Vector3.down, groundDis);
 
             if (isGrounded && VerticalSpeed < 0)
             {
-                VerticalSpeed = 0f;  
+                VerticalSpeed = -2f;  
             }
 
             if (input.IsJump && isGrounded)
@@ -77,7 +79,7 @@ public class FPSController : NetworkBehavior
             Cursor.lockState = CursorLockMode.Locked;
         }
 
-        NetworkInput networkInput = new NetworkInput();
+        NetworkInput networkInput = galaxy.GetInput<NetworkInput>();
 
         Camera mainCamera = Camera.main;
         if (mainCamera != null)
@@ -101,8 +103,8 @@ public class FPSController : NetworkBehavior
         transform.rotation = Quaternion.Euler(0, _localYawPitch.x, 0);
         cameraPoint.localRotation = Quaternion.Euler(_localYawPitch.y, 0, 0);
         networkInput.YawPitch = new Vector2(_localYawPitch.x, _localYawPitch.y);
-        networkInput.IsJump = Input.GetKey(KeyCode.Space);
-        networkInput.IsFire = Input.GetMouseButtonDown(0);
+        networkInput.IsJump |= Input.GetKeyDown(KeyCode.Space);
+        networkInput.IsFire |= Input.GetMouseButtonDown(0);
         galaxy.SetInput(networkInput);
     }
 

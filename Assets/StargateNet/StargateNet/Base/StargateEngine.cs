@@ -51,7 +51,7 @@ namespace StargateNet
         internal unsafe void Start(SgNetworkGalaxy galaxy, StartMode startMode, StargateConfigData configData,
             ushort port, Monitor monitor,
             IMemoryAllocator allocator, IObjectSpawner objectSpawner, NetworkEventManager networkEventManager)
-        { 
+        {
             if (configData.isPhysic2D)
                 Physics2D.simulationMode = SimulationMode2D.Script;
             else
@@ -207,24 +207,31 @@ namespace StargateNet
 
             if (this.IsServer || (this.IsClient && this.IsConnected))
             {
-                this.Simulation.DeserializeToGamecode();
-                this.Simulation.PreFixedUpdate(); // 对于客户端，先在这里处理回滚，然后再模拟下一帧
-                this.Simulation.FixedUpdate();
-                this.Simulation.SerializeToNetcode();
-                if (this.SimulationClock.IsLastCall) // 此时toSnapshot已经是完整的信息了，清理前先发送
-                    this.Send();
-                this.Simulation.DrainPaddingAddedEntity(); // 发送后再添加到模拟中
-                this.Simulation.DrainPaddingRemovedEntity(); // 发送后再清除Entity占用的内存和id
                 if (this.IsServer) // 更新FromTick
                 {
                     this.WorldState.ServerUpdateState(this.SimTick);
                 }
+                
+                if (this.IsClient)
+                    this.Simulation.DeserializeToGamecode();
+                this.Simulation.PreFixedUpdate(); // 对于客户端，先在这里处理回滚，然后再模拟下一帧
+                this.Simulation.FixedUpdate();
+                if(this.IsServer)
+                    this.Simulation.SerializeToNetcode();
+                this.SimTick++; // 当前是10帧模拟完，11帧的初始状态发往客户端的帧数应该是11帧
+                if (this.SimulationClock.IsLastCall) // 此时toSnapshot已经是完整的信息了，清理前先发送
+                    this.Send();
+                this.Simulation.DrainPaddingAddedEntity(); // 发送后再添加到模拟中
+                this.Simulation.DrainPaddingRemovedEntity(); // 发送后再清除Entity占用的内存和id
 
                 if (this.IsClient && this.ClientSimulation.currentTick.IsValid)
+                {
+                    this.Simulation.SerializeToNetcode();
                     this.ClientSimulation.currentTick++; // 客户端tick增加。FixedUpdate会被时钟在一帧调用多次，相应的currentTick也要更新
-                this.SimTick++; // 下一次Tick是11
+                }
+                
                 this.Simulation.PostFixedUpdate();
-                if(this.IsClient)
+                if (this.IsClient)
                     Debug.Log($"input:{this.ClientSimulation.inputs.Count}");
             }
         }

@@ -109,7 +109,7 @@ public class NetworkTransform : NetworkBehavior, IClientSimulationCallbacks
 
 
         // 开始Error Correct
-        if (this.IsClient)
+        if (this.IsClient && this._corrector != null)
         {
             _corrector.Render(ref renderPosition, ref renderRotationQuat, errorMagnitude, correctionMultiplier);
         }

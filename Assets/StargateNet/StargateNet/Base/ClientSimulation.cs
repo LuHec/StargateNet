@@ -162,6 +162,7 @@ namespace StargateNet
         {
             this.engine.Monitor.tick = this.currentTick.tickValue;
             this.currentInput = null; // 这里不回收输入！！！currentInput用的东西在列表里，要用来做Resimulation的
+            this.clientInputs.Clear();
         }
 
         internal override void PreUpdate()
@@ -186,8 +187,9 @@ namespace StargateNet
             this.engine.WorldState.CurrentSnapshot.CopyTo(this.fromSnapshot);
             if (delayTickCount < this._maxPredictedTicks)
             {
-                // 移除ACK的input，然后重新模拟一遍
-                this.RemoveInputBefore(this.authoritativeTick); // 移除服务器接收到的输入(即使丢包了也不管，服务器不会重新模拟)
+                // 最初让currentTick等于了serverTick，但是serverTick是已经接受并模拟了那一帧输入的，所以这里需要跳过
+                // 比如客户端在第14帧受到了10帧，这个10帧实际上是10帧末，11帧初的结果，所以这里要移除掉author的输入(包括，而不是之前的)
+                this.RemoveInputAndBefore(this.authoritativeTick - 1); // 移除服务器接收到的输入(即使丢包了也不管，服务器不会重新模拟)
                 this.InvokeClientOnPreRollBack();
                 Snapshot lastAuthorSnapshot = this.engine.WorldState.FromSnapshot; // 服务端发来的最新Snapshot
                 this._predictedEntities.Clear();
@@ -204,13 +206,13 @@ namespace StargateNet
 
                 for (int i = 0; i < this.inputs.Count; i++)
                 {
-                    this.currentTick++;
                     this.currentInput = this.inputs[i];
-                    // Debug.Log($"currentTick :{this.currentTick}, resim input targetTick:" + currentInput.targetTick);
+                    Debug.Log($"currentTick :{this.currentTick}, resim input targetTick:" + currentInput.targetTick);
                     this.ExecuteNetworkFixedUpdate();
                     this.SerializeToNetcode();
+                    this.currentTick++;
                 }
-                
+
                 this.InvokeClientOnPostResimulation();
             }
 
@@ -228,16 +230,16 @@ namespace StargateNet
             this.inputs.Clear();
         }
 
-        private void RemoveInputBefore(Tick targetTick)
+        private void RemoveInputAndBefore(Tick targetTick)
         {
             if (this.inputs.Count == 0) return;
-            if (this.inputs[^1].targetTick < targetTick)
+            if (this.inputs[^1].targetTick <= targetTick)
             {
                 RemoveAllInputs();
             }
             else
             {
-                while (this.inputs.Count > 0 && this.inputs[0].targetTick < targetTick)
+                while (this.inputs.Count > 0 && this.inputs[0].targetTick <= targetTick)
                 {
                     RecycleInput(this.inputs[0]);
                     this.inputs.RemoveAt(0);
