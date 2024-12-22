@@ -127,7 +127,7 @@ namespace StargateNet
                 // 客户端的worldState需要在RecvBuffer时更新
             }
 
-            // 插值用
+            // 给插值组件用
             this.Simulation.fromSnapshot = new Snapshot(
                 (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
                 (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
@@ -136,6 +136,8 @@ namespace StargateNet
 
             this.Simulated = true;
             this.IsRunning = true;
+            
+            this.NetworkEventManager.OnNetworkEngineStart(this.SgNetworkGalaxy);
         }
 
 

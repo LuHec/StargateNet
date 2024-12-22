@@ -6,8 +6,14 @@ using UnityEngine;
 public class MyNetworkEventManager : NetworkEventManager
 {
     [SerializeField] private GameObject playerPawn;
-    private Vector2 _viewAngles;
-    private Camera _mainCamera;
+
+    public override void OnNetworkEngineStart(SgNetworkGalaxy galaxy)
+    {
+        if (galaxy.IsServer)
+        {
+            Camera.main.gameObject.AddComponent<ObsCamera>();
+        }
+    }
 
     public override void OnPlayerConnected(SgNetworkGalaxy galaxy, int playerId)
     {

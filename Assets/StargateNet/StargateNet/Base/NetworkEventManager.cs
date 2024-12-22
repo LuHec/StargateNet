@@ -4,6 +4,8 @@ namespace StargateNet
 {
     public class NetworkEventManager : MonoBehaviour
     {
+        public virtual void OnNetworkEngineStart(SgNetworkGalaxy galaxy) { }
+        
         public virtual void OnReadInput(SgNetworkGalaxy galaxy)
         {
             
