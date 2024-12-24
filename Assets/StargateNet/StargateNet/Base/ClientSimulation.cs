@@ -207,7 +207,7 @@ namespace StargateNet
                 for (int i = 0; i < this.inputs.Count; i++)
                 {
                     this.currentInput = this.inputs[i];
-                    Debug.Log($"currentTick :{this.currentTick}, resim input targetTick:" + currentInput.targetTick);
+                    Debug.Log($"currentTick :{this.currentTick}, resim input targetTick:" + currentInput.clientTargetTick);
                     this.ExecuteNetworkFixedUpdate();
                     this.SerializeToNetcode();
                     this.currentTick++;
@@ -233,13 +233,13 @@ namespace StargateNet
         private void RemoveInputAndBefore(Tick targetTick)
         {
             if (this.inputs.Count == 0) return;
-            if (this.inputs[^1].targetTick <= targetTick)
+            if (this.inputs[^1].clientTargetTick <= targetTick)
             {
                 RemoveAllInputs();
             }
             else
             {
-                while (this.inputs.Count > 0 && this.inputs[0].targetTick <= targetTick)
+                while (this.inputs.Count > 0 && this.inputs[0].clientTargetTick <= targetTick)
                 {
                     RecycleInput(this.inputs[0]);
                     this.inputs.RemoveAt(0);

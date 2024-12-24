@@ -78,5 +78,25 @@ namespace StargateNet
         {
             return this.Engine.GetInput<T>();
         }
+
+        /// <summary>
+        /// 网络版本的射线检测，如果打到了带有延迟补偿的碰撞体，就会将物体回滚并重新判定
+        /// </summary>
+        /// <param name="origin"></param>
+        /// <param name="direction"></param>
+        /// <param name="inputSource"></param>
+        /// <param name="hitInfo"></param>
+        /// <param name="maxDistance"></param>
+        /// <param name="layerMask"></param>
+        /// <returns></returns>
+        public bool NetworkRaycast(Vector3 origin,
+            Vector3 direction,
+            int inputSource,
+            out RaycastHit hitInfo,
+            float maxDistance,
+            int layerMask)
+        {
+            return this.Engine.NetworkRaycast(origin, direction, inputSource, out hitInfo, maxDistance, layerMask);
+        }
     }
 }

@@ -68,16 +68,16 @@ namespace StargateNet
                         for (int j = 0; j < array.Length; j++)
                         {
                             ticks += ',';
-                            ticks += array[j].targetTick;
+                            ticks += array[j].clientTargetTick;
                         }
                     }
-                    
+
                     RiptideLogger.Log(LogType.Warning,
                         $"ServerTick:{this.engine.SimTick}，{ticks}  input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
-                    while (clientInput.Count > 0 && clientInput.Peek().targetTick < targetTick)
+                    while (clientInput.Count > 0 && clientInput.Peek().clientTargetTick < targetTick)
                     {
                         var input = clientInput.Dequeue();
-                        if (input.targetTick < targetTick)
+                        if (input.clientTargetTick < targetTick)
                         {
                             this.RecycleInput(input);
                         }
@@ -85,7 +85,7 @@ namespace StargateNet
 
 
                     // RiptideLogger.Log(LogType.Warning,
-                        // $"ServerTick:{this.engine.SimTick}, ClientInput targetTick:{this.clientDatas[i].currentInput?.targetTick}, input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
+                    // $"ServerTick:{this.engine.SimTick}, ClientInput targetTick:{this.clientDatas[i].currentInput?.targetTick}, input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
                 }
             }
         }
@@ -97,12 +97,12 @@ namespace StargateNet
                 return false;
 
             ClientData clientData = this.clientDatas[inputSource];
-            if (clientData.clientInput.Count == 0 || clientData.clientInput.Peek().targetTick != this.engine.SimTick)
+            if (clientData.clientInput.Count == 0 || clientData.clientInput.Peek().clientTargetTick != this.engine.SimTick)
                 return false;
 
             if (clientData.currentInput == null)
                 clientData.currentInput = clientData.clientInput.Dequeue();
-            
+
             var inputBlocks = clientData.currentInput.inputBlocks;
             for (int i = 0; i < inputBlocks.Count; i++)
             {
@@ -114,6 +114,12 @@ namespace StargateNet
             }
 
             return false;
+        }
+
+        internal SimulationInput GetSimulationInput(int inputSource)
+        {
+            if (inputSource < 0 || inputSource >= this.clientDatas.Length || !this.clientDatas[inputSource].Started) return null;
+            return this.clientDatas[inputSource].currentInput;
         }
     }
 }

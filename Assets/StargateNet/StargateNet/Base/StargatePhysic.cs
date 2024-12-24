@@ -1,22 +1,28 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEditor.PackageManager;
+using UnityEngine;
 
 namespace StargateNet
 {
     public class StargatePhysic
     {
-        public bool IsPhysic2D { private set; get; }
+        internal bool IsPhysic2D { private set; get; }
+        internal StargateEngine Engine { private set; get; }
 
-        public StargatePhysic(bool isPhysic2D)
+        public StargatePhysic(StargateEngine engine, bool isPhysic2D)
         {
+            this.Engine = engine;
             this.IsPhysic2D = isPhysic2D;
         }
 
-        public void Simulate(float deltaTime)
+        internal void Simulate(float deltaTime)
         {
             if (this.IsPhysic2D)
                 Physics2D.Simulate(deltaTime);
             else
                 Physics.Simulate(deltaTime);
         }
+
+        
     }
 }

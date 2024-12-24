@@ -28,6 +28,7 @@ namespace StargateNet
         internal SgServerPeer Server { get; private set; }
         internal bool IsServer => Peer.IsServer;
         internal bool IsClient => Peer.IsClient;
+        internal LagCompensate LagCompensate { get; private set; }
         internal StargatePhysic PhysicSimulationUpdate { get; private set; }
         internal EntityMetaManager EntityMetaManager { get; private set; }
         internal InterestManager IM { get; private set; }
@@ -73,7 +74,7 @@ namespace StargateNet
                 PrefabsTable.Add(i, configData.networkPrefabs[i].GetComponent<NetworkObject>());
             }
 
-            this.PhysicSimulationUpdate = new StargatePhysic(configData.isPhysic2D);
+            this.PhysicSimulationUpdate = new StargatePhysic(this, configData.isPhysic2D);
             this.IM = new InterestManager(configData.maxNetworkObjects, this);
             // ------------------------ 申请所有需要用到的内存 ------------------------ //
             this.maxEntities = (configData.maxNetworkObjects & 1) == 1
@@ -136,7 +137,7 @@ namespace StargateNet
 
             this.Simulated = true;
             this.IsRunning = true;
-            
+
             this.NetworkEventManager.OnNetworkEngineStart(this.SgNetworkGalaxy);
         }
 
@@ -213,12 +214,12 @@ namespace StargateNet
                 {
                     this.WorldState.ServerUpdateState(this.SimTick);
                 }
-                
+
                 if (this.IsClient)
                     this.Simulation.DeserializeToGamecode();
                 this.Simulation.PreFixedUpdate(); // 对于客户端，先在这里处理回滚，然后再模拟下一帧
                 this.Simulation.FixedUpdate();
-                if(this.IsServer)
+                if (this.IsServer)
                     this.Simulation.SerializeToNetcode();
                 this.SimTick++; // 当前是10帧模拟完，11帧的初始状态发往客户端的帧数应该是11帧
                 if (this.SimulationClock.IsLastCall) // 此时toSnapshot已经是完整的信息了，清理前先发送
@@ -231,7 +232,7 @@ namespace StargateNet
                     this.Simulation.SerializeToNetcode();
                     this.ClientSimulation.currentTick++; // 客户端tick增加。FixedUpdate会被时钟在一帧调用多次，相应的currentTick也要更新
                 }
-                
+
                 this.Simulation.PostFixedUpdate();
                 if (this.IsClient)
                     Debug.Log($"input:{this.ClientSimulation.inputs.Count}");
@@ -252,7 +253,7 @@ namespace StargateNet
 
         // ------------- Engine Func ------------- //
 
-        public bool FetchInput<T>(out T input, int inputSource) where T : INetworkInput
+        internal bool FetchInput<T>(out T input, int inputSource) where T : INetworkInput
         {
             input = default(T);
             if (inputSource == -1) return false;
@@ -270,6 +271,15 @@ namespace StargateNet
             return false;
         }
 
+        internal bool NetworkRaycast(Vector3 origin,
+            Vector3 direction,
+            int inputSource,
+            out RaycastHit hitInfo,
+            float maxDistance,
+            int layerMask)
+        {
+            return this.LagCompensate.NetworkRaycast(origin, direction, inputSource,out hitInfo, maxDistance, layerMask);
+        }
 
         // ------------- Server Only ------------- //
         /// <summary>

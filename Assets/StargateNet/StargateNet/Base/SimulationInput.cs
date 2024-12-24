@@ -14,8 +14,9 @@ namespace StargateNet
             public INetworkInput input;
         }
 
-        public Tick srvTick = Tick.InvalidTick;
-        public Tick targetTick = Tick.InvalidTick;
+        public Tick clientAtuhorTick = Tick.InvalidTick;
+        public Tick clientTargetTick = Tick.InvalidTick;
+        public float alpha;
         public List<InputBlock> inputBlocks = new(4);
 
         public void AddInputBlock(InputBlock inputBlock)
@@ -30,8 +31,8 @@ namespace StargateNet
         
         public void Clear()
         {
-            this.srvTick = Tick.InvalidTick;
-            this.targetTick = Tick.InvalidTick;
+            this.clientAtuhorTick = Tick.InvalidTick;
+            this.clientTargetTick = Tick.InvalidTick;
             inputBlocks.Clear();
         }
 

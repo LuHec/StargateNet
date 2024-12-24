@@ -31,7 +31,7 @@ namespace StargateNet
         {
             this.Started = true;
             clientInput.Enqueue(input);
-            this.LastTargetTick = input.targetTick;
+            this.LastTargetTick = input.clientTargetTick;
         }
 
         public void Reset()
