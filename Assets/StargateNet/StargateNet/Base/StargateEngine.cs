@@ -295,7 +295,7 @@ namespace StargateNet
             int inputSource = -1)
         {
             // 判断是服务端还是客户端(状态帧同步框架应该让所有涉及同步的部分都由服务端来决定，所以这里应该只由服务端来调用)
-            // 生成物体，构造Entity，根据IM来决定要发给哪个客户端，同时加入pedding send集合中(每个client一个集合，这样可以根据IM的设置来决定是否要在指定客户端生成)
+            // 生成物体，构造Entity，根据IM来决定要发给哪个客户端，同时加入pending send集合中(每个client一个集合，这样可以根据IM的设置来决定是否要在指定客户端生成)
             // 在下一帧ServerPeer.Send中发出
             // 夹在DS中发给客户端,内存构造是：length,bitmap,data。
             if (gameObject.TryGetComponent(out NetworkObject component))

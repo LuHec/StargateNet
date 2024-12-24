@@ -28,15 +28,12 @@ namespace StargateNet
             this.RecycleInput(this.currentInput);
             this.currentInput = null;
             // 清除本帧使用的input
-            for (int i = 0; i < clientDatas.Length; i++)
+            for (int i = 0; i < this.clientDatas.Length; i++)
             {
-                if (clientDatas[i].Started)
+                ClientData clientData = this.clientDatas[i];
+                if (clientData.Started)
                 {
-                    if (clientDatas[i].currentInput != null)
-                    {
-                        this.RecycleInput(clientDatas[i].currentInput);
-                        clientDatas[i].currentInput = null;
-                    }
+                    clientData.ClearInput(this);
                 }
             }
 
@@ -95,15 +92,9 @@ namespace StargateNet
             input = default(T);
             if (inputSource == -1 || inputSource >= this.clientDatas.Length || !this.clientDatas[inputSource].Started)
                 return false;
-
             ClientData clientData = this.clientDatas[inputSource];
-            if (clientData.clientInput.Count == 0 || clientData.clientInput.Peek().clientTargetTick != this.engine.SimTick)
-                return false;
-
-            if (clientData.currentInput == null)
-                clientData.currentInput = clientData.clientInput.Dequeue();
-
-            var inputBlocks = clientData.currentInput.inputBlocks;
+            if (clientData.CurrentInput == null) return false;
+            var inputBlocks = clientData.CurrentInput.inputBlocks;
             for (int i = 0; i < inputBlocks.Count; i++)
             {
                 if (inputBlocks[i].type == 0)
@@ -119,7 +110,7 @@ namespace StargateNet
         internal SimulationInput GetSimulationInput(int inputSource)
         {
             if (inputSource < 0 || inputSource >= this.clientDatas.Length || !this.clientDatas[inputSource].Started) return null;
-            return this.clientDatas[inputSource].currentInput;
+            return this.clientDatas[inputSource].CurrentInput;
         }
     }
 }

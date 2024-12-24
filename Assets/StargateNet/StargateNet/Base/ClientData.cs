@@ -9,7 +9,7 @@ namespace StargateNet
         public Queue<SimulationInput> clientInput = new(); //  ow gdc所说的input缓冲区        
         public Tick LastTargetTick { get; private set; }
         public bool Started { get; private set; }
-        public SimulationInput currentInput;
+        public SimulationInput CurrentInput { get; private set; }
         public double lastPakTime;
         public double deltaPakTime;
         public bool pakLoss = false;
@@ -32,6 +32,20 @@ namespace StargateNet
             this.Started = true;
             clientInput.Enqueue(input);
             this.LastTargetTick = input.clientTargetTick;
+        }
+
+        public void PrepareCurrentInput(Tick srvTick)
+        {
+            if (this.clientInput.Count > 0 && this.clientInput.Peek().clientTargetTick == srvTick)
+            {
+                this.CurrentInput = this.clientInput.Dequeue();
+            }
+        }
+
+        public void ClearInput(ServerSimulation simulation)
+        {
+            simulation.RecycleInput(this.CurrentInput);
+            this.CurrentInput = null;
         }
 
         public void Reset()
