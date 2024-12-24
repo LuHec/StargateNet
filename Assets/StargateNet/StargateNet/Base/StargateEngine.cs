@@ -234,8 +234,6 @@ namespace StargateNet
                 }
 
                 this.Simulation.PostFixedUpdate();
-                if (this.IsClient)
-                    Debug.Log($"input:{this.ClientSimulation.inputs.Count}");
             }
         }
 

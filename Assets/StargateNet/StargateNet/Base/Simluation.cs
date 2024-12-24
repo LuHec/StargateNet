@@ -14,7 +14,7 @@ namespace StargateNet
         internal Snapshot fromSnapshot;
 
         internal Snapshot toSnapshot;
-        internal Dictionary<int, INetworkInput> clientInputs = new(256); // 存放输入，服务端存放所有InputSource的输入，客户端只存自己的输入
+        internal Dictionary<int, ClientInput> clientInputs = new(256); // 存放输入，服务端存放所有InputSource的输入，客户端只存自己的输入
         internal Dictionary<NetworkObjectRef, Entity> entitiesTable; // 记录当前的Entities，但并不直接执行这些实例
         internal List<Entity> entities; // 用于存储此帧所有的entities，ds不需要这个信息，回放模式可以通过meta还原，延迟补偿不会用到已经删除的实体
         internal List<Entity> paddingToAddEntities = new(32); // 待加入模拟的实体，用于延迟添加到模拟列表。Entity会在这之前就被添加到table中
@@ -211,10 +211,10 @@ namespace StargateNet
         /// </summary>
         internal void SetInput(int inputSource, INetworkInput networkInput)
         {
-            float alpha = this.engine.SimulationClock.Alpha;
-            if (!this.clientInputs.TryAdd(0, networkInput))
+            ClientInput clientInput = new ClientInput() { networkInput = networkInput, alpha = this.engine.SimulationClock.Alpha };
+            if (!this.clientInputs.TryAdd(0, clientInput))
             {
-                clientInputs[0] = networkInput;
+                clientInputs[0] = clientInput;
             }
         }
 
@@ -223,13 +223,13 @@ namespace StargateNet
             T input = default(T);
             if (this.clientInputs.TryGetValue(0, out var clientInput))
             {
-                input = (T)clientInput;
+                input = (T)clientInput.networkInput;
             }
 
             return input;
         }
 
-        internal SimulationInput CreateInput(Tick srvTick, Tick targetTick)
+        internal SimulationInput CreateInput(Tick srvTick, Tick targetTick, float alpha)
         {
             if (inputPool.Count == 0)
             {
@@ -237,8 +237,8 @@ namespace StargateNet
             }
 
             SimulationInput resInput = inputPool.Dequeue();
-            resInput.clientAtuhorTick = srvTick;
-            resInput.clientTargetTick = targetTick;
+            resInput.Init(srvTick, targetTick, alpha);
+            
             return resInput;
         }
 

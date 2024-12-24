@@ -20,7 +20,12 @@ namespace StargateNet
         internal override void PreFixedUpdate()
         {
             this.ConsumeInputs(this.engine.SimTick);
-            this.currentInput = this.CreateInput(this.engine.SimTick, this.engine.SimTick);
+            this.currentInput = this.CreateInput(this.engine.SimTick, this.engine.SimTick, 0);
+            foreach (var clientData in clientDatas) 
+            {
+                if(clientData.Started)
+                    clientData.PrepareCurrentInput(this.engine.Tick);
+            }
         }
 
         internal override void PostFixedUpdate()

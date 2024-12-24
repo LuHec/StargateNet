@@ -114,10 +114,12 @@ namespace StargateNet
             // input ------------------------
             for (int i = 0; i < inputCount; i++)
             {
+                int authorTick = msg.GetInt();
                 int targetTick = msg.GetInt();
+                float alpha = msg.GetFloat();
                 int inputBlockCount = msg.GetInt();
                 SimulationInput simulationInput =
-                    this.Engine.ServerSimulation.CreateInput(Tick.InvalidTick, new Tick(targetTick));
+                    this.Engine.ServerSimulation.CreateInput(new Tick(authorTick), new Tick(targetTick), alpha);
                 while (inputBlockCount-- > 0)
                 {
                     SimulationInput.InputBlock inputBlock = new()
@@ -151,7 +153,6 @@ namespace StargateNet
                 }
                 clientData.ReceiveInput(simulationInput);
             }
-            clientData.PrepareCurrentInput(this.Engine.Tick);
         }
 
         private void OnConnect(object sender, ServerConnectedEventArgs args)

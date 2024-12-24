@@ -14,24 +14,31 @@ namespace StargateNet
             public INetworkInput input;
         }
 
-        public Tick clientAtuhorTick = Tick.InvalidTick;
+        public Tick clientAuthorTick = Tick.InvalidTick;
         public Tick clientTargetTick = Tick.InvalidTick;
-        public float alpha;
+        public float clientInterpolationAlpha = 0;
         public List<InputBlock> inputBlocks = new(4);
+
+        public void Init(Tick authorTick, Tick targetTick, float alpha)
+        {
+            this.clientAuthorTick = authorTick;
+            this.clientTargetTick = targetTick;
+            this.clientInterpolationAlpha = alpha;
+        }
 
         public void AddInputBlock(InputBlock inputBlock)
         {
             inputBlocks.Add(inputBlock);
         }
-        
+
         public void AddInputBlock(int type, INetworkInput input)
         {
             this.inputBlocks.Add(new InputBlock { type = type, input = input });
         }
-        
+
         public void Clear()
         {
-            this.clientAtuhorTick = Tick.InvalidTick;
+            this.clientAuthorTick = Tick.InvalidTick;
             this.clientTargetTick = Tick.InvalidTick;
             inputBlocks.Clear();
         }

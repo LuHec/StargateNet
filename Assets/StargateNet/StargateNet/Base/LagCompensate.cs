@@ -29,8 +29,8 @@ namespace StargateNet
             if (this.Engine.IsClient) return Physics.Raycast(origin, direction, out hitInfo, maxDistance, layerMask);
 
             SimulationInput input = this.Engine.ServerSimulation.GetSimulationInput(inputSource);
-            Tick clientAuthorTick = input.clientAtuhorTick; // clientAuthorTick对应的Snapshot是客户端按下调用RayCast时其他RemoteObject的状态
-            float alpha = input.alpha;
+            Tick clientAuthorTick = input.clientAuthorTick; // clientAuthorTick对应的Snapshot是客户端按下调用RayCast时其他RemoteObject的状态
+            float alpha = input.clientInterpolationAlpha;
             Snapshot fromSnapshot = this.Engine.WorldState.GetHistoryTick(this.Engine.Tick - clientAuthorTick);
             Snapshot toSnapshot = this.Engine.WorldState.GetHistoryTick(this.Engine.Tick - clientAuthorTick - 1);
             if (fromSnapshot != null && toSnapshot != null)
