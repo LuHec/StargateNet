@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6088467470949513349}
   - component: {fileID: 980984830910466347}
   - component: {fileID: 4075220109556638685}
-  m_Layer: 22
+  m_Layer: 31
   m_Name: CompensateComponent
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -52,8 +52,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 5.895844, y: 5.2415214, z: 4.3142233}
+  m_Center: {x: 0.030550718, y: -0.21601892, z: 0.04783678}
 --- !u!114 &4075220109556638685
 MonoBehaviour:
   m_ObjectHideFlags: 0

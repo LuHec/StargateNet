@@ -1,4 +1,6 @@
-﻿namespace StargateNet
+﻿using UnityEngine;
+
+namespace StargateNet
 {
     /// <summary>
     /// 远端同步的插值，只在客户端存在。
@@ -8,14 +10,120 @@
     /// </summary>
     public class InterpolationRemote : Interpolation
     {
+        internal override Tick FromTick => this._fromTick;
+        internal override Tick ToTick => this._toTick;
+        internal override bool HasSnapshot => this.FromSnapshot != null && this.ToSnapshot != null;
+        internal override float Alpha => _alpha;
+        internal override float InterpolationTime { get; }
+        private float _interpolateRatio;
+        private float _interpolateTime;
+        private float _currentLerpTime; // 插值时间，由Time.deltaTime叠加得到。表示从上一个插值帧开始过了多久。alpha = _currentLerpTime / threshold
+        private float _bufferAsTime; // tick换算为时间，代表缓冲区里所有的snapshot被积压了多久
+        private float _alpha;
+        private RingQueue<Snapshot> _snapshotBuffer;
+        private Tick _fromTick;
+        private Tick _toTick;
+        private int _useAbleTicks = 0;
+
         public InterpolationRemote(StargateEngine stargateEngine) : base(stargateEngine)
         {
+            this._snapshotBuffer = new RingQueue<Snapshot>(stargateEngine.ConfigData.savedSnapshotsCount);
+            this._interpolateTime = 1.0f / stargateEngine.ConfigData.tickRate * 2;
+            this._interpolateRatio = 2;
+        }
+        
+        /// <summary>
+        /// 更新远端插值的资源。
+        /// 通过计算整体的时间比例来获得alpha值
+        /// </summary>
+        internal override void Update()
+        {
+            float fixedTime = this.Engine.SimulationClock.FixedDeltaTime;
+            if (this._snapshotBuffer.Count < 2)
+            {
+                this._useAbleTicks = 0;
+                return;
+            }
+
+            if (this._useAbleTicks < 2)
+            {
+                return;
+            }
+
+            this._fromTick = this._snapshotBuffer[0].snapshotTick;
+            this._toTick = this._snapshotBuffer[1].snapshotTick;
+            // // 如果发生了丢包，那两帧的时间差会变大，但同时_currentLerpTime的值也会变大。
+            // float threshold = (this._toTick - this._fromTick) * fixedTime; 
+            float threshold = this._interpolateRatio * this.Engine.SimulationClock.FixedDeltaTime;
+            
+            if (this._currentLerpTime < threshold)
+            {
+                this._currentLerpTime += Time.deltaTime;
+                this._alpha = this._currentLerpTime / threshold;
+            }
+
+            float temp = this._alpha;
+            if (this._currentLerpTime > threshold)
+            {
+                while (temp > 1)
+                {
+                    if (this._snapshotBuffer.Count == 0)
+                    {
+                        this._currentLerpTime = 0;
+                        break;
+                    }
+                    
+                    this.Dequeue();
+                    this._currentLerpTime -= threshold;
+                    temp -= 1;
+                }
+
+                if (this._snapshotBuffer.Count < 2)
+                {
+                    this._currentLerpTime = 0;
+                }
+            }
+            
+            this._alpha = this._currentLerpTime / threshold;
+            if (this._snapshotBuffer.Count >= 2)
+            {
+                this._fromTick = this._snapshotBuffer[0].snapshotTick;
+                this._toTick = this._snapshotBuffer[1].snapshotTick;
+            }
         }
 
-        internal override Tick FromTick { get; }
-        internal override Tick ToTick { get; }
-        internal override bool HasSnapshot { get; }
-        internal override float Alpha { get; }
-        internal override float InterpolationTime { get; }
+        internal void AddSnapshot(Tick tick, Snapshot snapshot)
+        {
+            if (this._snapshotBuffer.Count == 0)
+            {
+                this._snapshotBuffer.EnQueue(snapshot);
+                this._bufferAsTime += this.Engine.SimulationClock.FixedDeltaTime;
+            }
+            else
+            {
+                this._useAbleTicks++;
+                this._snapshotBuffer.EnQueue(snapshot);
+                this._bufferAsTime += (tick - _snapshotBuffer.Last.snapshotTick) * this.Engine.SimulationClock.FixedDeltaTime;
+            }
+            
+            if(this._snapshotBuffer.IsFull)
+                this.Reset();
+        }
+
+        internal void Dequeue()
+        {
+            this._snapshotBuffer.PopFront();
+        }
+
+        internal void Reset()
+        {
+            this._fromTick = Tick.InvalidTick;
+            this._toTick = Tick.InvalidTick;
+            this._bufferAsTime = 0;
+            this._alpha = 0;
+            this._currentLerpTime = 0;
+            this._snapshotBuffer.Clear();
+            
+        }
     }
 }

@@ -5,10 +5,10 @@ using UnityEngine;
 
 public class NetworkTransform : NetworkBehavior, IClientSimulationCallbacks
 {
-    [Networked]
+    [Replicated]
     public Vector3 Position { get; set; }
 
-    [Networked]
+    [Replicated]
     public Vector3 Rotation { get; set; }
 
     [Header("Basic Settings")] [SerializeField]
@@ -16,7 +16,6 @@ public class NetworkTransform : NetworkBehavior, IClientSimulationCallbacks
 
     [Header("Client Settings")] [SerializeField]
     private bool needCorrect = true;
-
     [SerializeField]
     private float errorMagnitude = 1.8f;
 

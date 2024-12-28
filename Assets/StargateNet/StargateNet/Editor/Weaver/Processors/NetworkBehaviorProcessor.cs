@@ -75,7 +75,7 @@ namespace StargateNet
                         //     MessageData =
                         //         $"handling:{typeDefinition.FullName},baseTypr:{currentType.FullName}, prop:{prop.PropertyType.FullName}"
                         // });
-                        if (prop.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(NetworkedAttribute)))
+                        if (prop.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(ReplicatedAttribute)))
                         {
                             size += StargateNetProcessorUtil.CalculateFieldSize(prop.PropertyType);
                         }
@@ -132,7 +132,7 @@ namespace StargateNet
             // 计算 byteSize
             foreach (var property in typeDefinition.Properties)
             {
-                if (property.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(NetworkedAttribute)))
+                if (property.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(ReplicatedAttribute)))
                 {
                     size += StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
                 }

@@ -17,9 +17,11 @@
         /// </summary>
         internal abstract float InterpolationTime { get; }
 
-        public Interpolation(StargateEngine stargateEngine)
+        protected Interpolation(StargateEngine stargateEngine)
         {
             this.Engine = stargateEngine;
         }
+
+        internal abstract void Update();
     }
 }

@@ -84,7 +84,7 @@ namespace StargateNet
 
             foreach (var field in type.Fields)
             {
-                if (field.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(NetworkedAttribute)))
+                if (field.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(ReplicatedAttribute)))
                 {
                     // 必须是包含的类型，且必须是Property，因为要修改getter和setter
                     if (!StargateNetProcessorUtil.NetworkedableTypes.Contains(field.FieldType.FullName))
@@ -112,7 +112,7 @@ namespace StargateNet
 
             foreach (var methodDef in type.Methods)
             {
-                if (methodDef.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(NetworkedAttribute)))
+                if (methodDef.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(ReplicatedAttribute)))
                 {
                     var message = new DiagnosticMessage
                     {
@@ -143,7 +143,7 @@ namespace StargateNet
                     var currentType = queue.Dequeue();
                     foreach (var prop in currentType.Properties)
                     {
-                        if (prop.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(NetworkedAttribute)))
+                        if (prop.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(ReplicatedAttribute)))
                         {
                             lastFieldSize += StargateNetProcessorUtil.CalculateFieldSize(prop.PropertyType);
                         }
@@ -163,7 +163,7 @@ namespace StargateNet
             {
                 foreach (var property in type.Properties)
                 {
-                    if (property.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(NetworkedAttribute)))
+                    if (property.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(ReplicatedAttribute)))
                     {
                         if (!StargateNetProcessorUtil.NetworkedableTypes.Contains(property.PropertyType.FullName))
                         {

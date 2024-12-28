@@ -22,7 +22,7 @@
         internal override float Alpha => this.Engine.SimulationClock.Alpha;
         internal override float InterpolationTime { get; }
 
-        internal void Update()
+        internal override void Update()
         {
             this.FromSnapshot = this.Engine.Simulation.fromSnapshot;
             this.ToSnapshot = this.Engine.Simulation.toSnapshot;

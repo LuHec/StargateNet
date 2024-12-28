@@ -5,60 +5,79 @@ namespace StargateNet
 {
     public class RingQueue<T>
     {
-        private T[] continer;
-        private int m_Head = -1;
-        private int m_Tail = -1;
-        private int m_Size = 0;
-
-        public int Size => m_Size;
+        private T[] _continer;
+        private int _mHead = -1;
+        private int _mTail = -1;
+        private int _mCount = 0;
+        private int _size = 0;
+        public int Count => _mCount;
         
         public RingQueue(int size = 8)
         {
-            continer = new T[size];
+            _continer = new T[size];
+            _size = size;
         }
+
+        public bool IsFull => _mCount == _size; 
 
         public void Resize(int size)
         {
-            if (size < m_Size)
+            if (size < _mCount)
             {
-                int t = m_Size - size;
+                int t = _mCount - size;
                 while (t > 0)
                 {
                     DeQueue();
                     t--;
                 }
             }
-            Array.Resize(ref continer, size);
+            Array.Resize(ref _continer, size);
         }
 
         public void EnQueue(T val)
         {
-            if (m_Size == continer.Length)
+            if (_mCount == _continer.Length)
             {
                 DeQueue();
             }
-            m_Tail = (m_Tail + 1) % continer.Length;
-            continer[m_Tail] = val;   
-            m_Size++;
-            if (m_Size >= continer.Length) m_Size = continer.Length - 1;
+            _mTail = (_mTail + 1) % _continer.Length;
+            _continer[_mTail] = val;   
+            _mCount++;
+            if (_mCount >= _continer.Length) _mCount = _continer.Length - 1;
         }
 
         public T DeQueue()
         {
-            if (m_Size == 0) throw new Exception("Empty RingQueue");
-            T res = continer[m_Head];
-            m_Head = (m_Head + 1) % continer.Length;
-            m_Size--;
+            if (_mCount == 0) throw new Exception("Empty RingQueue");
+            T res = _continer[_mHead];
+            _mHead = (_mHead + 1) % _continer.Length;
+            _mCount--;
             return res;
+        }
+
+        public void PopFront()
+        {
+            if (_mCount == 0) return;
+            _mHead = (_mHead + 1) % _continer.Length;
+            _mCount--;
+        }
+
+        public void Clear()
+        {
+            this._mHead = -1;
+            this._mTail = -1;
+            this._mCount = 0;
         }
 
         public T this[int index]
         {
             get
             {
-                if (index > m_Size) throw new Exception("Out of index");
-                return  continer[(m_Head + index) % continer.Length];
+                if (index > _mCount) throw new Exception("Out of index");
+                return  _continer[(_mHead + index) % _continer.Length];
             }
         }
+
+        public T Last => this[this._mCount];
     }
 }

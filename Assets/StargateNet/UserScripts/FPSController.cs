@@ -55,7 +55,7 @@ public class FPSController : NetworkBehavior
     /// <summary>
     /// 跳跃和重力的速度
     /// </summary>
-    [Networked]
+    [Replicated]
     public float VerticalSpeed { get; set; }
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
