@@ -226,6 +226,7 @@ namespace StargateNet
                 {
                     this.Simulation.SerializeToNetcode();
                     this.ClientSimulation.currentTick++; // 客户端tick增加。FixedUpdate会被时钟在一帧调用多次，相应的currentTick也要更新
+                    this.WorldState.CurrentSnapshot.snapshotTick = this.ClientSimulation.currentTick;
                 }
 
                 this.Simulation.PostFixedUpdate();

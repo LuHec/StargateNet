@@ -130,6 +130,7 @@ namespace StargateNet
             this.CopyDirtyMapTo(dest);
             this.CopyMetaTo(dest);
             this.CopyStateTo(dest);
+            dest.snapshotTick = this.snapshotTick;
         }
 
         /// <summary>
