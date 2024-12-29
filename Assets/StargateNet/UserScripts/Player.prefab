@@ -372,9 +372,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   renderTransform: {fileID: 3063326188549370508}
-  needCorrect: 0
-  errorMagnitude: 1.8
-  correctionMultiplier: 1.28
+  needCorrect: 1
+  errorMagnitude: 5
+  correctionMultiplier: 10
 --- !u!114 &6298116642484953821
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -396,7 +396,7 @@ MonoBehaviour:
   lookSpeedX: 2
   lookSpeedY: 2
   jumpSpeed: 12
-  gravity: 24
+  gravity: 50
   sway: 1
   smooth: 10
   step: 0.01

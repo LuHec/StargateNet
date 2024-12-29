@@ -79,9 +79,9 @@ public class FPSController : NetworkBehavior
     {
         Vector3 movement = Vector3.zero;
         bool isGrounded = IsGrounded();
-        if (isGrounded && VerticalSpeed < 0)
+        if (isGrounded && VerticalSpeed <= 0f)
         {
-            VerticalSpeed = -2f;
+            VerticalSpeed = 0f;
         }
 
         if (this.FetchInput(out NetworkInput input))
