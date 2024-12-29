@@ -190,7 +190,7 @@ namespace StargateNet
                 {
                     this.InterpolationRemote?.Update();
                 }
-                
+
                 this.Simulation.ExecuteNetworkRender();
             }
         }
@@ -205,11 +205,6 @@ namespace StargateNet
 
             if (this.IsServer || (this.IsClient && this.IsConnected))
             {
-                if (this.IsServer) // 更新FromTick
-                {
-                    this.WorldState.ServerUpdateState(this.SimTick);
-                }
-
                 if (this.IsClient)
                     this.Simulation.DeserializeToGamecode();
                 this.Simulation.PreFixedUpdate(); // 对于客户端，先在这里处理回滚，然后再模拟下一帧
@@ -221,7 +216,11 @@ namespace StargateNet
                     this.Send();
                 this.Simulation.DrainPaddingAddedEntity(); // 发送后再添加到模拟中
                 this.Simulation.DrainPaddingRemovedEntity(); // 发送后再清除Entity占用的内存和id
-
+                if (this.IsServer) // 更新FromTick，11帧作为FromTick，12帧作为ToTick
+                {
+                    this.WorldState.ServerUpdateState(this.SimTick);
+                }
+                
                 if (this.IsClient && this.ClientSimulation.currentTick.IsValid)
                 {
                     this.Simulation.SerializeToNetcode();

@@ -77,6 +77,13 @@ public class FPSController : NetworkBehavior
 
     public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
+        Vector3 movement = Vector3.zero;
+        bool isGrounded = IsGrounded();
+        if (isGrounded && VerticalSpeed < 0)
+        {
+            VerticalSpeed = -2f;
+        }
+
         if (this.FetchInput(out NetworkInput input))
         {
             // 客户端为权威的旋转
@@ -84,23 +91,17 @@ public class FPSController : NetworkBehavior
             transform.rotation = Quaternion.Euler(0, yawPitch.x, 0);
             cameraPoint.localRotation = Quaternion.Euler(yawPitch.y, 0, 0);
 
-            Vector3 movement = new Vector3(input.Input.x, 0, input.Input.y) * moveSpeed;
-            bool isGrounded = IsGrounded();
-
-            if (isGrounded && VerticalSpeed < 0)
-            {
-                VerticalSpeed = -2f;
-            }
+            movement = new Vector3(input.Input.x, 0, input.Input.y) * moveSpeed;
 
             if (input.IsJump && isGrounded)
             {
                 VerticalSpeed = jumpSpeed;
             }
-
-            // 重力
-            VerticalSpeed -= gravity * galaxy.FixedDeltaTime;
-            cc.Move((movement + new Vector3(0, VerticalSpeed, 0)) * galaxy.FixedDeltaTime);
         }
+
+        // 重力
+        VerticalSpeed -= gravity * galaxy.FixedDeltaTime;
+        cc.Move((movement + new Vector3(0, VerticalSpeed, 0)) * galaxy.FixedDeltaTime);
     }
 
     public override void NetworkUpdate(SgNetworkGalaxy galaxy)

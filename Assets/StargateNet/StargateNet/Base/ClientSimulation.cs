@@ -178,8 +178,7 @@ namespace StargateNet
         {
             int delayTickCount = Math.Abs(this.currentTick - this.authoritativeTick);
             this.currentTick = this.authoritativeTick; // currentTick复制authorTick，并从这一帧开始重新模拟
-            if (this.currentTick.IsValid &&
-                delayTickCount >= this._maxPredictedTicks) // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了，下一帧则会从头开始模拟
+            if (this.currentTick.IsValid && delayTickCount >= this._maxPredictedTicks) // 严重丢包时直接移除所有的操作，因为回滚重模拟已经没有意义了，下一帧则会从头开始模拟
             {
                 this.engine.Client.HeavyPakLoss = true;
                 this.RemoveAllInputs();
@@ -189,9 +188,8 @@ namespace StargateNet
             this.engine.WorldState.CurrentSnapshot.CopyTo(this.fromSnapshot);
             if (delayTickCount < this._maxPredictedTicks)
             {
-                // 最初让currentTick等于了serverTick，但是serverTick是已经接受并模拟了那一帧输入的，所以这里需要跳过
-                // 比如客户端在第14帧受到了10帧，这个10帧实际上是10帧末，11帧初的结果，所以这里要移除掉author的输入(包括，而不是之前的)
-                this.RemoveInputAndBefore(this.authoritativeTick - 1); // 移除服务器接收到的输入(即使丢包了也不管，服务器不会重新模拟)
+                // 客户端收到的11帧Snapshot，在服务端指的是10帧最终的状态，11帧的初始状态。所以客户端这里第11帧是应该早就被上传了的，这里需要被丢弃。
+                this.RemoveAckedInput(this.authoritativeTick - 1); // 移除服务器接收到的输入(即使丢包了也不管，服务器不会重新模拟)
                 this.InvokeClientOnPreRollBack();
                 Snapshot lastAuthorSnapshot = this.engine.WorldState.FromSnapshot; // 服务端发来的最新Snapshot
                 this._predictedEntities.Clear();
@@ -232,7 +230,7 @@ namespace StargateNet
             this.inputs.Clear();
         }
 
-        private void RemoveInputAndBefore(Tick targetTick)
+        private void RemoveAckedInput(Tick targetTick)
         {
             if (this.inputs.Count == 0) return;
             if (this.inputs[^1].clientTargetTick <= targetTick)

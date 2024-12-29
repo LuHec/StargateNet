@@ -372,7 +372,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   renderTransform: {fileID: 3063326188549370508}
-  needCorrect: 1
+  needCorrect: 0
   errorMagnitude: 1.8
   correctionMultiplier: 1.28
 --- !u!114 &6298116642484953821
