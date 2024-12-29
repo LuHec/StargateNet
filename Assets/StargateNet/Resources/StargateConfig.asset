@@ -19,7 +19,5 @@ MonoBehaviour:
   maxNetworkObject: 200
   SavedSnapshotsCount: 32
   MaxPredictedTicks: 32
-  NetworkObjects:
-  - {fileID: 7095134503880436856, guid: 8d3dc2fde6a162047a445be0dff25124, type: 3}
-  - {fileID: 7095134503880436856, guid: 69e03efa710929f47b22396aa0160455, type: 3}
-  maxObjectStateBytes: 28
+  NetworkObjects: []
+  maxObjectStateBytes: 0

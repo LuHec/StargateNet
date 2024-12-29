@@ -56,7 +56,6 @@ namespace StargateNet
         {
             void* block = TLSF64.tlsf_malloc(this._entireBlock, (ulong)byteSize);
             this.monitor.unmanagedMemeoryInuse += TLSF64.tlsf_block_size(block);
-            // 这里之前转成int然后用byteSize / 4去算了，在byteSize不是4的倍数下是错的
             for (int i = 0; i < byteSize; i++)
             {
                 ((byte*)block)[i] = 0;

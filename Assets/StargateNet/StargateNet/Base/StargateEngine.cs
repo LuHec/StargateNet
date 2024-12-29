@@ -36,6 +36,7 @@ namespace StargateNet
         internal ServerSimulation ServerSimulation { get; private set; }
         internal ClientSimulation ClientSimulation { get; private set; }
         internal InterpolationLocal InterpolationLocal { get; private set; }
+        internal InterpolationRemote InterpolationRemote { get; private set; }
         internal NetworkEventManager NetworkEventManager { get; private set; }
         internal bool Simulated { get; private set; }
         internal bool IsConnected { get; set; }
@@ -193,9 +194,13 @@ namespace StargateNet
         internal void Render()
         {
             if (!IsRunning) return;
-            this.InterpolationLocal.Update();
             if ((this.IsServer && !this.ConfigData.runAsHeadless) || (this.IsClient && this.IsConnected))
             {
+                this.InterpolationLocal.Update();
+                if (this.IsClient)
+                {
+                    this.InterpolationRemote.Update();
+                }
                 this.Simulation.ExecuteNetworkRender();
             }
         }
