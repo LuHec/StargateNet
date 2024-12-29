@@ -84,27 +84,20 @@ namespace StargateNet
             this.maxEntities = StargateNetUtil.AlignTo(this.maxEntities, 32); // 对齐一个int,申请足够大小的内存给id map
             this.EntityMetaManager = new EntityMetaManager(this.maxEntities, this);
             int totalObjectMetaByteSize = configData.maxNetworkObjects * sizeof(NetworkObjectMeta);
-            int totalObjectMapByteSize = this.maxEntities * 4;
+            int totalObjectMapByteSize = this.maxEntities * sizeof(int);
             //全局的分配器, 存map和meta
             long worldAllocatedBytes =
                 (totalObjectMetaByteSize + totalObjectMapByteSize * 2) * (this.ConfigData.savedSnapshotsCount + 3) *
                 2; // 多乘个2是为了给control和header留空间，下同.snapshot数量：savedSnapshotsCount + buffer + from + to
             this.WorldAllocator = new StargateAllocator(worldAllocatedBytes, monitor);
             //用于物体Sync var的内存大小
-            long totalObjectStateByteSize =
-                configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
-            this.WorldState = new WorldState(this, configData.savedSnapshotsCount, new Snapshot(
-                (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
-                (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
-                new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities)); //专门用于物体Sync var的分配器
+            long totalObjectStateByteSize = configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
+            this.WorldState = new WorldState(this, configData.savedSnapshotsCount,
+                new Snapshot(totalObjectMetaByteSize, totalObjectMapByteSize, totalObjectStateByteSize, this.maxEntities, monitor)); //专门用于物体Sync var的分配器
             this.WorldState.Init(this.SimTick);
             for (int i = 0; i < this.WorldState.MaxSnapshotsCount; i++)
             {
-                this.WorldState.snapshots.Add(new Snapshot(
-                    (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
-                    (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
-                    new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities)
-                );
+                this.WorldState.snapshots.Add(new Snapshot(totalObjectMetaByteSize, totalObjectMapByteSize, totalObjectStateByteSize, this.maxEntities, monitor));
             }
 
             this.InterpolationLocal = new InterpolationLocal(this);
@@ -122,18 +115,12 @@ namespace StargateNet
                 this.Peer = this.Client;
                 this.ClientSimulation = new ClientSimulation(this);
                 this.Simulation = this.ClientSimulation;
-                this.ClientSimulation.rcvBuffer = new Snapshot(
-                    (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
-                    (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
-                    new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities);
+                this.ClientSimulation.rcvBuffer = new Snapshot(totalObjectMetaByteSize, totalObjectMapByteSize, totalObjectStateByteSize, this.maxEntities, monitor);
                 // 客户端的worldState需要在RecvBuffer时更新
             }
 
             // 给插值组件用
-            this.Simulation.fromSnapshot = new Snapshot(
-                (int*)this.WorldAllocator.Malloc(totalObjectMetaByteSize),
-                (int*)this.WorldAllocator.Malloc(totalObjectMapByteSize),
-                new StargateAllocator(totalObjectStateByteSize, monitor), this.maxEntities);
+            this.Simulation.fromSnapshot = new Snapshot(totalObjectMetaByteSize, totalObjectMapByteSize, totalObjectStateByteSize, this.maxEntities, monitor);
             this.Simulation.toSnapshot = this.WorldState.CurrentSnapshot;
 
             this.Simulated = true;
@@ -186,6 +173,8 @@ namespace StargateNet
             this.NetworkEventManager.OnReadInput(this.SgNetworkGalaxy);
             this.Simulation.ExecuteNetworkUpdate();
             this.SimulationClock.Update();
+            if (this.IsClient && IsConnected || !this.ConfigData.runAsHeadless)
+                this.Render();
         }
 
         /// <summary>
@@ -196,11 +185,12 @@ namespace StargateNet
             if (!IsRunning) return;
             if ((this.IsServer && !this.ConfigData.runAsHeadless) || (this.IsClient && this.IsConnected))
             {
-                this.InterpolationLocal.Update();
+                this.InterpolationLocal?.Update();
                 if (this.IsClient)
                 {
-                    this.InterpolationRemote.Update();
+                    this.InterpolationRemote?.Update();
                 }
+                
                 this.Simulation.ExecuteNetworkRender();
             }
         }
@@ -281,7 +271,7 @@ namespace StargateNet
             float maxDistance,
             int layerMask)
         {
-            return this.LagCompensate.NetworkRaycast(origin, direction, inputSource,out hitInfo, maxDistance, layerMask);
+            return this.LagCompensate.NetworkRaycast(origin, direction, inputSource, out hitInfo, maxDistance, layerMask);
         }
 
         // ------------- Server Only ------------- //

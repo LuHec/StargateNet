@@ -10,33 +10,38 @@ namespace StargateNet
         // private int* _poolIdxMap; // TODO:回放功能需要用到，因为缺失了Entity信息，所以需要额外记录。暂时先注释掉
         private int* _dirtyObjectMetaMap; // 标记本帧变化的meta
         private NetworkObjectMeta* _worldObjectMeta; // 存储此帧所有物体的meta                 
-        private StargateAllocator _worldMetaAllocator;
-        private StargateAllocator _dirtyMapAllocator;
+        private StargateAllocator _miscAllocator;
         internal StargateAllocator NetworkStates { private set; get; } // 存储此帧所有物体的状态，给回放用
         internal readonly int metaCnt;
+        private readonly int _metaPoolId;
+        private readonly int _dirtyPoolId;
+        
 
-        public Snapshot(int worldMetaByteSize, int dirtyMapByteSize, int stateByteSize, int metaCnt, Monitor monitor)
+        public Snapshot(long worldMetaByteSize, long dirtyMapByteSize, long stateByteSize, int metaCnt, Monitor monitor)
         {
             this.metaCnt = metaCnt;
             this.snapshotTick = Tick.InvalidTick;
-            this._worldMetaAllocator = new StargateAllocator(worldMetaByteSize, monitor);
-            this._dirtyMapAllocator = new StargateAllocator(dirtyMapByteSize, monitor);
             this.NetworkStates = new StargateAllocator(stateByteSize, monitor);
-            this._worldMetaAllocator.AddPool(this.metaCnt * sizeof(NetworkObjectMeta), out int metaPoolId);
-            
+            this._miscAllocator = new StargateAllocator(worldMetaByteSize + dirtyMapByteSize, monitor);
+            this._miscAllocator.AddPool(this.metaCnt * sizeof(NetworkObjectMeta), out int metaPoolId);
+            this._miscAllocator.AddPool(this.metaCnt * sizeof(int), out int dirtyPoolId);
+            this._worldObjectMeta = (NetworkObjectMeta*)this._miscAllocator.pools[metaPoolId].dataPtr;
+            this._dirtyObjectMetaMap = (int*)this._miscAllocator.pools[dirtyPoolId].dataPtr;
+            this._metaPoolId = metaPoolId;
+            this._dirtyPoolId = dirtyPoolId;
         }
         
-        public Snapshot(int* worldObjectMeta, int* dirtyObjectMetaMap, StargateAllocator networkStates, int metaCnt)
-        {
-            this.metaCnt = metaCnt;
-            this.snapshotTick = Tick.InvalidTick;
-            this._worldObjectMeta = (NetworkObjectMeta*)worldObjectMeta;
-            this._dirtyObjectMetaMap = dirtyObjectMetaMap;
-            this.NetworkStates = networkStates;
-            this.NetworkStates.FlushZero(this._worldObjectMeta);
-            this.NetworkStates.FlushZero(this._dirtyObjectMetaMap);
-            this.Init(Tick.InvalidTick);
-        }
+        // public Snapshot(int* worldObjectMeta, int* dirtyObjectMetaMap, StargateAllocator networkStates, int metaCnt)
+        // {
+        //     this.metaCnt = metaCnt;
+        //     this.snapshotTick = Tick.InvalidTick;
+        //     this._worldObjectMeta = (NetworkObjectMeta*)worldObjectMeta;
+        //     this._dirtyObjectMetaMap = dirtyObjectMetaMap;
+        //     this.NetworkStates = networkStates;
+        //     this.NetworkStates.FlushZero(this._worldObjectMeta);
+        //     this.NetworkStates.FlushZero(this._dirtyObjectMetaMap);
+        //     this.Init(Tick.InvalidTick);
+        // }
 
         internal void Init(Tick tick)
         {

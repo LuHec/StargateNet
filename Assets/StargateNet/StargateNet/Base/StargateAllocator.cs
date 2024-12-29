@@ -11,14 +11,19 @@ namespace StargateNet
     {
         internal List<MemoryPool> pools = new(32); // 对于snapshot来说，存储了所有网络物体的syncvar
         internal Monitor monitor;
-        internal long Size => size;
+        internal long Size => _size;
+        /// <summary>
+        /// 暂定1024，小项目应该不会有超过1024数量的东西需要同步吧
+        /// </summary>
+        private const int MAX_BLOCK_NUMS = 1024;
         private const int TLSF64_ALIGNMENT = 8;
         private readonly void* _entireBlock;
         private Queue<int> _recycledPoolId = new(32);
-        private readonly long size;
+        private readonly long _size;
 
         /// <summary>
-        /// 由于control_t和block_header的存在，申请大小必须大于实际需要的内存大小
+        /// 申请大小为byteSize的内存。
+        /// Tips:优化后不需要预留内存了
         /// </summary>
         /// <param name="byteSize"></param>
         /// <param name="monitor"></param>
@@ -27,10 +32,11 @@ namespace StargateNet
         {
             if (byteSize < 0) throw new Exception("SgAllocator can't init with negative size!");
             this.monitor = monitor;
-            byteSize += sizeof(TLSF64.control_t);
+            byteSize += sizeof(TLSF64.control_t) + MAX_BLOCK_NUMS * sizeof(TLSF64.block_header_t);
             this._entireBlock = MemoryAllocation.Malloc(byteSize, TLSF64_ALIGNMENT);
+            MemoryAllocation.Clear(this._entireBlock, byteSize);
             this._entireBlock = TLSF64.tlsf_create_with_pool(this._entireBlock, (ulong)byteSize);
-            this.size = byteSize;
+            this._size = byteSize;
             if (monitor != null)
                 monitor.unmanagedMemeory += (ulong)byteSize;
         }

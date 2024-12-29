@@ -38,9 +38,6 @@ namespace StargateNet
         public void NetworkUpdate()
         {
             this.Engine.Update(Time.deltaTime, Time.timeScale);
-            if (this.ConfigData.runAsHeadless)
-                return;
-            this.Engine.Render();
         }
 
         /// <summary>

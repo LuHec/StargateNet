@@ -83,10 +83,11 @@ public class NetworkTransform : NetworkBehavior, IClientSimulationCallbacks
         // 获取FromState的数值
         Snapshot fromSnapshot = interpolation.FromSnapshot;
         Snapshot toSnapshot = interpolation.ToSnapshot;
+        if(!fromSnapshot.snapshotTick.IsValid || !toSnapshot.snapshotTick.IsValid) return;
         //排除前FromSnapshot不存在的物体
         var fromObjectMeta = fromSnapshot.GetWorldObjectMeta(this.Entity.worldMetaId);
         if (fromObjectMeta.networkId != this.Entity.networkId.refValue) return;
-
+    
         // position lerp
         float alpha = interpolation.Alpha;
         int* fromPositionPtr = (int*)fromSnapshot.NetworkStates.pools[this.Entity.poolId].dataPtr + this.Entity.entityBlockWordSize + stateBlockIdx;
