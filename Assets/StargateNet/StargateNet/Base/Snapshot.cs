@@ -17,14 +17,16 @@ namespace StargateNet
         private readonly int _dirtyPoolId;
         
 
-        public Snapshot(long worldMetaByteSize, long dirtyMapByteSize, long stateByteSize, int metaCnt, Monitor monitor)
+        public Snapshot(long stateByteSize, int metaCnt, Monitor monitor)
         {
+            long worldMetaByteSize = sizeof(NetworkObjectMeta) * metaCnt;
+            long dirtyMapByteSize = sizeof(int) * metaCnt;
             this.metaCnt = metaCnt;
             this.snapshotTick = Tick.InvalidTick;
             this.NetworkStates = new StargateAllocator(stateByteSize, monitor);
             this._miscAllocator = new StargateAllocator(worldMetaByteSize + dirtyMapByteSize, monitor);
-            this._miscAllocator.AddPool(this.metaCnt * sizeof(NetworkObjectMeta), out int metaPoolId);
-            this._miscAllocator.AddPool(this.metaCnt * sizeof(int), out int dirtyPoolId);
+            this._miscAllocator.AddPool(worldMetaByteSize, out int metaPoolId);
+            this._miscAllocator.AddPool(dirtyMapByteSize, out int dirtyPoolId);
             this._worldObjectMeta = (NetworkObjectMeta*)this._miscAllocator.pools[metaPoolId].dataPtr;
             this._dirtyObjectMetaMap = (int*)this._miscAllocator.pools[dirtyPoolId].dataPtr;
             this._metaPoolId = metaPoolId;

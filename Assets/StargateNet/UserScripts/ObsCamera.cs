@@ -20,6 +20,13 @@ public class ObsCamera : MonoBehaviour
 
     void Update()
     {
+        if (Input.GetKey(KeyCode.LeftAlt))
+        {
+            Cursor.lockState = CursorLockMode.None;
+            return;
+        }
+        else 
+            Cursor.lockState = CursorLockMode.Locked;
         // 获取水平和垂直方向的输入
         horizontalInput = Input.GetAxis("Horizontal");  // A/D 或箭头左右
         verticalInput = Input.GetAxis("Vertical");  // W/S 或箭头上下
@@ -53,10 +60,5 @@ public class ObsCamera : MonoBehaviour
 
         transform.Rotate(Vector3.up, mouseX, Space.World);  // 旋转摄像机水平方向
         _camera.transform.Rotate(Vector3.right, mouseY, Space.Self);  // 旋转摄像机垂直方向
-
-        if (Input.GetKey(KeyCode.LeftAlt))
-            Cursor.lockState = CursorLockMode.None;
-        else 
-            Cursor.lockState = CursorLockMode.Locked;
     }
 }

@@ -14,7 +14,6 @@ namespace StargateNet
         internal WorldState WorldState { get; private set; }
         internal SimulationClock SimulationClock { get; private set; }
         internal Monitor Monitor { get; private set; }
-
         internal StargateAllocator WorldAllocator { get; private set; }
         internal Tick Tick => this.IsServer ? this.SimTick : this.ClientSimulation.currentTick;
         internal Tick SimTick { get; private set; } // 是客户端/服务端已经模拟的本地帧数。客户端的simTick仅代表EnginTick，服务端的SimTick就是AuthorTick
@@ -83,21 +82,13 @@ namespace StargateNet
                 : configData.maxNetworkObjects;
             this.maxEntities = StargateNetUtil.AlignTo(this.maxEntities, 32); // 对齐一个int,申请足够大小的内存给id map
             this.EntityMetaManager = new EntityMetaManager(this.maxEntities, this);
-            int totalObjectMetaByteSize = configData.maxNetworkObjects * sizeof(NetworkObjectMeta);
-            int totalObjectMapByteSize = this.maxEntities * sizeof(int);
-            //全局的分配器, 存map和meta
-            long worldAllocatedBytes =
-                (totalObjectMetaByteSize + totalObjectMapByteSize * 2) * (this.ConfigData.savedSnapshotsCount + 3) *
-                2; // 多乘个2是为了给control和header留空间，下同.snapshot数量：savedSnapshotsCount + buffer + from + to
-            this.WorldAllocator = new StargateAllocator(worldAllocatedBytes, monitor);
             //用于物体Sync var的内存大小
             long totalObjectStateByteSize = configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
-            this.WorldState = new WorldState(this, configData.savedSnapshotsCount,
-                new Snapshot(totalObjectMetaByteSize, totalObjectMapByteSize, totalObjectStateByteSize, this.maxEntities, monitor)); //专门用于物体Sync var的分配器
+            this.WorldState = new WorldState(this, configData.savedSnapshotsCount, new Snapshot(totalObjectStateByteSize, this.maxEntities, monitor)); //专门用于物体Sync var的分配器
             this.WorldState.Init(this.SimTick);
             for (int i = 0; i < this.WorldState.MaxSnapshotsCount; i++)
             {
-                this.WorldState.snapshots.Add(new Snapshot(totalObjectMetaByteSize, totalObjectMapByteSize, totalObjectStateByteSize, this.maxEntities, monitor));
+                this.WorldState.snapshots.Add(new Snapshot(totalObjectStateByteSize, this.maxEntities, monitor));
             }
 
             this.InterpolationLocal = new InterpolationLocal(this);
@@ -115,12 +106,13 @@ namespace StargateNet
                 this.Peer = this.Client;
                 this.ClientSimulation = new ClientSimulation(this);
                 this.Simulation = this.ClientSimulation;
-                this.ClientSimulation.rcvBuffer = new Snapshot(totalObjectMetaByteSize, totalObjectMapByteSize, totalObjectStateByteSize, this.maxEntities, monitor);
+                this.ClientSimulation.rcvBuffer = new Snapshot(totalObjectStateByteSize, this.maxEntities, monitor);
+                this.InterpolationRemote = new InterpolationRemote(this, totalObjectStateByteSize, this.maxEntities);
                 // 客户端的worldState需要在RecvBuffer时更新
             }
 
             // 给插值组件用
-            this.Simulation.fromSnapshot = new Snapshot(totalObjectMetaByteSize, totalObjectMapByteSize, totalObjectStateByteSize, this.maxEntities, monitor);
+            this.Simulation.fromSnapshot = new Snapshot(totalObjectStateByteSize, this.maxEntities, monitor);
             this.Simulation.toSnapshot = this.WorldState.CurrentSnapshot;
 
             this.Simulated = true;
@@ -220,7 +212,7 @@ namespace StargateNet
                 {
                     this.WorldState.ServerUpdateState(this.SimTick);
                 }
-                
+
                 if (this.IsClient && this.ClientSimulation.currentTick.IsValid)
                 {
                     this.Simulation.SerializeToNetcode();

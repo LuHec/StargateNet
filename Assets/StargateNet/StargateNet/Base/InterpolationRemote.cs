@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace StargateNet
 {
@@ -15,6 +16,7 @@ namespace StargateNet
         internal override bool HasSnapshot => this.FromSnapshot != null && this.ToSnapshot != null;
         internal override float Alpha => _alpha;
         internal override float InterpolationTime { get; }
+        private Queue<Snapshot> _snapshotsPool = new Queue<Snapshot>(32); 
         private float _interpolateRatio;
         private float _interpolateTime;
         private float _currentLerpTime; // 插值时间，由Time.deltaTime叠加得到。表示从上一个插值帧开始过了多久。alpha = _currentLerpTime / threshold
@@ -25,9 +27,15 @@ namespace StargateNet
         private Tick _toTick;
         private int _useAbleTicks = 0;
 
-        public InterpolationRemote(StargateEngine stargateEngine) : base(stargateEngine)
+        public InterpolationRemote(StargateEngine stargateEngine, long stateByteSize, int metaCnt) : base(stargateEngine)
         {
-            this._snapshotBuffer = new RingQueue<Snapshot>(stargateEngine.ConfigData.savedSnapshotsCount);
+            int count = stargateEngine.ConfigData.savedSnapshotsCount;
+            this._snapshotBuffer = new RingQueue<Snapshot>(count);
+            this._snapshotsPool = new Queue<Snapshot>(count);
+            for (int i = 0; i < count; i++)
+            {
+                this._snapshotsPool.Enqueue(new Snapshot(stateByteSize, metaCnt, stargateEngine.Monitor));
+            }
             this._interpolateTime = 1.0f / stargateEngine.ConfigData.tickRate * 2;
             this._interpolateRatio = 2;
         }
