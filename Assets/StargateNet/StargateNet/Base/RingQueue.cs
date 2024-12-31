@@ -6,7 +6,7 @@ namespace StargateNet
     public class RingQueue<T>
     {
         private T[] _continer;
-        private int _mHead = -1;
+        private int _mHead = 0;
         private int _mTail = -1;
         private int _mCount = 0;
         private int _size = 0;
@@ -18,7 +18,7 @@ namespace StargateNet
             _size = size;
         }
 
-        public bool IsFull => _mCount == _size; 
+        public bool IsFull => _mCount == _size - 1; 
 
         public void Resize(int size)
         {
@@ -38,7 +38,7 @@ namespace StargateNet
         {
             if (_mCount == _continer.Length)
             {
-                DeQueue();
+                throw new Exception("Full RingQueue");
             }
             _mTail = (_mTail + 1) % _continer.Length;
             _continer[_mTail] = val;   
@@ -55,16 +55,9 @@ namespace StargateNet
             return res;
         }
 
-        public void PopFront()
-        {
-            if (_mCount == 0) return;
-            _mHead = (_mHead + 1) % _continer.Length;
-            _mCount--;
-        }
-
         public void Clear()
         {
-            this._mHead = -1;
+            this._mHead = 0;
             this._mTail = -1;
             this._mCount = 0;
         }
@@ -78,6 +71,6 @@ namespace StargateNet
             }
         }
 
-        public T Last => this[this._mCount];
+        public T Last => this[this._mCount - 1];
     }
 }

@@ -16,7 +16,8 @@ namespace StargateNet
         internal override bool HasSnapshot => this.FromSnapshot != null && this.ToSnapshot != null;
         internal override float Alpha => _alpha;
         internal override float InterpolationTime { get; }
-        private Queue<Snapshot> _snapshotsPool = new Queue<Snapshot>(32); 
+        private Queue<Snapshot> _snapshotsPool;
+        private readonly int _maxSnapshots;
         private float _interpolateRatio;
         private float _interpolateTime;
         private float _currentLerpTime; // 插值时间，由Time.deltaTime叠加得到。表示从上一个插值帧开始过了多久。alpha = _currentLerpTime / threshold
@@ -30,16 +31,18 @@ namespace StargateNet
         public InterpolationRemote(StargateEngine stargateEngine, long stateByteSize, int metaCnt) : base(stargateEngine)
         {
             int count = stargateEngine.ConfigData.savedSnapshotsCount;
+            this._maxSnapshots = count;
             this._snapshotBuffer = new RingQueue<Snapshot>(count);
-            this._snapshotsPool = new Queue<Snapshot>(count);
-            for (int i = 0; i < count; i++)
+            this._snapshotsPool = new Queue<Snapshot>(count + 10);
+            for (int i = 0; i < count + 1; i++)
             {
                 this._snapshotsPool.Enqueue(new Snapshot(stateByteSize, metaCnt, stargateEngine.Monitor));
             }
+
             this._interpolateTime = 1.0f / stargateEngine.ConfigData.tickRate * 2;
             this._interpolateRatio = 2;
         }
-        
+
         /// <summary>
         /// 更新远端插值的资源。
         /// 通过计算整体的时间比例来获得alpha值
@@ -60,10 +63,11 @@ namespace StargateNet
 
             this._fromTick = this._snapshotBuffer[0].snapshotTick;
             this._toTick = this._snapshotBuffer[1].snapshotTick;
+            Debug.Log($"Current Interpolate Tick{_fromTick},{_toTick},alpha is {_alpha}");
             // // 如果发生了丢包，那两帧的时间差会变大，但同时_currentLerpTime的值也会变大。
             // float threshold = (this._toTick - this._fromTick) * fixedTime; 
             float threshold = this._interpolateRatio * this.Engine.SimulationClock.FixedDeltaTime;
-            
+
             if (this._currentLerpTime < threshold)
             {
                 this._currentLerpTime += Time.deltaTime;
@@ -80,7 +84,7 @@ namespace StargateNet
                         this._currentLerpTime = 0;
                         break;
                     }
-                    
+
                     this.Dequeue();
                     this._currentLerpTime -= threshold;
                     temp -= 1;
@@ -91,17 +95,22 @@ namespace StargateNet
                     this._currentLerpTime = 0;
                 }
             }
-            
+
             this._alpha = this._currentLerpTime / threshold;
             if (this._snapshotBuffer.Count >= 2)
             {
+                this.FromSnapshot = this._snapshotBuffer[0];
+                this.ToSnapshot = this._snapshotBuffer[1];
                 this._fromTick = this._snapshotBuffer[0].snapshotTick;
                 this._toTick = this._snapshotBuffer[1].snapshotTick;
             }
         }
 
-        internal void AddSnapshot(Tick tick, Snapshot snapshot)
+        internal void AddSnapshot(Tick tick, Snapshot remoteSnapshot)
         {
+            Snapshot snapshot = this._snapshotsPool.Dequeue();
+            snapshot.Init(remoteSnapshot.snapshotTick);
+            remoteSnapshot.CopyTo(snapshot);
             if (this._snapshotBuffer.Count == 0)
             {
                 this._snapshotBuffer.EnQueue(snapshot);
@@ -113,14 +122,14 @@ namespace StargateNet
                 this._snapshotBuffer.EnQueue(snapshot);
                 this._bufferAsTime += (tick - _snapshotBuffer.Last.snapshotTick) * this.Engine.SimulationClock.FixedDeltaTime;
             }
-            
-            if(this._snapshotBuffer.IsFull)
+
+            if (this._snapshotBuffer.IsFull)
                 this.Reset();
         }
 
         internal void Dequeue()
         {
-            this._snapshotBuffer.PopFront();
+            this._snapshotsPool.Enqueue(this._snapshotBuffer.DeQueue());
         }
 
         internal void Reset()
@@ -130,8 +139,11 @@ namespace StargateNet
             this._bufferAsTime = 0;
             this._alpha = 0;
             this._currentLerpTime = 0;
+            while (this._snapshotBuffer.Count > 0)
+            {
+                this._snapshotsPool.Enqueue(this._snapshotBuffer.DeQueue());
+            }
             this._snapshotBuffer.Clear();
-            
         }
     }
 }

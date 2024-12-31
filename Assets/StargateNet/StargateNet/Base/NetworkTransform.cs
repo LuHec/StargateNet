@@ -78,7 +78,7 @@ public class NetworkTransform : NetworkBehavior, IClientSimulationCallbacks
         bool isServer = galaxy.IsServer;
         Interpolation interpolation = isServer ? galaxy.Engine.InterpolationLocal : IsLocalPlayer() ? galaxy.Engine.InterpolationLocal : galaxy.Engine.InterpolationRemote;
         if (!interpolation.HasSnapshot) return;
-
+        if(!isServer && !IsLocalPlayer()) Debug.Log(interpolation.HasSnapshot);
         // 获取内存偏移量
         int stateBlockIdx = (int)this.Entity.GetStateBlockIdx(this.StateBlock);
         // 获取FromState的数值

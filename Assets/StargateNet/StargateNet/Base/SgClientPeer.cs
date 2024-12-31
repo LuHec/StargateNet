@@ -109,8 +109,8 @@ namespace StargateNet
 
             // 用服务端下发的结果更新环形队列
             // if (!this.Engine.WorldState.HasInitialized) this.Engine.WorldState.Init(srvTick);
-            Snapshot buffer = this.Engine.ClientSimulation.rcvBuffer;
-            buffer.Init(srvTick);
+            Snapshot rcvBuffer = this.Engine.ClientSimulation.rcvBuffer;
+            rcvBuffer.Init(srvTick);
             this.ReceiveMeta(msg, isFullPacket);
             this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta，处理服务端生成和销毁的物体
             this.CopyMetaToBuffer();
@@ -118,7 +118,8 @@ namespace StargateNet
             this.ReceiveStateToBuffer(msg); // 这里不直接把状态更新到WorldState中
             this.Engine.EntityMetaManager.PostChanged(); // 清除Changed
             this.Engine.WorldState.CurrentSnapshot.CleanMap(); // CurrentSnapshot将作为本帧的开始，必须要清理干净，否则下次收到包，delta就出错了
-            this.Engine.WorldState.ClientUpdateState(srvTick, buffer); // 对于客户端来说FromTick才是权威，CurrentTick可以被修改
+            this.Engine.WorldState.ClientUpdateState(srvTick, rcvBuffer); // 对于客户端来说FromTick才是权威，CurrentTick可以被修改
+            this.Engine.InterpolationRemote.AddSnapshot(srvTick, rcvBuffer);
         }
 
         /// <summary>
