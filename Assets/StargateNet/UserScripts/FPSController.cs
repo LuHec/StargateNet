@@ -31,7 +31,7 @@ public class FPSController : NetworkBehavior
 
     [Header("Sway Rotation")]
     public bool swayRotation = true;
-
+    
     public float smoothRot = 12f;
     public float rotationStep = 4f;
     public float maxRotationStep = 5f;
@@ -39,7 +39,7 @@ public class FPSController : NetworkBehavior
 
     [Header("Bobbing")]
     public bool bobOffset = true;
-
+    public float speedCurveMultiplier = 1f;
     public float speedCurve;
 
     private float CurveSin => Mathf.Sin(speedCurve);
@@ -48,6 +48,12 @@ public class FPSController : NetworkBehavior
     public Vector3 bobLimit = Vector3.one * .1f;
     private Vector3 _bobPosition;
 
+    [Header("Bob Rotation")]
+    public bool bobSway = true;
+
+    public Vector3 multiplier;
+
+    private Vector3 _bobRotation;
 
     private Vector2 _localYawPitch;
     bool IsGrounded() => Physics.Raycast(foot.position, Vector3.down, groundDis);
@@ -107,10 +113,11 @@ public class FPSController : NetworkBehavior
     public override void NetworkUpdate(SgNetworkGalaxy galaxy)
     {
         if (!this.IsLocalPlayer()) return;
-        var (deltaInput, deltaMove) = GetInput(galaxy);
-        Sway(deltaInput);
-        SwayRotation(deltaInput);
+        var (deltaYawPitchInput, deltaMove) = GetInput(galaxy);
+        Sway(deltaYawPitchInput);
+        SwayRotation(deltaYawPitchInput);
         BobOffset(deltaMove);
+        BobRotation(deltaMove);
         CompositePositionRotation();
     }
 
@@ -177,7 +184,7 @@ public class FPSController : NetworkBehavior
         networkInput.IsFire |= Input.GetMouseButtonDown(0);
         galaxy.SetInput(networkInput);
 
-        return (deltaRawPitchInput, new Vector2(moveDirection.x, moveDirection.z));
+        return (deltaRawPitchInput, new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")));
     }
 
     void Sway(Vector3 input)
@@ -203,7 +210,7 @@ public class FPSController : NetworkBehavior
     void BobOffset(Vector2 input)
     {
         bool isGrounded = IsGrounded();
-        speedCurve += Time.deltaTime * (isGrounded ? cc.velocity.magnitude : 1f) + .01f;
+        speedCurve += Time.deltaTime * (isGrounded ? cc.velocity.magnitude * speedCurveMultiplier : 1f) + .01f;
         if (!bobOffset)
         {
             _bobPosition = Vector3.zero;
@@ -212,13 +219,27 @@ public class FPSController : NetworkBehavior
 
         _bobPosition.x = CurveCos * bobLimit.x * (isGrounded ? 1 : 0) - input.x * travelLimit.x;
         _bobPosition.y = CurveSin * bobLimit.y * (isGrounded ? 1 : 0) - input.y * travelLimit.y;
-        _bobPosition.z = -input.y * travelLimit.z;
+        _bobPosition.z = -(input.y * travelLimit.z);
+    }
+
+    void BobRotation(Vector2 input)
+    {
+        if (!bobSway)
+        {
+            _bobRotation = Vector3.zero;
+            return;
+        }
+
+        _bobRotation.x = input != Vector2.zero ? multiplier.x * (Mathf.Sin(2 * speedCurve)) : multiplier.x * (Mathf.Sin(2 * speedCurve) / 2);
+        _bobRotation.y = input != Vector2.zero ? multiplier.y * CurveCos : 0;
+        _bobRotation.z = input != Vector2.zero ? multiplier.z * CurveCos * input.x : 0;
     }
 
     void CompositePositionRotation()
     {
-        handPoint.localPosition = Vector3.Lerp(handPoint.localPosition, _swayPos, Time.deltaTime * smooth) + _bobPosition;
-        handPoint.localRotation = Quaternion.Slerp(handPoint.localRotation, Quaternion.Euler(_swayEulerRot),
+        handPoint.localPosition = Vector3.Lerp(handPoint.localPosition, _swayPos + _bobPosition, Time.deltaTime * smooth);
+        handPoint.localRotation = Quaternion.Slerp(handPoint.localRotation, 
+            Quaternion.Euler(_swayEulerRot) * Quaternion.Euler(_bobRotation),
             Time.deltaTime * smoothRot);
     }
 }

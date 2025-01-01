@@ -13,7 +13,14 @@ namespace StargateNet
         public Vector3 PreRollbackPosition { get; set; }
         public Quaternion PreRollbackRotation { get; set; }
 
-
+        public void Init(Vector3 pos, Quaternion rot)
+        {
+            this.CurrentPosition = pos;
+            this.CurrentRotation = rot;
+            this.PreRollbackPosition = pos;
+            this.PreRollbackRotation = rot;
+        }
+        
         public void OnPreRollback(Vector3 position, Quaternion rotation)
         {
             this.PreRollbackPosition = position;
@@ -43,6 +50,6 @@ namespace StargateNet
             this.CurrentPosition = Vector3.Lerp(this.CurrentPosition, correctRenderPosition, alpha);
 
             correctRenderPosition = this.CurrentPosition;
-        }
+        }                   
     }
 }

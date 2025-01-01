@@ -1,76 +1,63 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace StargateNet
 {
-    public class RingQueue<T>
+    internal class RingQueue<T> : IEnumerable<T>, IEnumerable
     {
-        private T[] _continer;
-        private int _mHead = 0;
-        private int _mTail = -1;
-        private int _mCount = 0;
-        private int _size = 0;
-        public int Count => _mCount;
-        
-        public RingQueue(int size = 8)
+        private readonly T[] _elements;
+        private int _start;
+        private int _end;
+        private int _count;
+        private readonly int _capacity;
+
+        public T this[int i] => this._elements[(this._start + i) % this._capacity];
+
+        public RingQueue(int count)
         {
-            _continer = new T[size];
-            _size = size;
+            this._elements = new T[count];
+            this._capacity = count;
         }
 
-        public bool IsFull => _mCount == _size - 1; 
-
-        public void Resize(int size)
+        public void Enqueue(T element)
         {
-            if (size < _mCount)
-            {
-                int t = _mCount - size;
-                while (t > 0)
-                {
-                    DeQueue();
-                    t--;
-                }
-            }
-            Array.Resize(ref _continer, size);
+            if (this._count == this._capacity)
+                throw new ArgumentException();
+            this._elements[this._end] = element;
+            this._end = (this._end + 1) % this._capacity;
+            ++this._count;
         }
 
-        public void EnQueue(T val)
+        public void FastClear()
         {
-            if (_mCount == _continer.Length)
-            {
-                throw new Exception("Full RingQueue");
-            }
-            _mTail = (_mTail + 1) % _continer.Length;
-            _continer[_mTail] = val;   
-            _mCount++;
-            if (_mCount >= _continer.Length) _mCount = _continer.Length - 1;
+            this._start = 0;
+            this._end = 0;
+            this._count = 0;
         }
 
-        public T DeQueue()
+        public int Count => this._count;
+
+        public T First => this._elements[this._start];
+
+        public T Last => this._elements[(this._start + this._count - 1) % this._capacity];
+
+        public bool IsFull => this._count == this._capacity;
+
+        public void RemoveFromStart(int count)
         {
-            if (_mCount == 0) throw new Exception("Empty RingQueue");
-            T res = _continer[_mHead];
-            _mHead = (_mHead + 1) % _continer.Length;
-            _mCount--;
-            return res;
+            if (count > this._capacity || count > this._count)
+                throw new ArgumentException();
+            this._start = (this._start + count) % this._capacity;
+            this._count -= count;
         }
 
-        public void Clear()
+        public IEnumerator<T> GetEnumerator()
         {
-            this._mHead = 0;
-            this._mTail = -1;
-            this._mCount = 0;
+            for (int counter = this._start; counter != this._end; counter = (counter + 1) % this._capacity)
+                yield return this._elements[counter];
         }
 
-        public T this[int index]
-        {
-            get
-            {
-                if (index > _mCount) throw new Exception("Out of index");
-                return  _continer[(_mHead + index) % _continer.Length];
-            }
-        }
-
-        public T Last => this[this._mCount - 1];
+        IEnumerator IEnumerable.GetEnumerator() => (IEnumerator) this.GetEnumerator();
     }
 }

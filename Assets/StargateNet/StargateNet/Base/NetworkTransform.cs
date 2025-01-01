@@ -28,7 +28,10 @@ public class NetworkTransform : NetworkBehavior, IClientSimulationCallbacks
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
         if (this.IsClient && needCorrect && this._corrector == null)
-            _corrector = new TransformErrorCorrect();
+        {
+            this._corrector = new TransformErrorCorrect();
+            this._corrector.Init(this.transform.position, this.transform.rotation);
+        }
 
         if (this.IsClient)
         {
@@ -110,7 +113,7 @@ public class NetworkTransform : NetworkBehavior, IClientSimulationCallbacks
         Quaternion renderRotationQuat = Quaternion.Slerp(fromQuat, toQuat, alpha);
 
 
-        // 开始Error Correct
+        // 上方得出正确的插值位置，这里调和实际的位置，尽可能去靠近正确的插值位置
         if (this.IsClient && this._corrector != null)
         {
             _corrector.Render(ref renderPosition, ref renderRotationQuat, errorMagnitude, correctionMultiplier);

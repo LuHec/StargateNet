@@ -58,7 +58,7 @@ public static unsafe class TLSF64
 
     [Conditional("DEBUG")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void tlsf_assert(bool condition, string? message) => Debug.Assert(condition, message);
+    public static void tlsf_assert(bool condition, string message) => Debug.Assert(condition, message);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong block_size(block_header_t* block) =>

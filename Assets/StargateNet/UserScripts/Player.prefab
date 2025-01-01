@@ -133,7 +133,7 @@ Transform:
   m_GameObject: {fileID: 3261059568882292177}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.827, y: -0.45, z: 0.049}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -372,7 +372,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   renderTransform: {fileID: 3063326188549370508}
-  needCorrect: 1
+  needCorrect: 0
   errorMagnitude: 5
   correctionMultiplier: 10
 --- !u!114 &6298116642484953821
@@ -390,7 +390,7 @@ MonoBehaviour:
   cc: {fileID: 5574289517947133850}
   cameraPoint: {fileID: 2942176371875200917}
   foot: {fileID: 5762399165700279374}
-  handPoint: {fileID: 4831352236730223633}
+  handPoint: {fileID: 9166682964219372946}
   groundDis: 1
   moveSpeed: 10
   lookSpeedX: 2
@@ -406,9 +406,12 @@ MonoBehaviour:
   rotationStep: 4
   maxRotationStep: 5
   bobOffset: 1
+  speedCurveMultiplier: 0.08
   speedCurve: 0
-  travelLimit: {x: 0.025, y: 0.025, z: 0.025}
+  travelLimit: {x: 0.025, y: 0.025, z: 0.2}
   bobLimit: {x: 0.1, y: 0.1, z: 0.1}
+  bobSway: 1
+  multiplier: {x: 10, y: 10, z: 10}
 --- !u!143 &5574289517947133850
 CharacterController:
   m_ObjectHideFlags: 0
@@ -556,12 +559,12 @@ PrefabInstance:
     - target: {fileID: 5404179526034224806, guid: 79b02dee71e0e8f43b2018ce7536f482,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 0.898
       objectReference: {fileID: 0}
     - target: {fileID: 5404179526034224806, guid: 79b02dee71e0e8f43b2018ce7536f482,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.387
       objectReference: {fileID: 0}
     - target: {fileID: 5404179526034224806, guid: 79b02dee71e0e8f43b2018ce7536f482,
         type: 3}
