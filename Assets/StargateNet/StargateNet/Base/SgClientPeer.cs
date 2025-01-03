@@ -113,7 +113,7 @@ namespace StargateNet
             rcvBuffer.Init(srvTick);
             this.ReceiveMeta(msg, isFullPacket);
             this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta，处理服务端生成和销毁的物体
-            this.CopyMetaToBuffer();
+            this.CopyMetaToBuffer(srvTick);
             this.CopyFromStateToBuffer(); // 这一步也需要ChangedMeta
             this.ReceiveStateToBuffer(msg); // 这里不直接把状态更新到WorldState中
             this.Engine.EntityMetaManager.PostChanged(); // 清除Changed
@@ -192,11 +192,12 @@ namespace StargateNet
         /// <summary>
         /// 把完整的内存构造拷贝到buffer
         /// </summary>
-        private void CopyMetaToBuffer()
+        private void CopyMetaToBuffer(Tick srvTick)
         {
             Snapshot buffer = this.Engine.ClientSimulation.rcvBuffer;
             Snapshot currentSnapshot = this.Engine.WorldState.CurrentSnapshot;
             currentSnapshot.CopyTo(buffer);
+            buffer.snapshotTick = srvTick;
         }
 
         /// <summary>
