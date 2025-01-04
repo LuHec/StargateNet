@@ -18,7 +18,8 @@ namespace StargateNet
         internal override float Alpha => _alpha;
         internal override float InterpolationTime { get; }
         /// <summary>
-        /// 帧时间+距离上次收包过了多久-积攒插值时间
+        /// 帧时间+距离上次收包过了多久-积攒插值时间，这个值会被用于判断插值时间是否已经超时。||含义是还差多少时间才能把包全部消耗完,即interploate的延迟||
+        /// 延迟和丢包与bufferTime成正比
         /// </summary>
         internal float CurrentBufferTime => this._bufferAsTime + (float)(this.Engine.SimulationClock.Time - this._lastTimeAddSnapshot) - this._currentLerpTime;
         private Queue<Snapshot> _snapshotsPool;
@@ -45,7 +46,7 @@ namespace StargateNet
                 this._snapshotsPool.Enqueue(new Snapshot(stateByteSize, metaCnt, stargateEngine.Monitor));
             }
 
-            this._maxInterpolateRatio = 1.3f;
+            this._maxInterpolateRatio = 1.2f;
             this._packetTime = new DoubleStats();
         }
 
@@ -71,18 +72,17 @@ namespace StargateNet
             this._fromTick = this._snapshotBuffer[0].snapshotTick;
             this._toTick = this._snapshotBuffer[1].snapshotTick;
             float time = (this._toTick - this._fromTick) * fixedDeltaTime; 
-            Debug.Log($"interper:{time},{CurrentBufferTime},{this._bufferAsTime}");
-            double num = this.CurrentBufferTime - threshold;
+            double delta = this.CurrentBufferTime - threshold;
             double maxThreshold = this._maxInterpolateRatio * fixedDeltaTime;
-            // 对时间进行缩放，应对网络波动
+            // 对deltaTime进行缩放，应对网络波动.延迟丢包越大scale越大，延迟大的时候_currentLerpTime增加的就少，这样帧数消耗的就慢
             float scale = 1.0f;
-            if (num > maxThreshold)
+            if (delta > maxThreshold)
             {
-                scale = num > fixedDeltaTime * 3.0f ? 1.2f : 1.01f;
+                scale = delta > fixedDeltaTime * 3.0f ? 1.2f : 1.01f;
             }
-            else if (num < maxThreshold)
+            else if (delta < maxThreshold)
             {
-                scale = num < -fixedDeltaTime * 3.0f ? 0.89f : 0.99f;
+                scale = delta < -fixedDeltaTime * 3.0f ? 0.89f : 0.99f;
             }
 
             if (this._currentLerpTime < time)
@@ -91,9 +91,9 @@ namespace StargateNet
                 this._alpha = this._currentLerpTime / time;
             }
 
-            if (this._currentLerpTime > time) // 消耗插值时间
+            if (this._currentLerpTime > time) 
             {
-                while (this._alpha > 1) //多余的
+                while (this._alpha > 1) // 消耗插值时间，如果上一帧来得太慢，为了追赶进度就要退出以前的帧
                 {
                     if (this._snapshotBuffer.Count == 0)
                     {
