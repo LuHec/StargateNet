@@ -27,6 +27,7 @@ namespace StargateNet
         internal SgServerPeer Server { get; private set; }
         internal bool IsServer => Peer.IsServer;
         internal bool IsClient => Peer.IsClient;
+        internal float InterpolateDelay => this.IsClient ? this.InterpolationRemote.CurrentBufferTime : 0f;
         internal LagCompensate LagCompensate { get; private set; }
         internal StargatePhysic PhysicSimulationUpdate { get; private set; }
         internal EntityMetaManager EntityMetaManager { get; private set; }

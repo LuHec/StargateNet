@@ -11,6 +11,7 @@ namespace StargateNet
     {
         internal StargateEngine Engine { private set; get; }
         public StargateConfigData ConfigData { private set; get; }
+        public float InterpolateDelay => this.Engine.InterpolateDelay;
         public float FixedDeltaTime => this.Engine.SimulationClock.FixedDeltaTime;
         public bool IsServer => this.Engine.IsServer;
         public bool IsClient => this.Engine.IsClient;

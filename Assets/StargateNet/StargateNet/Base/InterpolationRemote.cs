@@ -17,6 +17,9 @@ namespace StargateNet
         internal override bool HasSnapshot => this.FromSnapshot != null && this.ToSnapshot != null;
         internal override float Alpha => _alpha;
         internal override float InterpolationTime { get; }
+        /// <summary>
+        /// 帧时间+距离上次收包过了多久-积攒插值时间
+        /// </summary>
         internal float CurrentBufferTime => this._bufferAsTime + (float)(this.Engine.SimulationClock.Time - this._lastTimeAddSnapshot) - this._currentLerpTime;
         private Queue<Snapshot> _snapshotsPool;
         private readonly int _maxSnapshots;
@@ -24,7 +27,7 @@ namespace StargateNet
         private DoubleStats _packetTime;
         private double _lastTimeAddSnapshot;
         private float _currentLerpTime; // 插值时间，由Time.deltaTime叠加得到。表示从上一个插值帧开始过了多久。alpha = _currentLerpTime / threshold
-        private float _bufferAsTime; // tick换算为时间，代表缓冲区里所有的snapshot被积压了多久
+        private float _bufferAsTime; // 将tick换算为时间的值，代表缓冲区里所有的snapshot的时间(tick * deltaTime)
         private float _alpha;
         private RingQueue<Snapshot> _snapshotBuffer;
         private Tick _fromTick;
@@ -67,11 +70,11 @@ namespace StargateNet
 
             this._fromTick = this._snapshotBuffer[0].snapshotTick;
             this._toTick = this._snapshotBuffer[1].snapshotTick;
-            // // 如果发生了丢包，那两帧的时间差会变大，但同时_currentLerpTime的值也会变大。
-            // float threshold = (this._toTick - this._fromTick) * fixedTime; 
-            float time = (this._toTick - this._fromTick) * fixedDeltaTime;
+            float time = (this._toTick - this._fromTick) * fixedDeltaTime; 
+            Debug.Log($"interper:{time},{CurrentBufferTime},{this._bufferAsTime}");
             double num = this.CurrentBufferTime - threshold;
             double maxThreshold = this._maxInterpolateRatio * fixedDeltaTime;
+            // 对时间进行缩放，应对网络波动
             float scale = 1.0f;
             if (num > maxThreshold)
             {
@@ -88,16 +91,17 @@ namespace StargateNet
                 this._alpha = this._currentLerpTime / time;
             }
 
-            if (this._currentLerpTime > time) // 如果超时了，舍弃上一帧
+            if (this._currentLerpTime > time) // 消耗插值时间
             {
-                while (this._alpha > 1)
+                while (this._alpha > 1) //多余的
                 {
                     if (this._snapshotBuffer.Count == 0)
                     {
                         this._currentLerpTime = 0;
                         break;
                     }
-
+                    
+                    // 退出缓存，并减去对应的插值时间
                     this.Dequeue();
                     this._currentLerpTime -= time;
                     this._bufferAsTime -= time;
@@ -131,14 +135,14 @@ namespace StargateNet
             remoteSnapshot.CopyTo(snapshot);
             if (this._snapshotBuffer.Count == 0)
             {
-                this._snapshotBuffer.Enqueue(snapshot);
                 this._bufferAsTime += this.Engine.SimulationClock.FixedDeltaTime;
+                this._snapshotBuffer.Enqueue(snapshot);
             }
             else
             {
                 this._useAbleTicks++;
-                this._snapshotBuffer.Enqueue(snapshot);
                 this._bufferAsTime += (tick - _snapshotBuffer.Last.snapshotTick) * this.Engine.SimulationClock.FixedDeltaTime;
+                this._snapshotBuffer.Enqueue(snapshot);
             }
 
             if (this._snapshotBuffer.IsFull)

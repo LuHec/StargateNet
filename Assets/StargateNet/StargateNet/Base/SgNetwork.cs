@@ -12,7 +12,7 @@ namespace StargateNet
     {
         public static SgNetwork Instance => _instance;
         public Monitor monitor;
-        public SgNetworkGalaxy _sgNetworkGalaxy;
+        public SgNetworkGalaxy sgNetworkGalaxy;
         private static SgNetwork _instance;
         private bool _started;
 
@@ -86,14 +86,14 @@ namespace StargateNet
                 SgNetwork.Init(launchConfig);
             }
 
-            SgNetwork.Instance._sgNetworkGalaxy = new SgNetworkGalaxy();
+            SgNetwork.Instance.sgNetworkGalaxy = new SgNetworkGalaxy();
             SgNetwork.Instance.monitor = new Monitor();
             NetworkEventManager[] networkEventManagers = FindObjectsOfType<NetworkEventManager>();
             NetworkEventManager networkEventManager = networkEventManagers.Length > 0 ? networkEventManagers[0] : null;
-            SgNetwork.Instance._sgNetworkGalaxy.Init(startMode, launchConfig.configData, launchConfig.port,
+            SgNetwork.Instance.sgNetworkGalaxy.Init(startMode, launchConfig.configData, launchConfig.port,
                 SgNetwork.Instance.monitor, allocator ?? new UnityAllocator(), spawner ?? new UnityObjectSpawner(),
                 networkEventManager);
-            return SgNetwork.Instance._sgNetworkGalaxy;
+            return SgNetwork.Instance.sgNetworkGalaxy;
         }
 
         public static void Init(LaunchConfig launchConfig)
@@ -110,9 +110,9 @@ namespace StargateNet
         /// </summary>
         private void Update()
         {
-            if (this._sgNetworkGalaxy != null && this._started)
+            if (this.sgNetworkGalaxy != null && this._started)
             {
-                this._sgNetworkGalaxy.NetworkUpdate();
+                this.sgNetworkGalaxy.NetworkUpdate();
             }
         }
 

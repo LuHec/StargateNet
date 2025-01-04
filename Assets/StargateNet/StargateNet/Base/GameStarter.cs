@@ -43,14 +43,15 @@ namespace StargateNet
                 string textToDisplay = $"Tick: {monitor.tick}\n" +
                                        $"Sim DeltaTime: {monitor.deltaTime:F6}\n" +
                                        $"Clock Level{monitor.clockLevel}\n" +
-                                       $"RTT: {monitor.rtt:F6}\n" +
-                                       $"Smooth RTT: {monitor.smothRTT:F6}\n" +
+                                       $"RTT: {monitor.rtt:F6}ms\n" +
+                                       $"Smooth RTT: {monitor.smothRTT:F6}ms\n" +
+                                       $"InterpolationDelay: {SgNetwork.Instance.sgNetworkGalaxy.InterpolateDelay * 1000f}ms\n" +
                                        $"Client Resim: {monitor.resims}\n" +
                                        $"Client Input Count: {monitor.inputCount}\n" +
                                        $"Connected Clients: {monitor.connectedClients}\n" +
                                        $"Entities: {monitor.entities}\n" +
-                                       $"Unmanged Memory: {monitor.unmanagedMemeory}\n" +
-                                       $"Using Unmanaged Memory: {monitor.unmanagedMemeoryInuse}";
+                                       $"Unmanged Memory: {monitor.unmanagedMemeory}byte\n" +
+                                       $"Using Unmanaged Memory: {monitor.unmanagedMemeoryInuse}byte";
                 string[] textLines = textToDisplay.Split('\n'); // 以换行符分割文本
                 foreach (string line in textLines)
                 {
@@ -62,14 +63,14 @@ namespace StargateNet
 
             if (!_showConnectBtn && a == 2 && GUI.Button(new Rect(80, 200, 100, 90), "Spawn"))
             {
-                refs.Enqueue(SgNetwork.Instance._sgNetworkGalaxy.NetworkSpawn(test, Vector3.zero, Quaternion.identity)
+                refs.Enqueue(SgNetwork.Instance.sgNetworkGalaxy.NetworkSpawn(test, Vector3.zero, Quaternion.identity)
                     .gameObject);
             }
 
             if (!_showConnectBtn && a == 2 && GUI.Button(new Rect(80, 300, 100, 90), "Destroy"))
             {
                 if (refs.Count > 0)
-                    SgNetwork.Instance._sgNetworkGalaxy.NetworkDestroy(refs.Dequeue());
+                    SgNetwork.Instance.sgNetworkGalaxy.NetworkDestroy(refs.Dequeue());
             }
         }
     }
