@@ -13,6 +13,7 @@ namespace StargateNet
         public StargateConfigData ConfigData { private set; get; }
         public float InterpolateDelay => this.Engine.InterpolateDelay;
         public float FixedDeltaTime => this.Engine.SimulationClock.FixedDeltaTime;
+        public double ClockTime => this.Engine.SimulationClock.Time;
         public bool IsServer => this.Engine.IsServer;
         public bool IsClient => this.Engine.IsClient;
         public int PlayerId => this.Engine.IsServer ? -1 : this.Engine.Client.Client.Id;

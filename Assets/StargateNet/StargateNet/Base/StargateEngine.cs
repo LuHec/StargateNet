@@ -14,7 +14,6 @@ namespace StargateNet
         internal WorldState WorldState { get; private set; }
         internal SimulationClock SimulationClock { get; private set; }
         internal Monitor Monitor { get; private set; }
-        internal StargateAllocator WorldAllocator { get; private set; }
         internal Tick Tick => this.IsServer ? this.SimTick : this.ClientSimulation.currentTick;
         internal Tick SimTick { get; private set; } // 是客户端/服务端已经模拟的本地帧数。客户端的simTick仅代表EnginTick，服务端的SimTick就是AuthorTick
         internal float LastDeltaTime { get; private set; }
@@ -28,7 +27,7 @@ namespace StargateNet
         internal bool IsServer => Peer.IsServer;
         internal bool IsClient => Peer.IsClient;
         internal float InterpolateDelay => this.IsClient ? this.InterpolationRemote.CurrentBufferTime : 0f;
-        internal LagCompensate LagCompensate { get; private set; }
+        internal LagCompensateComponent LagCompensateComponent { get; private set; }
         internal StargatePhysic PhysicSimulationUpdate { get; private set; }
         internal EntityMetaManager EntityMetaManager { get; private set; }
         internal InterestManager IM { get; private set; }
@@ -76,6 +75,7 @@ namespace StargateNet
             }
 
             this.PhysicSimulationUpdate = new StargatePhysic(this, configData.isPhysic2D);
+            this.LagCompensateComponent = new LagCompensateComponent(this);
             this.IM = new InterestManager(configData.maxNetworkObjects, this);
             // ------------------------ 申请所有需要用到的内存 ------------------------ //
             this.maxEntities = (configData.maxNetworkObjects & 1) == 1
@@ -91,7 +91,7 @@ namespace StargateNet
             {
                 this.WorldState.snapshots.Add(new Snapshot(totalObjectStateByteSize, this.maxEntities, monitor));
             }
-
+            
             this.InterpolationLocal = new InterpolationLocal(this);
             if (startMode == StartMode.Server)
             {
@@ -148,7 +148,6 @@ namespace StargateNet
             // clear resources
             this.WorldState.HandledRelease();
             this.WorldState.CurrentSnapshot.NetworkStates.HandledRelease();
-            this.WorldAllocator.HandledRelease();
             this.Simulation.HandledRelease();
         }
 
@@ -264,7 +263,7 @@ namespace StargateNet
             float maxDistance,
             int layerMask)
         {
-            return this.LagCompensate.NetworkRaycast(origin, direction, inputSource, out hitInfo, maxDistance, layerMask);
+            return this.LagCompensateComponent.NetworkRaycast(origin, direction, inputSource, out hitInfo, maxDistance, layerMask);
         }
 
         // ------------- Server Only ------------- //

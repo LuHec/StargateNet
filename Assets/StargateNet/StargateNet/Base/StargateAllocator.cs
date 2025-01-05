@@ -15,7 +15,7 @@ namespace StargateNet
         /// <summary>
         /// 暂定1024，小项目应该不会有超过1024数量的东西需要同步吧
         /// </summary>
-        private const int MAX_BLOCK_NUMS = 1024;
+        private const int MAX_BLOCK_NUMS = 860;
         private const int TLSF64_ALIGNMENT = 8;
         private readonly void* _entireBlock;
         private Queue<int> _recycledPoolId = new(32);

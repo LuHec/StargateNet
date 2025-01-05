@@ -117,9 +117,10 @@ namespace StargateNet
                 int authorTick = msg.GetInt();
                 int targetTick = msg.GetInt();
                 float alpha = msg.GetFloat();
+                int remoteFromTick = msg.GetInt();
                 int inputBlockCount = msg.GetInt();
                 SimulationInput simulationInput =
-                    this.Engine.ServerSimulation.CreateInput(new Tick(authorTick), new Tick(targetTick), alpha);
+                    this.Engine.ServerSimulation.CreateInput(new Tick(authorTick), new Tick(targetTick), alpha, new Tick(remoteFromTick));
                 while (inputBlockCount-- > 0)
                 {
                     SimulationInput.InputBlock inputBlock = new()

@@ -17,13 +17,15 @@ namespace StargateNet
         public Tick clientAuthorTick = Tick.InvalidTick;
         public Tick clientTargetTick = Tick.InvalidTick;
         public float clientInterpolationAlpha = 0;
+        public Tick clientRemoteFromTick = Tick.InvalidTick;
         public List<InputBlock> inputBlocks = new(4);
 
-        public void Init(Tick authorTick, Tick targetTick, float alpha)
+        public void Init(Tick authorTick, Tick targetTick, float alpha, Tick remoteFromTick)
         {
             this.clientAuthorTick = authorTick;
             this.clientTargetTick = targetTick;
             this.clientInterpolationAlpha = alpha;
+            this.clientRemoteFromTick = remoteFromTick;
         }
 
         public void AddInputBlock(InputBlock inputBlock)
@@ -40,6 +42,8 @@ namespace StargateNet
         {
             this.clientAuthorTick = Tick.InvalidTick;
             this.clientTargetTick = Tick.InvalidTick;
+            this.clientInterpolationAlpha = 0;
+            this.clientRemoteFromTick = Tick.InvalidTick;
             inputBlocks.Clear();
         }
 

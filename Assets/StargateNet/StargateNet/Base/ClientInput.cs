@@ -4,5 +4,6 @@
     {
         public INetworkInput networkInput;
         public float alpha;
+        public Tick remoteFromTick;
     }
 }

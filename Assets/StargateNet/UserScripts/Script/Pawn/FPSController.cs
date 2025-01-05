@@ -31,7 +31,7 @@ public class FPSController : NetworkBehavior
 
     [Header("Sway Rotation")]
     public bool swayRotation = true;
-    
+
     public float smoothRot = 12f;
     public float rotationStep = 4f;
     public float maxRotationStep = 5f;
@@ -39,6 +39,7 @@ public class FPSController : NetworkBehavior
 
     [Header("Bobbing")]
     public bool bobOffset = true;
+
     public float speedCurveMultiplier = 1f;
     public float speedCurve;
 
@@ -102,6 +103,18 @@ public class FPSController : NetworkBehavior
             if (input.IsJump && isGrounded)
             {
                 VerticalSpeed = jumpSpeed;
+            }
+
+            if (input.IsFire)
+            {
+                GizmoTimerDrawer.Instance.DrawRayWithTimer(cameraPoint.position, cameraPoint.forward * 50f, 5f,
+                    Color.green);
+                galaxy.NetworkRaycast(cameraPoint.position, cameraPoint.forward, this.InputSource, out RaycastHit hit,
+                    50f, ~0);
+                if (hit.collider != null)
+                {
+                    GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hit.point, 3f, 5f, Color.red);
+                }
             }
         }
 
@@ -230,15 +243,18 @@ public class FPSController : NetworkBehavior
             return;
         }
 
-        _bobRotation.x = input != Vector2.zero ? multiplier.x * (Mathf.Sin(2 * speedCurve)) : multiplier.x * (Mathf.Sin(2 * speedCurve) / 2);
+        _bobRotation.x = input != Vector2.zero
+            ? multiplier.x * (Mathf.Sin(2 * speedCurve))
+            : multiplier.x * (Mathf.Sin(2 * speedCurve) / 2);
         _bobRotation.y = input != Vector2.zero ? multiplier.y * CurveCos : 0;
         _bobRotation.z = input != Vector2.zero ? multiplier.z * CurveCos * input.x : 0;
     }
 
     void CompositePositionRotation()
     {
-        handPoint.localPosition = Vector3.Lerp(handPoint.localPosition, _swayPos + _bobPosition, Time.deltaTime * smooth);
-        handPoint.localRotation = Quaternion.Slerp(handPoint.localRotation, 
+        handPoint.localPosition =
+            Vector3.Lerp(handPoint.localPosition, _swayPos + _bobPosition, Time.deltaTime * smooth);
+        handPoint.localRotation = Quaternion.Slerp(handPoint.localRotation,
             Quaternion.Euler(_swayEulerRot) * Quaternion.Euler(_bobRotation),
             Time.deltaTime * smoothRot);
     }

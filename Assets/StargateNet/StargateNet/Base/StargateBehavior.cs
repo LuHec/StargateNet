@@ -6,6 +6,7 @@ namespace StargateNet
     {
         public unsafe int* StateBlock { get; internal set; } // 由Entity构造时分发
         public Entity Entity { get; internal set; }
+        public int InputSource => this.Entity.inputSource;
 
         public void Initialize(Entity entity)
         {

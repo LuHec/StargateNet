@@ -211,7 +211,7 @@ namespace StargateNet
         /// </summary>
         internal void SetInput(int inputSource, INetworkInput networkInput)
         {
-            ClientInput clientInput = new ClientInput() { networkInput = networkInput, alpha = this.engine.SimulationClock.Alpha };
+            ClientInput clientInput = new ClientInput() { networkInput = networkInput, alpha = this.engine.InterpolationRemote.Alpha, remoteFromTick = this.engine.InterpolationRemote.FromTick};
             if (!this.clientInputs.TryAdd(0, clientInput))
             {
                 clientInputs[0] = clientInput;
@@ -229,7 +229,7 @@ namespace StargateNet
             return input;
         }
 
-        internal SimulationInput CreateInput(Tick srvTick, Tick targetTick, float alpha)
+        internal SimulationInput CreateInput(Tick srvTick, Tick targetTick, float alpha, Tick remoteFromTick)
         {
             if (inputPool.Count == 0)
             {
@@ -237,7 +237,7 @@ namespace StargateNet
             }
 
             SimulationInput resInput = inputPool.Dequeue();
-            resInput.Init(srvTick, targetTick, alpha);
+            resInput.Init(srvTick, targetTick, alpha, remoteFromTick);
             
             return resInput;
         }

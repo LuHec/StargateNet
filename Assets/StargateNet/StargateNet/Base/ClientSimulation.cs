@@ -136,7 +136,7 @@ namespace StargateNet
             if (this.engine.SimulationClock.IsFirstCall)
                 this.Reconcile();
 
-            this.currentInput = CreateInput(this.authoritativeTick, this.currentTick, 0);
+            this.currentInput = CreateInput(this.authoritativeTick, this.currentTick, 0, Tick.InvalidTick);
             this.inputs.Add(this.currentInput);
             //TODO:暂时先这么写，后续要改造alpha的存放方式
             foreach (var pair in this.clientInputs)
@@ -147,6 +147,7 @@ namespace StargateNet
                     input = pair.Value.networkInput,
                 });
                 this.currentInput.clientInterpolationAlpha = pair.Value.alpha;
+                this.currentInput.clientRemoteFromTick = pair.Value.remoteFromTick;
             }
 
             // 关于新输入把旧输入冲掉导致服务端丢失操作的问题：
