@@ -209,10 +209,24 @@ namespace StargateNet
         /// <summary>
         /// 在Update期间调整NetworkInput.需要注意这里InputSource是假参数！！！！字典的key是input的类型！！！！
         /// </summary>
-        internal void SetInput(int inputSource, INetworkInput networkInput)
+        internal void SetInput(int inputSource, INetworkInput networkInput, bool needRefreshAlpha = false)
         {
             ClientInput clientInput = new ClientInput() { networkInput = networkInput, alpha = this.engine.InterpolationRemote.Alpha, remoteFromTick = this.engine.InterpolationRemote.FromTick};
-            if (!this.clientInputs.TryAdd(0, clientInput))
+            if (this.clientInputs.ContainsKey(0))
+            {
+                var oClientInput = this.clientInputs[0];
+                // 只在需要时更新延迟补偿的参数
+                if (needRefreshAlpha)
+                {
+                    this.clientInputs[0] = clientInput;
+                }
+                else
+                {
+                    oClientInput.networkInput = networkInput;
+                    this.clientInputs[0] = oClientInput;
+                }
+            }
+            else
             {
                 clientInputs[0] = clientInput;
             }

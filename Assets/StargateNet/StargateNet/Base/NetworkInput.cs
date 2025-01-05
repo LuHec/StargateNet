@@ -8,5 +8,7 @@ namespace StargateNet
         public Vector2 YawPitch;
         public bool IsJump;
         public bool IsFire;
+        public float alpha;
+        public Tick remoteFromTick;
     }
 }

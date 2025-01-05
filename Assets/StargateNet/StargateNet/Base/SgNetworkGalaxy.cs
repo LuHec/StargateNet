@@ -63,9 +63,9 @@ namespace StargateNet
             this.Engine.NetworkDestroy(gameObject);
         }
 
-        public void SetInput<T>(T input) where T : INetworkInput
+        public void SetInput<T>(T input, bool needRefresh = false) where T : INetworkInput
         {
-            this.Engine.SetInput<T>(input);
+            this.Engine.SetInput<T>(input, needRefresh);
         }
 
         /// <summary>

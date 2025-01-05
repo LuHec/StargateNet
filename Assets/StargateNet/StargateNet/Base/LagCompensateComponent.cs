@@ -63,16 +63,19 @@ namespace StargateNet
             for (int i = 0; i < length; i++)
             {
                 var hitResult = hitResults[i];
-                GameObject go = hitResult.collider.gameObject;
-                if (go == null) return;
-                GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hitResult.point, 2f, 3f, Color.blue);
-                if (go.TryGetComponent(out NetworkObject networkObject) &&
-                    go.TryGetComponent(out CompensateCollider compensateCollider) &&
-                    go.transform.parent != null &&
-                    go.transform.parent.TryGetComponent(out NetworkTransform networkTransform))
+                GameObject compensateTarget = hitResult.collider.gameObject;
+                if (compensateTarget == null) continue;
+                GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hitResult.point, 1f, 3f, Color.blue);
+                if (!compensateTarget.TryGetComponent(out CompensateCollider compensateCollider)) continue;
+                GameObject target = compensateTarget.transform.parent.gameObject;
+                if(target == null) continue;
+                if (target.TryGetComponent(out NetworkObject networkObject) && target.TryGetComponent(out NetworkTransform networkTransform))
                 {
                     Entity compEntity = networkObject.Entity;
                     if (compEntity.inputSource == casterInputSource) continue;
+                    // 先将数据写入到Snapshot中,不然被回滚的物体这帧的运动就被覆盖掉了
+                    networkTransform.SerializeToNetcode();
+                    
                     int metaIdx = compEntity.worldMetaId;
                     int stateBlockIdx = (int)compEntity.GetStateBlockIdx(networkTransform.StateBlock);
                     if (fromSnapshot.GetWorldObjectMeta(metaIdx).networkId == networkObject.NetworkId.refValue &&
@@ -96,11 +99,14 @@ namespace StargateNet
                         Quaternion toQuat = Quaternion.Euler(toRotation);
                         Quaternion renderRotationQuat = Quaternion.Slerp(fromQuat, toQuat, alpha);
 
-                        go.transform.position = renderPosition;
-                        go.transform.rotation = renderRotationQuat;
+                        target.transform.position = renderPosition;
+                        target.transform.rotation = renderRotationQuat;
+                        
+                        GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(renderPosition, .5f, 3f, Color.yellow);
                     }
                 }
             }
+            Physics.SyncTransforms();
         }
 
         private unsafe void EndLagCompensation(RaycastHit[] hitResults, int length, int casterInputSource,
@@ -109,10 +115,13 @@ namespace StargateNet
             for (int i = 0; i < length; i++)
             {
                 var hitResult = hitResults[i];
-                GameObject go = hitResult.collider.gameObject;
-                if (go == null) return;
-                if (go.TryGetComponent(out NetworkObject networkObject) &&
-                    go.TryGetComponent(out NetworkTransform networkTransform))
+                GameObject compensateTarget = hitResult.collider.gameObject;
+                if (compensateTarget == null) continue;
+                GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hitResult.point, .5f, 3f, Color.blue);
+                if (!compensateTarget.TryGetComponent(out CompensateCollider compensateCollider)) continue;
+                GameObject target = compensateTarget.transform.parent.gameObject;
+                if(target == null) continue;
+                if (target.TryGetComponent(out NetworkObject networkObject) && target.TryGetComponent(out NetworkTransform networkTransform))
                 {
                     Entity compEntity = networkObject.Entity;
                     if (compEntity.inputSource == casterInputSource) continue;
@@ -125,11 +134,12 @@ namespace StargateNet
                         int* rotationPtr = positionPtr + 3;
                         Vector3 position = StargateNetUtil.GetVector3(positionPtr);
                         Vector3 rotation = StargateNetUtil.GetVector3(rotationPtr);
-                        go.transform.position = position;
-                        go.transform.rotation = Quaternion.Euler(rotation);
+                        target.transform.position = position;
+                        target.transform.rotation = Quaternion.Euler(rotation);
                     }
                 }
             }
+            Physics.SyncTransforms();
         }
     }
 }

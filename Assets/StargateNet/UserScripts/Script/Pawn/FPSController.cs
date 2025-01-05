@@ -113,7 +113,7 @@ public class FPSController : NetworkBehavior
                     50f, ~0);
                 if (hit.collider != null)
                 {
-                    GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hit.point, 3f, 5f, Color.red);
+                    GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hit.point, .5f, 5f, Color.red);
                 }
             }
         }
@@ -183,8 +183,7 @@ public class FPSController : NetworkBehavior
         right.Normalize();
         Vector3 moveDirection = forward * Input.GetAxis("Vertical") + right * Input.GetAxis("Horizontal");
         networkInput.Input = new Vector2(moveDirection.x, moveDirection.z);
-
-
+        
         Vector2 deltaRawPitchInput = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
         float mouseX = deltaRawPitchInput.x * lookSpeedX;
         float mouseY = deltaRawPitchInput.y * lookSpeedY;
@@ -195,7 +194,9 @@ public class FPSController : NetworkBehavior
         networkInput.YawPitch = new Vector2(_localYawPitch.x, _localYawPitch.y);
         networkInput.IsJump |= Input.GetKeyDown(KeyCode.Space);
         networkInput.IsFire |= Input.GetMouseButtonDown(0);
-        galaxy.SetInput(networkInput);
+        // 处理延迟补偿
+        //TODO:暂时这么写！！还在想办法解决怎么把这个狗屎延迟补偿输入给提取出用户代码
+        galaxy.SetInput(networkInput, Input.GetMouseButtonDown(0));
 
         return (deltaRawPitchInput, new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")));
     }

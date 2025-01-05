@@ -335,7 +335,7 @@ namespace StargateNet
             else throw new Exception($"Network Id:{networkId} is not exist");
         }
 
-        internal void SetInput<T>(T input) where T : INetworkInput
+        internal void SetInput<T>(T input, bool needRefresh = false) where T : INetworkInput
         {
             int inputSource = -1;
             if (this.IsClient && this.IsConnected)
@@ -350,7 +350,7 @@ namespace StargateNet
 
             if (inputSource != -1)
             {
-                this.Simulation.SetInput(inputSource, input);
+                this.Simulation.SetInput(inputSource, input, needRefresh);
             }
         }
 
