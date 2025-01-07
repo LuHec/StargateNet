@@ -45,6 +45,8 @@ namespace StargateNet
                                        $"Clock Level{monitor.clockLevel}\n" +
                                        $"RTT: {monitor.rtt:F6}ms\n" +
                                        $"Smooth RTT: {monitor.smothRTT:F6}ms\n" +
+                                       $"InKBps: {SgNetwork.Instance.sgNetworkGalaxy.InKBps}KB/s\n" +
+                                       $"OutKBps: {SgNetwork.Instance.sgNetworkGalaxy.OutKBps}KB/s\n" +
                                        $"InterpolationDelay: {SgNetwork.Instance.sgNetworkGalaxy.InterpolateDelay * 1000f}ms\n" +
                                        $"Client Resim: {monitor.resims}\n" +
                                        $"Client Input Count: {monitor.inputCount}\n" +

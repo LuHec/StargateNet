@@ -40,6 +40,8 @@ namespace StargateNet
             this.Client.Update();
             this.Engine.Monitor.rtt = this.Client.RTT;
             this.Engine.Monitor.smothRTT = this.Client.SmoothRTT;
+            this.bytesIn.Update(this.Engine.SimulationClock.InternalUpdateTime);
+            this.bytesOut.Update(this.Engine.SimulationClock.InternalUpdateTime);
         }
 
         public void SendMessageUnreliable(byte[] bytes)
@@ -92,8 +94,12 @@ namespace StargateNet
         /// <param name="args"></param>
         private unsafe void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
+            // 更新数据
+            this.bytesIn.Add(args.Message.BytesInUse);
             this.HeavyPakLoss = false;
             this.PakLoss = false;
+            
+            // 收包
             var msg = args.Message;
             Tick srvTick = new Tick(msg.GetInt());
             Tick srvRcvClientTick = new Tick(msg.GetInt());
@@ -158,6 +164,7 @@ namespace StargateNet
             }
 
             this.Client.Send(msg);
+            this.bytesOut.Add(msg.BytesInUse);
         }
 
         private void ReceiveMeta(Message msg, bool isFullPak)

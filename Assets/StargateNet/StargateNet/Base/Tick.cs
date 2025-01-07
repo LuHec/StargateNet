@@ -4,7 +4,7 @@ using UnityEngine.Serialization;
 namespace StargateNet
 {
     [Serializable]
-    public struct Tick : IEquatable<Tick>
+    public struct Tick : IEquatable<Tick>                              
     {
         public int tickValue;
         public static Tick InvalidTick = new Tick(-1);

@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
-using Riptide;
 using Riptide.Utils;
 using UnityEngine;
-using LogType = Riptide.Utils.LogType;
 
 namespace StargateNet
 {

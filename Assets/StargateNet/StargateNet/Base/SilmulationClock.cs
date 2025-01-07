@@ -9,6 +9,7 @@ namespace StargateNet
         internal double Time { get; private set; }
         internal bool IsFirstCall { get; private set; }
         internal bool IsLastCall { get; private set; }
+        internal float InternalUpdateTime => this._deltaTime;
 
         /// <summary>
         /// 两帧之间的alpha值，用于插值。计算方式是当前积攒时间/ScaledDeltaTime，含义是当前帧到下一帧已经消耗的时间百分比

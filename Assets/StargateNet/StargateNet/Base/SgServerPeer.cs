@@ -45,6 +45,8 @@ namespace StargateNet
         internal override void NetworkUpdate()
         {
             this.Server.Update();
+            this.bytesIn.Update(this.Engine.SimulationClock.InternalUpdateTime);
+            this.bytesOut.Update(this.Engine.SimulationClock.InternalUpdateTime);
         }
 
         /// <summary>
@@ -91,6 +93,9 @@ namespace StargateNet
                 RiptideLogger.Log(LogType.Debug, $"{msg.BytesInUse} all size");
                 this.Server.Send(msg, (ushort)i);
                 clientConnection.clientData.isFirstPak = false;
+                
+                // 数据更新
+                this.bytesOut.Add(msg.BytesInUse);
             }
         }
 
@@ -102,6 +107,7 @@ namespace StargateNet
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
             var msg = args.Message;
+            this.bytesIn.Add(msg.BytesInUse);
             // header ------------------------
             bool clientLossPacket = msg.GetBool();
             int clientLastAuthorTick = msg.GetInt();
