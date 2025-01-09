@@ -98,16 +98,18 @@ namespace StargateNet
             this.bytesIn.Add(args.Message.BytesInUse);
             this.HeavyPakLoss = false;
             this.PakLoss = false;
-            
+
             // 收包
             var msg = args.Message;
             Tick srvTick = new Tick(msg.GetInt());
-            Tick srvRcvClientTick = new Tick(msg.GetInt());
+            Tick srvRcvedClientTick = new Tick(msg.GetInt());
+            Tick srvRcvedClientInputTick = new Tick(msg.GetInt());
             this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
             bool isMultiPacket = msg.GetBool();
             bool isFullPacket = msg.GetBool();
             this.Engine.SimulationClock.OnRecvPak();
-            if (!this.Engine.ClientSimulation.OnRcvPak(srvTick, srvRcvClientTick, isMultiPacket, isFullPacket))
+            if (!this.Engine.ClientSimulation.OnRcvPak(srvTick, srvRcvedClientTick, srvRcvedClientInputTick,
+                    isMultiPacket, isFullPacket))
             {
                 this.PakLoss = true;
                 return;
@@ -134,26 +136,30 @@ namespace StargateNet
         public void SendClientPak()
         {
             Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToServer);
-            // 有没有丢ds包，如果丢包了就要求服务端发从上一次客户端authorTick之后的所有包
+            // 有没有丢ds包，如果丢包了就要求服务端发从上一次客户端收到的authorTick之后的所有包
             msg.AddBool(this.PakLoss);
             msg.AddInt(this.Engine.ClientSimulation.authoritativeTick.tickValue);
             // 发送ACK到的Tick后所有的输入    
-            List<SimulationInput> clientInputs = this.Engine.ClientSimulation.inputs;
-            msg.AddInt(clientInputs.Count);
-            for (int i = 0; i < clientInputs.Count; i++)
+            // TODO:修改，优先发送最新的输入，并设置发送上限
+            ClientSimulation clientSimulation = this.Engine.ClientSimulation;
+            List<SimulationInput> clientInputs = clientSimulation.inputs;
+            int threhold = Mathf.Max(clientInputs.Count - 5, 0);
+            msg.AddShort((short)(clientInputs.Count - threhold));
+            for (int index = clientInputs.Count - 1; index >= threhold; index--)
             {
-                msg.AddInt(clientInputs[i].clientAuthorTick.tickValue);
-                msg.AddInt(clientInputs[i].clientTargetTick.tickValue);
-                msg.AddFloat(clientInputs[i].clientInterpolationAlpha);
-                msg.AddInt(clientInputs[i].clientRemoteFromTick.tickValue);
-                msg.AddInt(clientInputs[i].inputBlocks.Count);
+                //TODO:多余了
+                msg.AddInt(clientInputs[index].clientAuthorTick.tickValue);
+                msg.AddInt(clientInputs[index].clientTargetTick.tickValue);
+                msg.AddFloat(clientInputs[index].clientInterpolationAlpha);
+                msg.AddInt(clientInputs[index].clientRemoteFromTick.tickValue);
+                msg.AddShort((short)clientInputs[index].inputBlocks.Count);
                 // 写入Input，暂时只有NetworkInput
-                var blocks = clientInputs[i].inputBlocks;
+                var blocks = clientInputs[index].inputBlocks;
                 for (int j = 0; j < blocks.Count; j++)
                 {
                     SimulationInput.InputBlock inputBlock = blocks[j];
                     NetworkInput networkInput = (NetworkInput)inputBlock.input;
-                    msg.AddInt(inputBlock.type);
+                    msg.AddShort(inputBlock.type);
                     msg.AddFloat(networkInput.Input.x);
                     msg.AddFloat(networkInput.Input.y);
                     msg.AddFloat(networkInput.YawPitch.x);

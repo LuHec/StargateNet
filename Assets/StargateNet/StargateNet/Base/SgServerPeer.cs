@@ -21,6 +21,7 @@ namespace StargateNet
 
         private Queue<int> _connectionId2Reuse = new(16);
         private List<int> _cachedMetaIds;
+        private List<SimulationInput> _cachedInputs = new List<SimulationInput>(128);
 
 
         public SgServerPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
@@ -62,8 +63,8 @@ namespace StargateNet
 
         public unsafe void SendServerPak()
         {
+            PrepareToSend();
             Snapshot curSnapshot = this.Engine.WorldState.CurrentSnapshot;
-            this._cachedMetaIds.Clear();
             for (int idx = 0; idx < this.Engine.maxEntities; idx++)
             {
                 if (curSnapshot.IsWorldMetaDirty(idx))
@@ -78,12 +79,12 @@ namespace StargateNet
                 // ------------------ Header ------------------
                 Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
                 // 判断是否发送多帧包。现在是只要客户端不回话，服务端就会一直发多帧包
-                bool isMultiPak = clientConnection.clientData.isFirstPak ||
-                                  clientConnection.clientData.pakLoss;
+                bool isMultiPak = clientConnection.clientData.isFirstPak || clientConnection.clientData.pakLoss;
                 Tick authorTick = this.Engine.SimTick;
                 Tick lastAckedAuthorTick = clientConnection.clientData.clientLastAuthorTick;
                 msg.AddInt(authorTick.tickValue);
                 msg.AddInt(lastAckedAuthorTick.tickValue);
+                msg.AddInt(clientConnection.clientData.LastTargetTick.tickValue);
                 msg.AddDouble(clientConnection.clientData.deltaPakTime); // 两次收到客户端包的间隔
                 // ------------------ Data ------------------
                 msg.AddBool(isMultiPak);
@@ -104,14 +105,26 @@ namespace StargateNet
             this.Server.Stop();
         }
 
+        private void PrepareToReceive()
+        {
+            this._cachedInputs.Clear();
+        }
+
+        private void PrepareToSend()
+        {
+            this._cachedMetaIds.Clear();
+        }
+        
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
+            PrepareToReceive();
             var msg = args.Message;
             this.bytesIn.Add(msg.BytesInUse);
             // header ------------------------
             bool clientLossPacket = msg.GetBool();
             int clientLastAuthorTick = msg.GetInt();
-            int inputCount = msg.GetInt();
+            int inputCount = msg.GetShort();
+            RiptideLogger.Log(LogType.Warning, $"client send input count: {inputCount}");
             ClientData clientData = this.clientConnections[args.FromConnection.Id].clientData;
             clientData.deltaPakTime = this.Engine.SimulationClock.Time - clientData.lastPakTime;
             clientData.lastPakTime = this.Engine.SimulationClock.Time;
@@ -124,14 +137,14 @@ namespace StargateNet
                 int targetTick = msg.GetInt();
                 float alpha = msg.GetFloat();
                 int remoteFromTick = msg.GetInt();
-                int inputBlockCount = msg.GetInt();
+                int inputBlockCount = msg.GetShort();
                 SimulationInput simulationInput =
                     this.Engine.ServerSimulation.CreateInput(new Tick(authorTick), new Tick(targetTick), alpha, new Tick(remoteFromTick));
                 while (inputBlockCount-- > 0)
                 {
                     SimulationInput.InputBlock inputBlock = new()
                     {
-                        type = msg.GetInt(),
+                        type = msg.GetShort(),
                         input = new NetworkInput
                         {
                             Input = new Vector2
@@ -151,14 +164,17 @@ namespace StargateNet
 
                     simulationInput.AddInputBlock(inputBlock);
                 }
+                
+                this._cachedInputs.Add(simulationInput);
+            }
 
-                // 优先保留旧输入，以免被冲掉
-                if (targetTick <= clientData.LastTargetTick.tickValue || clientData.clientInput.Count > clientData.maxClientInput)
+            for (int i = this._cachedInputs.Count - 1; i >= 0; i--)
+            {
+                var simulationInput = this._cachedInputs[i];
+                if (!clientData.ReceiveInput(simulationInput))
                 {
                     this.Engine.Simulation.RecycleInput(simulationInput);
-                    continue;
                 }
-                clientData.ReceiveInput(simulationInput);
             }
         }
 
@@ -182,6 +198,14 @@ namespace StargateNet
             clientData.Reset();
             clientConnection.Reset();
             this.Engine.Monitor.connectedClients--;
+        }
+
+        private void AckInput(Tick ackedTick, ushort clientId)
+        {
+            Message msg = Message.Create(MessageSendMode.Reliable, Protocol.ToClient);
+            msg.AddBool(true);
+            msg.AddInt(ackedTick.tickValue);
+            this.Server.Send(msg, clientId);
         }
     }
 }

@@ -11,6 +11,7 @@ namespace StargateNet
         internal Tick currentTick = Tick.InvalidTick;
         internal Tick predictedTick = Tick.InvalidTick;
         internal Tick authoritativeTick = Tick.InvalidTick; // 客户端接收到的AuthorTick,服务端Tick从10开始 
+        internal Tick serverRcvedClientTick = Tick.InvalidTick;
         internal Snapshot rcvBuffer; // 接收时存放最新的server snapshot
         internal List<StargateAllocator> predictedSnapshots; // 客户端用于预测snapshot，由于客户端不会预测物体的销毁和生成，所以只存属性
         internal List<SimulationInput> inputs = new(128);
@@ -50,11 +51,13 @@ namespace StargateNet
         /// </summary>
         /// <param name="srvTick">服务端 Tick</param>
         /// <param name="srvClientAuthorTick">服务端接收的客户端最新AuthorTick</param>
+        /// <param name="srvInputTick">服务端收到的最新input tick</param>
         /// <param name="isMultiPacket">是否是多帧包</param>
         /// <param name="isFullPacket">是否是全量包</param>
         /// <returns>是否接受并处理了该数据包</returns>
-        internal bool OnRcvPak(Tick srvTick, Tick srvClientAuthorTick, bool isMultiPacket, bool isFullPacket)
+        internal bool OnRcvPak(Tick srvTick, Tick srvClientAuthorTick, Tick srvInputTick, bool isMultiPacket, bool isFullPacket)
         {
+            this.serverRcvedClientTick = srvInputTick;
             // 优先处理全量包
             if (isFullPacket && this.IsValidFullPacket(srvTick))
             {

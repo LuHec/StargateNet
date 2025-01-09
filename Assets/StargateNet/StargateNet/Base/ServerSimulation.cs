@@ -13,7 +13,7 @@ namespace StargateNet
             this.clientDatas = new ClientData[engine.ConfigData.maxClientCount];
             for (int i = 0; i < this.clientDatas.Length; i++)
             {
-                this.clientDatas[i] = new ClientData(engine.ConfigData.savedSnapshotsCount);
+                this.clientDatas[i] = new ClientData(this, engine.ConfigData.savedSnapshotsCount);
             }
         }
 
@@ -74,8 +74,8 @@ namespace StargateNet
                         }
                     }
 
-                    RiptideLogger.Log(LogType.Warning,
-                        $"ServerTick:{this.engine.SimTick}，{ticks}  input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
+                    // RiptideLogger.Log(LogType.Warning,
+                    //     $"ServerTick:{this.engine.SimTick}，{ticks}  input count:{clientDatas[i].clientInput.Count}, Client ID: {i}");
                     while (clientInput.Count > 0 && clientInput.Peek().clientTargetTick < targetTick)
                     {
                         var input = clientInput.Dequeue();

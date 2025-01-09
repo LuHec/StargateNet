@@ -10,7 +10,7 @@ namespace StargateNet
     {
         public struct InputBlock
         {
-            public int type;
+            public short type;
             public INetworkInput input;
         }
 
@@ -33,7 +33,7 @@ namespace StargateNet
             inputBlocks.Add(inputBlock);
         }
 
-        public void AddInputBlock(int type, INetworkInput input)
+        public void AddInputBlock(short type, INetworkInput input)
         {
             this.inputBlocks.Add(new InputBlock { type = type, input = input });
         }
