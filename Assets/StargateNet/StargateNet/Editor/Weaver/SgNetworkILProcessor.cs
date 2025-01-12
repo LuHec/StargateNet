@@ -51,25 +51,37 @@ namespace StargateNet
             // 读入符号表
             readerParameters.SymbolStream = new MemoryStream(compiledAssembly.InMemoryAssembly.PdbData);
             // 读入目标程序集定义
-            var assembly = AssemblyDefinition.ReadAssembly(new MemoryStream(compiledAssembly.InMemoryAssembly.PeData),
+            var targetAssembly = AssemblyDefinition.ReadAssembly(
+                new MemoryStream(compiledAssembly.InMemoryAssembly.PeData),
                 readerParameters);
             // 排除没有引用StargateNet的程序集
-            if (assembly.MainModule.AssemblyReferences.All(refName => refName.Name != StargateNetAsmdefName) &&
+            if (targetAssembly.MainModule.AssemblyReferences.All(refName => refName.Name != StargateNetAsmdefName) &&
                 compiledAssembly.Name != StargateNetAsmdefName)
                 return new ILPostProcessResult(null!);
             // 载入sgnet程序集
-            AssemblyDefinition refAssembly = assembly;
+            AssemblyDefinition stargateNetAssembly = targetAssembly;
             if (compiledAssembly.Name != StargateNetAsmdefName)
             {
-                refAssembly = loader.Resolve(assembly.MainModule.AssemblyReferences.First(refName => refName.Name == StargateNetAsmdefName));
+                // (assembly可能是引用了Sgnet程序集的用户程序集，所以要把Sgnet程序集也加载出来)
+                stargateNetAssembly =
+                    loader.Resolve(
+                        targetAssembly.MainModule.AssemblyReferences.First(refName =>
+                            refName.Name == StargateNetAsmdefName));
             }
 
             // 处理程序集，注入代码
             List<DiagnosticMessage> diagnostics = new();
-            // 处理SyncVar标记
-            diagnostics.AddRange(new NetworkedAttributeProcessor().ProcessAssembly(assembly, refAssembly));
-            // 获取SyncVar大小
-            diagnostics.AddRange(new NetworkBehaviorProcessor().ProcessAssembly(assembly));
+ 
+            // 收集NetworkCallBack，需要创建函数，所以传入StargateNet程序集
+            Dictionary<string, CodeGenCallbackData> propertyToCallbackData = new();
+            diagnostics.AddRange(new NetworkCallBackProcessor().ProcessAssembly(targetAssembly, stargateNetAssembly, ref propertyToCallbackData));
+
+            // 处理SyncVar标记,由于需要创建函数，所以在targetAssembly非StargateNet本身的情况下，要传入StargateNet的程序集
+            diagnostics.AddRange(new NetworkedAttributeProcessor().ProcessAssembly(targetAssembly, stargateNetAssembly, propertyToCallbackData));
+
+            // 获取SyncVar大小，不需要创建函数，直接传targetAssembly就行
+            diagnostics.AddRange(new NetworkBehaviorProcessor().ProcessAssembly(targetAssembly));
+
             // 重新写回
             byte[] peData;
             byte[] pdbData;
@@ -83,7 +95,7 @@ namespace StargateNet
                     SymbolStream = pdbStream
                 };
 
-                assembly.Write(peStream, writeParameters);
+                targetAssembly.Write(peStream, writeParameters);
                 peStream.Flush();
                 pdbStream.Flush();
 

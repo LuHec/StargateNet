@@ -9,16 +9,18 @@ namespace StargateNet
 {
     public class NetworkedAttributeProcessor
     {
-        private Dictionary<string, TypeDefinition> definitions = new();
+        private Dictionary<string, TypeDefinition> _definitions = new();
+        private Dictionary<string, CodeGenCallbackData> _propertyToCallbackData;
 
-        public List<DiagnosticMessage> ProcessAssembly(AssemblyDefinition assembly, AssemblyDefinition refAssembly)
+        public List<DiagnosticMessage> ProcessAssembly(AssemblyDefinition assembly, AssemblyDefinition refAssembly, Dictionary<string, CodeGenCallbackData> propertyToCallbackData)
         {
+            this._propertyToCallbackData = propertyToCallbackData;
             // 先获取Module引用
             foreach (var module in assembly.Modules)
             {
                 foreach (var type in module.GetTypes())
                 {
-                    definitions.TryAdd(type.FullName, type);
+                    _definitions.TryAdd(type.FullName, type);
                 }
             }
 
@@ -26,7 +28,7 @@ namespace StargateNet
             {
                 foreach (var type in module.GetTypes())
                 {
-                    definitions.TryAdd(type.FullName, type);
+                    _definitions.TryAdd(type.FullName, type);
                 }
             }
 
@@ -157,71 +159,106 @@ namespace StargateNet
                     }
                 }
             }
+            
+            if (stateBlockProp == null || entityProp == null) return diagnostics;
 
-
-            if (stateBlockProp != null && entityProp != null)
+            foreach (var property in type.Properties)
             {
-                foreach (var property in type.Properties)
+                if (property.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(ReplicatedAttribute)))
                 {
-                    if (property.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(ReplicatedAttribute)))
+                    if (!StargateNetProcessorUtil.NetworkedableTypes.Contains(property.PropertyType.FullName))
                     {
-                        if (!StargateNetProcessorUtil.NetworkedableTypes.Contains(property.PropertyType.FullName))
+                        var message = new DiagnosticMessage
                         {
-                            var message = new DiagnosticMessage
-                            {
-                                DiagnosticType = DiagnosticType.Error,
-                                MessageData =
-                                    $"Property '{property.Name}' in type '{type.FullName}' is of type '{property.PropertyType.FullName}' which can not be networked.",
-                            };
-                            diagnostics.Add(message);
-                            continue;
-                        }
-
-                        // ------------------ 设置getter
-                        var module = property.DeclaringType.Module; // 在getter方法前插入将属性值设置为默认值的代码
-                        var getIL = property.GetMethod.Body.GetILProcessor(); // 先获取所有的指令，然后清除原先的指令，插入新指令
-                        getIL.Body.Instructions.Clear(); // 清除原先的指令
-                        getIL.Emit(OpCodes.Ldarg_0); // 加载this
-                        getIL.Emit(OpCodes.Callvirt, module.ImportReference(stateBlockProp.GetMethod)); // 加载this.State值
-                        getIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
-                        getIL.Emit(OpCodes.Add); // 加上偏移量
-                        if (IfUnityType(property))
-                        {
-                            ProcessIfUnityType(property, getIL, module); // 如果是Unity类型，通过自定义反序列化的方式取出值
-                            getIL.Emit(OpCodes.Ret); // 返回   
-                        }
-                        else
-                        {
-                            // 数据只有4字节的和8字节的(long)
-                            getIL.Emit(OpCodes.Conv_I);
-                            ProcessIfPrimitiveType(property, getIL, module);
-                            getIL.Emit(OpCodes.Ret); // 返回  
-                        }
-
-                        // ------------------ 设置Setter
-                        var setIL = property.SetMethod.Body.GetILProcessor();
-                        setIL.Body.Instructions.Clear();
-                        setIL.Emit(OpCodes.Ldarg_0); // 加载参数1this
-                        setIL.Emit(OpCodes.Ldarga_S, (byte)1); // 参数value的地址
-                        setIL.Emit(OpCodes.Conv_U); // 取地址(转成native的int*)
-                        setIL.Emit(OpCodes.Ldarg_0); // 加载this
-                        setIL.Emit(OpCodes.Callvirt,
-                            module.ImportReference(stateBlockProp.GetMethod)); // 加载参数3StateBlock地址
-                        setIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
-                        setIL.Emit(OpCodes.Add); // 加上偏移量
-                        setIL.Emit(OpCodes.Ldc_I4,
-                            (int)(StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType) / 4)); // 加载参数4字节数量
-                        setIL.Emit(OpCodes.Call,
-                            module.ImportReference(definitions[typeof(StargateNet.Entity).FullName].Methods
-                                .First(me => me.Name == nameof(Entity.DirtifyData))));
-                        setIL.Emit(OpCodes.Ret); // 返回  
-
-                        lastFieldSize += StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
+                            DiagnosticType = DiagnosticType.Error,
+                            MessageData =
+                                $"Property '{property.Name}' in type '{type.FullName}' is of type '{property.PropertyType.FullName}' which can not be networked.",
+                        };
+                        diagnostics.Add(message);
+                        continue;
                     }
+
+                    // ------------------ 设置getter
+                    var module = property.DeclaringType.Module; // 在getter方法前插入将属性值设置为默认值的代码
+                    var getIL = property.GetMethod.Body.GetILProcessor(); // 先获取所有的指令，然后清除原先的指令，插入新指令
+                    getIL.Body.Instructions.Clear(); // 清除原先的指令
+                    getIL.Emit(OpCodes.Ldarg_0); // 加载this
+                    getIL.Emit(OpCodes.Callvirt, module.ImportReference(stateBlockProp.GetMethod)); // 加载this.State值
+                    getIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
+                    getIL.Emit(OpCodes.Add); // 加上偏移量
+                    if (IfUnityType(property))
+                    {
+                        ProcessIfUnityType(property, getIL, module); // 如果是Unity类型，通过自定义反序列化的方式取出值
+                        getIL.Emit(OpCodes.Ret); // 返回   
+                    }
+                    else
+                    {
+                        // 数据只有4字节的和8字节的(long)
+                        getIL.Emit(OpCodes.Conv_I);
+                        ProcessIfPrimitiveType(property, getIL, module);
+                        getIL.Emit(OpCodes.Ret); // 返回  
+                    }
+
+                    // ------------------ 设置Setter
+                    var setIL = property.SetMethod.Body.GetILProcessor();
+                    setIL.Body.Instructions.Clear();
+                    setIL.Emit(OpCodes.Ldarg_0); // 加载参数1this
+                    setIL.Emit(OpCodes.Ldarga_S, (byte)1); // 参数value的地址
+                    setIL.Emit(OpCodes.Conv_U); // 取地址(转成native的int*)
+                    setIL.Emit(OpCodes.Ldarg_0); // 加载this
+                    setIL.Emit(OpCodes.Callvirt,
+                        module.ImportReference(stateBlockProp.GetMethod)); // 加载参数3StateBlock地址
+                    setIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
+                    setIL.Emit(OpCodes.Add); // 加上偏移量
+                    setIL.Emit(OpCodes.Ldc_I4, StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType) / 4); // 加载参数4字节数量
+                    setIL.Emit(OpCodes.Call, module.ImportReference(_definitions[typeof(StargateNet.Entity).FullName].Methods.First(me => me.Name == nameof(Entity.DirtifyData))));
+                    setIL.Emit(OpCodes.Ret); // 返回  
+
+                    lastFieldSize += StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
                 }
             }
 
             return diagnostics;
+        }
+
+        private void AddPropertyInstructions(PropertyDefinition property, PropertyDefinition stateBlockProp, Int64 lastFieldSize)
+        {
+            var module = property.DeclaringType.Module; // 在getter方法前插入将属性值设置为默认值的代码
+            var getIL = property.GetMethod.Body.GetILProcessor(); // 先获取所有的指令，然后清除原先的指令，插入新指令
+            getIL.Body.Instructions.Clear(); // 清除原先的指令
+            getIL.Emit(OpCodes.Ldarg_0); // 加载this
+            getIL.Emit(OpCodes.Callvirt, module.ImportReference(stateBlockProp.GetMethod)); // 加载this.State值
+            getIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
+            getIL.Emit(OpCodes.Add); // 加上偏移量
+            if (IfUnityType(property))
+            {
+                ProcessIfUnityType(property, getIL, module); // 如果是Unity类型，通过自定义反序列化的方式取出值
+                getIL.Emit(OpCodes.Ret); // 返回   
+            }
+            else
+            {
+                // 数据只有4字节的和8字节的(long)
+                getIL.Emit(OpCodes.Conv_I);
+                ProcessIfPrimitiveType(property, getIL, module);
+                getIL.Emit(OpCodes.Ret); // 返回  
+            }
+
+            // ------------------ 设置Setter
+            var setIL = property.SetMethod.Body.GetILProcessor();
+            setIL.Body.Instructions.Clear();
+            setIL.Emit(OpCodes.Ldarg_0); // 加载参数1this
+            setIL.Emit(OpCodes.Ldarga_S, (byte)1); // 参数value的地址
+            setIL.Emit(OpCodes.Conv_U); // 取地址(转成native的int*)
+            setIL.Emit(OpCodes.Ldarg_0); // 加载this
+            setIL.Emit(OpCodes.Callvirt, module.ImportReference(stateBlockProp.GetMethod)); // 加载参数3StateBlock地址
+            setIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
+            setIL.Emit(OpCodes.Add); // 加上偏移量
+            setIL.Emit(OpCodes.Ldc_I4,
+                (int)(StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType) / 4)); // 加载参数4字节数量
+            setIL.Emit(OpCodes.Call,
+                module.ImportReference(_definitions[typeof(StargateNet.Entity).FullName].Methods
+                    .First(me => me.Name == nameof(Entity.DirtifyData))));
+            setIL.Emit(OpCodes.Ret); // 返回  
         }
 
         private bool IfUnityType(PropertyDefinition propertyDef)
@@ -243,7 +280,7 @@ namespace StargateNet
             ModuleDefinition moduleDefinition)
         {
             MethodDefinition typeHandler = null;
-            TypeDefinition sgNetworkUtilDef = definitions[typeof(StargateNetUtil).FullName];
+            TypeDefinition sgNetworkUtilDef = _definitions[typeof(StargateNetUtil).FullName];
             switch (propertyDef.PropertyType.FullName)
             {
                 case "UnityEngine.Vector4":
@@ -278,7 +315,7 @@ namespace StargateNet
             if (fullName == typeof(NetworkBool).FullName)
             {
                 ilProcessor.Emit(OpCodes.Ldobj,
-                    moduleDefinition.ImportReference(definitions[typeof(NetworkBool).FullName]));
+                    moduleDefinition.ImportReference(_definitions[typeof(NetworkBool).FullName]));
             }
 
             if (fullName == typeof(long).FullName || fullName == typeof(ulong).FullName)

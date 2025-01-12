@@ -65,6 +65,8 @@ public class FPSController : NetworkBehavior
     [Replicated]
     public float VerticalSpeed { get; set; }
 
+    
+
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
         cameraPoint.forward = transform.forward;

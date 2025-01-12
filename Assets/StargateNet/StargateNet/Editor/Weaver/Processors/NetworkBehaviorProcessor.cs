@@ -126,8 +126,7 @@ namespace StargateNet
             }
 
             // 标记为重写基类的虚属性
-            targetProp.GetMethod.Attributes |=
-                MethodAttributes.Virtual;
+            targetProp.GetMethod.Attributes |= MethodAttributes.Virtual;
 
             // 计算 byteSize
             foreach (var property in typeDefinition.Properties)
