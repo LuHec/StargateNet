@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace StargateNet
 {
-    public class NetworkCallBackProcessor
+    public class NetworkCallbackCollectorProcessor
     {
         private Dictionary<string, TypeDefinition> _definitions = new();
 
@@ -16,9 +16,6 @@ namespace StargateNet
         /// RepPropertyName:CallbackData
         /// </summary>
         private Dictionary<string, CodeGenCallbackData> _propertyToCallbackData = new();
-
-        private TypeReference _networkBehaviorType;
-        private TypeReference _callbackDataType;
 
         public List<DiagnosticMessage> ProcessAssembly(AssemblyDefinition assembly, AssemblyDefinition refAssembly, ref Dictionary<string, CodeGenCallbackData> propertyToCallbackData)
         {
@@ -47,8 +44,7 @@ namespace StargateNet
                     var itfDef = GetImplementINetworkEntityScript(type);
                     if (itfDef != null)
                     {
-                        _networkBehaviorType = type.Module.ImportReference(typeof(NetworkBehavior));
-                        _callbackDataType = type.Module.ImportReference(typeof(PropCallbackData));
+                        
                         diagnostics.AddRange(CollectMethod(type));
                     }
                 }
@@ -122,66 +118,9 @@ namespace StargateNet
             return diagnostics;
         }
 
-        private List<DiagnosticMessage> ProcessMethod(MethodDefinition methodDefinition,
-            Dictionary<string, MethodDefinition> networkCallbacks)
-        {
-            List<DiagnosticMessage> diagnostics = new List<DiagnosticMessage>();
-            // 处理有NetworkCallBackAttribute标记的
-            if (methodDefinition.CustomAttributes.All(attr =>
-                    attr.AttributeType.Name != nameof(NetworkCallBackAttribute)))
-                return diagnostics;
-
-            CustomAttribute customAttribute =
-                methodDefinition.CustomAttributes.First(attr =>
-                    attr.AttributeType.Name == nameof(NetworkCallBackAttribute));
-            TypeDefinition typeDefinition = methodDefinition.DeclaringType;
-            TypeReference typeReference = typeDefinition.Module.ImportReference(typeDefinition);
-            string propName = (string)customAttribute.ConstructorArguments[0].Value;
-            bool invokeDurResim = (bool)customAttribute.ConstructorArguments[1].Value;
-            MethodReference methodReference = methodDefinition.Module.ImportReference(methodDefinition);
-            networkCallbacks.TryAdd(methodDefinition.FullName, CreateCallBackMethod(typeDefinition, typeReference, propName, methodReference));
-            typeDefinition.Methods.Add(methodDefinition);
-            diagnostics.Add(new DiagnosticMessage()
-            {
-                DiagnosticType = DiagnosticType.Warning,
-                MessageData =
-                    $"{methodDefinition.DeclaringType.FullName}.{methodDefinition.Name}",
-            });
-            return diagnostics;
-        }
-
-        /// <summary>
-        /// 为属性回调创建Wrapper
-        /// </summary>
-        /// <param name="typeDefinition">函数所在的类，应当为NetworkBehavior的子类或自身</param>
-        /// <param name="behaviourType">NetworkBehaivro</param>
-        /// <param name="proName"></param>
-        /// <param name="callbackMethod"></param>
-        /// <returns></returns>
-        private MethodDefinition CreateCallBackMethod(TypeDefinition typeDefinition, TypeReference behaviourType,
-            string proName, MethodReference callbackMethod)
-        {
-            MethodDefinition methodDefinition = new MethodDefinition(proName + "__handler",
-                Mono.Cecil.MethodAttributes.Private | Mono.Cecil.MethodAttributes.Static |
-                Mono.Cecil.MethodAttributes.HideBySig, typeDefinition.Module.TypeSystem.Void);
-            methodDefinition.Parameters.Add(new ParameterDefinition("beh", Mono.Cecil.ParameterAttributes.None,
-                _networkBehaviorType));
-            methodDefinition.Parameters.Add(new ParameterDefinition("callbk", Mono.Cecil.ParameterAttributes.None,
-                _callbackDataType));
-            var ilProcessor = methodDefinition.Body.GetILProcessor();
-            var instructions = methodDefinition.Body.Instructions;
-            instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
-            instructions.Add(ilProcessor.Create(OpCodes.Castclass, behaviourType));
-            instructions.Add(ilProcessor.Create(OpCodes.Ldarg_1));
-            instructions.Add(ilProcessor.Create(OpCodes.Callvirt, callbackMethod));
-            instructions.Add(ilProcessor.Create(OpCodes.Ret));
-            typeDefinition.Methods.Add(methodDefinition);
-            return methodDefinition;
-        }
-
         private bool IsValidPropertyChangedCallback(MethodDefinition methodDefinition)
         {
-            return methodDefinition.Parameters.Count == 1 && methodDefinition.Parameters[0].ParameterType.Name == nameof(OnChangedData);
+            return methodDefinition.Parameters.Count == 1 && methodDefinition.Parameters[0].ParameterType.Name == nameof(CallbackData);
         }
     }
 }

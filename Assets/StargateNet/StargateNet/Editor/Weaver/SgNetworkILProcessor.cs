@@ -69,12 +69,12 @@ namespace StargateNet
                             refName.Name == StargateNetAsmdefName));
             }
 
-            // 处理程序集，注入代码
+            // 处理程序集，注入代码 
             List<DiagnosticMessage> diagnostics = new();
  
             // 收集NetworkCallBack，需要创建函数，所以传入StargateNet程序集
             Dictionary<string, CodeGenCallbackData> propertyToCallbackData = new();
-            diagnostics.AddRange(new NetworkCallBackProcessor().ProcessAssembly(targetAssembly, stargateNetAssembly, ref propertyToCallbackData));
+            diagnostics.AddRange(new NetworkCallbackCollectorProcessor().ProcessAssembly(targetAssembly, stargateNetAssembly, ref propertyToCallbackData));
 
             // 处理SyncVar标记,由于需要创建函数，所以在targetAssembly非StargateNet本身的情况下，要传入StargateNet的程序集
             diagnostics.AddRange(new NetworkedAttributeProcessor().ProcessAssembly(targetAssembly, stargateNetAssembly, propertyToCallbackData));

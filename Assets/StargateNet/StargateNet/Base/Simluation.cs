@@ -76,7 +76,7 @@ namespace StargateNet
             NetworkObjectRef networkObjectRef = new NetworkObjectRef(networkId);
             Entity entity = this.CreateEntity(networkObject, networkObjectRef, worldIdx, inputSource,
                 out int stateWordSize);
-            networkObject.Initialize(this.engine, entity, networkObject.GetComponentsInChildren<IStargateScript>());
+            networkObject.Initialize(this.engine, entity, networkObject.GetComponentsInChildren<IStargateNetworkScript>());
             this.entitiesTable.Add(networkObjectRef, entity);
             this.paddingToAddEntities.Add(entity);
             // 修改meta并标记

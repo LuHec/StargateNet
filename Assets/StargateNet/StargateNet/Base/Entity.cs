@@ -15,10 +15,11 @@ namespace StargateNet
         internal int inputSource = -1;
         internal StargateEngine engine;
         internal NetworkObject entityObject; // Truly Object
-        internal int entityBlockWordSize; // Networked Field Size, 不包括bitmap大小(两者大小一致) 
+        internal SharedNetworkObjectMeta sharedNetworkObjectMeta; // 存储回调函数
+        internal int entityBlockWordSize; // Networked Field Size, 不包括bitmap大小(两者大小一致)
+        internal bool dirty = false;
         private unsafe int* _stateBlock; // Networked Field memory block base address
         private unsafe int* _dirtyMap; // bit dirtymap
-        internal bool dirty = false;
         
         /// <summary>
         /// 初始化脚本等.获取大小等等
@@ -154,6 +155,30 @@ namespace StargateNet
             int wordSize)
         {
             stargateNetworkScript.Entity.SetData(newValue, address, wordSize);
+        }
+
+        /// <summary>
+        /// ILProcessor使用，用于插入到Entity初始化时
+        /// </summary>
+        /// <param name="stargateNetworkScript"></param>
+        /// <param name="invokeDurResim"></param>
+        /// <param name="propertyStart"></param>
+        /// <param name="propertyWordSize"></param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void InternalRegisterCallback(
+            IStargateNetworkScript stargateNetworkScript,
+            int invokeDurResim,
+            int* propertyStart,
+            int propertyWordSize
+            )
+        {
+            Entity entity = stargateNetworkScript.Entity;
+            
+        }
+
+        public static unsafe void InternalRest()
+        {
+            
         }
     }
 }

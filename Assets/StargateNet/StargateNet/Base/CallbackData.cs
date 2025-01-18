@@ -1,6 +1,6 @@
 namespace StargateNet
 {
-    public struct OnChangedData
+    public struct CallbackData
     {
         internal unsafe int* previousValue;
         internal unsafe int* currentValue;

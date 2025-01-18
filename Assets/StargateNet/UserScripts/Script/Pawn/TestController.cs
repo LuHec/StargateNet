@@ -3,7 +3,7 @@
 public class TestController : FPSController
 {
     [NetworkCallBack(nameof(VerticalSpeed), false)]
-    public void OnVerticalSpeedChanged(OnChangedData onChangedData)
+    public void OnVerticalSpeedChanged(CallbackData callbackData)
     {
         
     }

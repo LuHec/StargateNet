@@ -2,6 +2,7 @@ using UnityEngine;
 
 namespace StargateNet
 {
+    
     public abstract class StargateBehavior : MonoBehaviour, IStargateNetworkScript, IStargateScript
     {
         public unsafe int* StateBlock { get; internal set; } // 由Entity构造时分发
@@ -12,7 +13,7 @@ namespace StargateNet
         {
             this.Entity = entity;
         }
-
+        
         protected bool IsClient => Entity.engine.IsClient;
         protected bool IsServer => Entity.engine.IsServer;
 
@@ -52,5 +53,15 @@ namespace StargateNet
         {
             
         }
+        
+        public void InternalInit()
+        {
+            
+        }
+
+        public void InternalReset()
+        {
+        }
+
     }
 }
