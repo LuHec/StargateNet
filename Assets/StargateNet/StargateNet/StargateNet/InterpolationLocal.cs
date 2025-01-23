@@ -17,9 +17,9 @@
         /// <summary>
         /// InterpolationLocal永远有Snapshot，因为客户端采用本地的预测/服务端是权威
         /// </summary>
-        internal override bool HasSnapshot => true;
+        public override bool HasSnapshot => true;
 
-        internal override float Alpha => this.Engine.SimulationClock.Alpha;
+        public override float Alpha => this.Engine.SimulationClock.Alpha;
         internal override float InterpolationTime { get; }
 
         internal override void Update()

@@ -8,10 +8,10 @@ namespace StargateNet
     public sealed class StargateEngine
     {
         public SgNetworkGalaxy SgNetworkGalaxy { get; private set; }
-        internal WorldState WorldState { get; private set; }
+        public WorldState WorldState { get; private set; }
         internal SimulationClock SimulationClock { get; private set; }
         internal Monitor Monitor { get; private set; }
-        internal Tick Tick => this.IsServer ? this.SimTick : this.ClientSimulation.currentTick;
+        public Tick Tick => this.IsServer ? this.SimTick : this.ClientSimulation.currentTick;
         internal Tick SimTick { get; private set; } // 是客户端/服务端已经模拟的本地帧数。客户端的simTick仅代表EnginTick，服务端的SimTick就是AuthorTick
         internal float LastDeltaTime { get; private set; }
         internal float LastTimeScale { get; private set; }
@@ -21,18 +21,18 @@ namespace StargateNet
         internal SgPeer Peer { get; private set; }
         internal SgClientPeer Client { get; private set; }
         internal SgServerPeer Server { get; private set; }
-        internal bool IsServer => Peer.IsServer;
-        internal bool IsClient => Peer.IsClient;
+        public bool IsServer => Peer.IsServer;
+        public bool IsClient => Peer.IsClient;
         internal float InterpolateDelay => this.IsClient ? this.InterpolationRemote.CurrentBufferTime : 0f;
-        internal LagCompensateComponent LagCompensateComponent { get; private set; }
+        internal ILagCompensateComponent LagCompensateComponent { get; private set; }
         internal StargatePhysic PhysicSimulationUpdate { get; private set; }
         internal EntityMetaManager EntityMetaManager { get; private set; }
         internal InterestManager IM { get; private set; }
         internal Simulation Simulation { get; private set; }
-        internal ServerSimulation ServerSimulation { get; private set; }
-        internal ClientSimulation ClientSimulation { get; private set; }
-        internal InterpolationLocal InterpolationLocal { get; private set; }
-        internal InterpolationRemote InterpolationRemote { get; private set; }
+        public ServerSimulation ServerSimulation { get; private set; }
+        public ClientSimulation ClientSimulation { get; private set; }
+        public InterpolationLocal InterpolationLocal { get; private set; }
+        public InterpolationRemote InterpolationRemote { get; private set; }
         internal NetworkEventManager NetworkEventManager { get; private set; }
         internal bool Simulated { get; private set; }
         internal bool IsConnected { get; set; }
@@ -46,8 +46,7 @@ namespace StargateNet
         {
         }
 
-        internal unsafe void Start(SgNetworkGalaxy galaxy, StartMode startMode, StargateConfigData configData,
-            ushort port, Monitor monitor,
+        internal unsafe void Start(SgNetworkGalaxy galaxy, StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor, ILagCompensateComponent lagCompensateComponent,
             IMemoryAllocator allocator, IObjectSpawner objectSpawner, NetworkEventManager networkEventManager)
         {
             if (configData.isPhysic2D)
@@ -72,7 +71,8 @@ namespace StargateNet
             }
 
             this.PhysicSimulationUpdate = new StargatePhysic(this, configData.isPhysic2D);
-            this.LagCompensateComponent = new LagCompensateComponent(this);
+            this.LagCompensateComponent = lagCompensateComponent;
+            this.LagCompensateComponent.Init(this, configData.maxNetworkObjects);
             this.IM = new InterestManager(configData.maxNetworkObjects, this);
             // ------------------------ 申请所有需要用到的内存 ------------------------ //
             this.maxEntities = (configData.maxNetworkObjects & 1) == 1

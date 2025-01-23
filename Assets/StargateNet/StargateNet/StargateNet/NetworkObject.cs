@@ -33,10 +33,5 @@ namespace StargateNet
                 sta.Initialize(networkEntity);
             }
         }
-
-        private void Start()
-        {
-            Debug.Log(PrefabId);
-        }
     }
 }

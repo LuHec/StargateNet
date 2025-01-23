@@ -2,9 +2,9 @@
 
 namespace StargateNet
 {
-    public class PropCallbackData : IEquatable<PropCallbackData>
+    public struct CallbackData : IEquatable<CallbackData>
     {
-        public bool Equals(PropCallbackData other)
+        public bool Equals(CallbackData other)
         {
             return true;
         }

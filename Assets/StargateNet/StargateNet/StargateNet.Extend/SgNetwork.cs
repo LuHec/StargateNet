@@ -1,6 +1,3 @@
-using System;
-using Riptide.Utils;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace StargateNet
@@ -78,8 +75,7 @@ namespace StargateNet
         {
         }
 
-        public static SgNetworkGalaxy Launch(StartMode startMode, LaunchConfig launchConfig,
-            IMemoryAllocator allocator = null, IObjectSpawner spawner = null)
+        public static SgNetworkGalaxy Launch(StartMode startMode, LaunchConfig launchConfig, IMemoryAllocator allocator = null, IObjectSpawner spawner = null)
         {
             if (SgNetwork.Instance == null)
             {
@@ -91,7 +87,7 @@ namespace StargateNet
             NetworkEventManager[] networkEventManagers = FindObjectsOfType<NetworkEventManager>();
             NetworkEventManager networkEventManager = networkEventManagers.Length > 0 ? networkEventManagers[0] : null;
             SgNetwork.Instance.sgNetworkGalaxy.Init(startMode, launchConfig.configData, launchConfig.port,
-                SgNetwork.Instance.monitor, allocator ?? new UnityAllocator(), spawner ?? new UnityObjectSpawner(),
+                SgNetwork.Instance.monitor, new LagCompensateComponent(), allocator ?? new UnityAllocator(), spawner ?? new UnityObjectSpawner(),
                 networkEventManager);
             return SgNetwork.Instance.sgNetworkGalaxy;
         }

@@ -27,12 +27,12 @@ namespace StargateNet
             this.predictedSnapshots = new List<StargateAllocator>(this._maxPredictedTicks);
         }
 
-        internal void AddClientSimulationCallbacks(IClientSimulationCallbacks callbacks)
+        public void AddClientSimulationCallbacks(IClientSimulationCallbacks callbacks)
         {
             this._clientSimulationCallbacksList.Add(callbacks);
         }
 
-        internal void RemoveClientSimulationCallbacks(IClientSimulationCallbacks callbacks)
+        public void RemoveClientSimulationCallbacks(IClientSimulationCallbacks callbacks)
         {
             this._clientSimulationCallbacksList.Remove(callbacks);
         }

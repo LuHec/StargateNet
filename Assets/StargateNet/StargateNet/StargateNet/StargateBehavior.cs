@@ -16,7 +16,7 @@ namespace StargateNet
         
         protected bool IsClient => Entity.engine.IsClient;
         protected bool IsServer => Entity.engine.IsServer;
-
+ 
         /// <summary>
         /// 给IL层注册回调函数
         /// </summary>

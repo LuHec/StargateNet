@@ -10,14 +10,14 @@ namespace StargateNet
     /// </summary>
     public sealed class Entity
     {
-        internal NetworkObjectRef networkId; // 客户端服务端一定是一致的
-        internal int poolId = -1; // 内存的idx，客户端和服务端不一定一致
-        internal int worldMetaId = -1; // meta的idx，客户端服务端一定是一致的
-        internal int inputSource = -1;
+        public NetworkObjectRef networkId; // 客户端服务端一定是一致的
+        public int worldMetaId = -1; // meta的idx，客户端服务端一定是一致的
+        public int poolId = -1; // 内存的idx，客户端和服务端不一定一致
+        public int inputSource = -1;
         internal StargateEngine engine;
         internal NetworkObject entityObject; // Truly Object
         internal NetworkObjectSharedMeta networkObjectSharedMeta; // 存储回调函数
-        internal int entityBlockWordSize; // Networked Field Size, 不包括bitmap大小(两者大小一致)
+        public int entityBlockWordSize; // Networked Field Size, 不包括bitmap大小(两者大小一致)
         internal bool dirty = false;
         private unsafe int* _stateBlock; // Networked Field memory block base address
         private unsafe int* _dirtyMap; // bit dirtymap
@@ -93,7 +93,7 @@ namespace StargateNet
             return this._stateBlock[idx];
         }
 
-        internal unsafe long GetStateBlockIdx(int* stateBlockPtr)
+        public unsafe long GetStateBlockIdx(int* stateBlockPtr)
         {
             long idx = this._stateBlock - stateBlockPtr;
             if (idx < 0 || idx > entityBlockWordSize) throw new Exception("State block idx is out of range");
@@ -178,6 +178,7 @@ namespace StargateNet
             CallbackEvent callbackEvent
         )
         {
+            Debug.LogError($"callback test");
             Entity entity = stargateNetworkScript.Entity;
             int propertyIdx = (int)(propertyStart - entity._stateBlock);
             // 以int4为一个块进行存储，这样能让诸如vector3类型的block索引到同一个wrapper
@@ -189,7 +190,6 @@ namespace StargateNet
                 propertyWordSize,
                 callbackEvent
             ));
-            Debug.LogError($"callback test");
         }
 
         public static unsafe void InternalRest()

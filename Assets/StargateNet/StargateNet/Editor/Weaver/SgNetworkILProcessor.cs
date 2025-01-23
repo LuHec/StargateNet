@@ -14,16 +14,15 @@ namespace StargateNet
 {
     public class SgNetworkILProcessor : ILPostProcessor
     {
-        private const string StargateNetAsmdefName = "Unity.StargateNet";
+        public static readonly string StargateNetAsmdefName = "Unity.StargateNet";
 
         public override ILPostProcessor GetInstance() => this;
 
         public override bool WillProcess(ICompiledAssembly compiledAssembly)
         {
-            // 筛选出引用了或者本身就是SgNetwork dll的程序集
-            bool relevant = compiledAssembly.Name == StargateNetAsmdefName || compiledAssembly.References.Any(
-                filePath =>
-                    Path.GetFileNameWithoutExtension(filePath) == StargateNetAsmdefName);
+            // 筛选出引用了SgNetwork dll的程序集
+            bool relevant = compiledAssembly.Name != StargateNetAsmdefName && compiledAssembly.References.Any(
+                filePath => Path.GetFileNameWithoutExtension(filePath) == StargateNetAsmdefName);
             relevant &= compiledAssembly.Name != "Assembly-CSharp-Editor";
             return relevant;
         }

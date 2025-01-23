@@ -3,21 +3,21 @@ using UnityEngine;
 
 namespace StargateNet
 {
-    public class LagCompensateComponent
+    public class LagCompensateComponent : ILagCompensateComponent
     {
-        internal StargateEngine Engine { get; private set; }
+        public StargateEngine Engine { get; private set; }
         private const string CompensatedComponentName = "CompensatedComponent";
-        private readonly int _compLayerMask;
+        private int _compLayerMask;
         private RaycastHit[] _raycastHits;
 
-        public LagCompensateComponent(StargateEngine engine)
+        public void Init(StargateEngine engine, int maxNetworkObjects)
         {
             this.Engine = engine;
             this._compLayerMask = LayerMask.GetMask(CompensatedComponentName);
-            _raycastHits = new RaycastHit[engine.ConfigData.maxNetworkObjects];
+            _raycastHits = new RaycastHit[maxNetworkObjects];
         }
 
-        internal unsafe bool NetworkRaycast(Vector3 origin,
+        public bool NetworkRaycast(Vector3 origin,
             Vector3 direction,
             int inputSource,
             out RaycastHit hitInfo,
@@ -65,7 +65,7 @@ namespace StargateNet
                 var hitResult = hitResults[i];
                 GameObject compensateTarget = hitResult.collider.gameObject;
                 if (compensateTarget == null) continue;
-                GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hitResult.point, 1f, 3f, Color.blue);
+                GizmoTimerDrawer.Instance?.DrawWireSphereWithTimer(hitResult.point, 1f, 3f, Color.blue);
                 if (!compensateTarget.TryGetComponent(out CompensateCollider compensateCollider)) continue;
                 GameObject target = compensateTarget.transform.parent.gameObject;
                 if(target == null) continue;
@@ -102,7 +102,7 @@ namespace StargateNet
                         target.transform.position = renderPosition;
                         target.transform.rotation = renderRotationQuat;
                         
-                        GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(renderPosition, .5f, 3f, Color.yellow);
+                        GizmoTimerDrawer.Instance?.DrawWireSphereWithTimer(renderPosition, .5f, 3f, Color.yellow);
                     }
                 }
             }
@@ -117,7 +117,7 @@ namespace StargateNet
                 var hitResult = hitResults[i];
                 GameObject compensateTarget = hitResult.collider.gameObject;
                 if (compensateTarget == null) continue;
-                GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hitResult.point, .5f, 3f, Color.blue);
+                GizmoTimerDrawer.Instance?.DrawWireSphereWithTimer(hitResult.point, .5f, 3f, Color.blue);
                 if (!compensateTarget.TryGetComponent(out CompensateCollider compensateCollider)) continue;
                 GameObject target = compensateTarget.transform.parent.gameObject;
                 if(target == null) continue;
@@ -138,7 +138,7 @@ namespace StargateNet
                         target.transform.rotation = Quaternion.Euler(rotation);
                     }
                 }
-            }
+            } 
             Physics.SyncTransforms();
         }
     }

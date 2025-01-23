@@ -112,7 +112,7 @@ namespace StargateNet
             return false;
         }
 
-        internal SimulationInput GetSimulationInput(int inputSource)
+        public SimulationInput GetSimulationInput(int inputSource)
         {
             if (inputSource < 0 || inputSource >= this.clientDatas.Length || !this.clientDatas[inputSource].Started) return null;
             return this.clientDatas[inputSource].CurrentInput;

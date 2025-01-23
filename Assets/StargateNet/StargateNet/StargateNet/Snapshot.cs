@@ -5,13 +5,13 @@ namespace StargateNet
 {
     public unsafe class Snapshot
     {
-        internal Tick snapshotTick;
+        public Tick snapshotTick;
 
         // private int* _poolIdxMap; // TODO:回放功能需要用到，因为缺失了Entity信息，所以需要额外记录。暂时先注释掉
         private int* _dirtyObjectMetaMap; // 标记本帧变化的meta
         private NetworkObjectMeta* _worldObjectMeta; // 存储此帧所有物体的meta                 
         private StargateAllocator _miscAllocator;
-        internal StargateAllocator NetworkStates { private set; get; } // 存储此帧所有物体的状态，给回放用
+        public StargateAllocator NetworkStates { private set; get; } // 存储此帧所有物体的状态，给回放用
         internal readonly int metaCnt;
         private readonly int _metaPoolId;
         private readonly int _dirtyPoolId;
@@ -62,7 +62,7 @@ namespace StargateNet
             this._worldObjectMeta[idx] = meta;
         }
 
-        internal NetworkObjectMeta GetWorldObjectMeta(int idx)
+        public NetworkObjectMeta GetWorldObjectMeta(int idx)
         {
             return this._worldObjectMeta[idx];
         }

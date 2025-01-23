@@ -9,7 +9,7 @@ namespace StargateNet
     /// </summary>
     public class SgNetworkGalaxy
     {
-        internal StargateEngine Engine { private set; get; }
+        public StargateEngine Engine { private set; get; }
         public StargateConfigData ConfigData { private set; get; }
         public float InterpolateDelay => this.Engine.InterpolateDelay;
         public float FixedDeltaTime => this.Engine.SimulationClock.FixedDeltaTime;
@@ -24,11 +24,11 @@ namespace StargateNet
         {
         }
 
-        public void Init(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor,
+        public void Init(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor,ILagCompensateComponent lagCompensateComponent,
             IMemoryAllocator allocator, IObjectSpawner spawner, NetworkEventManager networkEventManager)
         {
             this.Engine = new StargateEngine();
-            this.Engine.Start(this, startMode, configData, port, monitor, allocator, spawner, networkEventManager);
+            this.Engine.Start(this, startMode, configData, port, monitor, lagCompensateComponent, allocator, spawner, networkEventManager);
         }
 
         public void Connect(string ip, ushort port)

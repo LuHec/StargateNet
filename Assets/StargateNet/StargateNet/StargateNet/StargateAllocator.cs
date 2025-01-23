@@ -9,7 +9,7 @@ namespace StargateNet
     /// </summary>
     public unsafe class StargateAllocator
     {
-        internal List<MemoryPool> pools = new(32); // 对于snapshot来说，存储了所有网络物体的syncvar
+        public List<MemoryPool> pools = new(32); // 对于snapshot来说，存储了所有网络物体的syncvar
         internal Monitor monitor;
         internal long Size => _size;
         /// <summary>

@@ -18,7 +18,7 @@ public class WorldState
     /// <summary>
     ///  每一帧修改的主Snapshot，对于客户端来说这个用来存最新收到的服务端权威状态；服务端是本帧运算结果，其他的Snapshot都是对这个的拷贝。
     /// </summary>
-    internal Snapshot CurrentSnapshot
+    public Snapshot CurrentSnapshot
     {
         private set => this._currentSnapshot = value;
         get => _currentSnapshot.snapshotTick == Tick.InvalidTick ? null : _currentSnapshot;
@@ -98,7 +98,7 @@ public class WorldState
     /// </summary>
     /// <param name="minus">倒回几帧</param>
     /// <returns></returns>
-    internal Snapshot GetHistoryTick(int minus)
+    public Snapshot GetHistoryTick(int minus)
     {
         if (minus > this.MaxSnapshotsCount) return null;
         int fromTickValue = this.fromTick.tickValue;

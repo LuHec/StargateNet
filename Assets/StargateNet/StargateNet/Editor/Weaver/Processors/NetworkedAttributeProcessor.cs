@@ -131,13 +131,14 @@ namespace StargateNet
             var entityProp = targetInterfaceImp.InterfaceType.Resolve().Properties.FirstOrDefault(p => p.Name == "Entity"); // 找到接口的StateBlock
             var stateBlockProp = targetInterfaceImp.InterfaceType.Resolve().Properties.FirstOrDefault(p => p.Name == "StateBlock"); // 找到接口的Entity
             if (stateBlockProp == null || entityProp == null) return diagnostics;
+            
+            _networkBehaviorType = type.Module.ImportReference(_definitions[typeof(IStargateNetworkScript).FullName]);
+            _callbackDataType = type.Module.ImportReference(_definitions[typeof(CallbackData).FullName]);
+            var initMethodReference = type.Module.ImportReference(type.Module.ImportReference(typeof(StargateBehavior)).Resolve().Methods.FirstOrDefault(m => m.Name == "InternalInit"));
+            var registerMethodReference = type.Module.ImportReference(type.Module.ImportReference(typeof(Entity)).Resolve().Methods.FirstOrDefault(m => m.Name == "InternalRegisterCallback"));
+            var statePtr = type.Module.ImportReference(type.Module.ImportReference(typeof(StargateBehavior)).Resolve().Properties.FirstOrDefault(p => p.Name == "StateBlock").GetMethod);
+            var callbackCtor = type.Module.ImportReference(type.Module.ImportReference(typeof(CallbackEvent)).Resolve().Methods.First(m => m.Name == ".ctor"));
 
-            // _networkBehaviorType = type.Module.ImportReference(_definitions[typeof(IStargateNetworkScript).FullName]);
-            // _callbackDataType = type.Module.ImportReference(_definitions[typeof(PropCallbackData).FullName]);
-            // var initMethodReference = type.Module.ImportReference(typeof(StargateBehavior).GetMethod("InternalInit"));
-            // var registerMethodReference = type.Module.ImportReference(typeof(Entity).GetMethod("InternalRegisterCallback"));
-            // var statePtr = type.Module.ImportReference(typeof(StargateBehavior).GetProperty("StateBlock").GetMethod);
-            // var callbackCtor = type.Module.ImportReference(type.Module.ImportReference(typeof(CallbackEvent)).Resolve().Methods.First(m => m.Name == ".ctor"));
 
             // StartInternalInitModify(initMethodReference.Resolve());
             int lastFieldSize = 0;
@@ -156,8 +157,15 @@ namespace StargateNet
                             if (_propertyToCallbackData.TryGetValue(property.Name, out CodeGenCallbackData callbackData)) // 查找Callback
                             {
                                 int propertySize = StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
-                                // AddCallbackInstruction(type, statePtr, initMethodReference.Resolve(), callbackCtor, registerMethodReference, callbackData.methodName, callbackData.invokeDurResim,
-                                //     lastFieldSize, propertySize);
+                                AddCallbackInstruction(type, statePtr, initMethodReference.Resolve(), callbackCtor, registerMethodReference, callbackData.methodName, callbackData.invokeDurResim,
+                                    lastFieldSize, propertySize);
+                                var message = new DiagnosticMessage
+                                {
+                                    DiagnosticType = DiagnosticType.Warning,
+                                    MessageData =
+                                        $"Type0--{type.Name}:{property.Name}",
+                                }; 
+                                diagnostics.Add(message);
                             }
                         }
                     }
@@ -186,22 +194,27 @@ namespace StargateNet
                         continue;
                     }
 
-                    int propertySize = StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
+                    // ------------------ 设置getter
+                    AddPropertyInstructions(property, stateBlockProp, ref lastFieldSize);
                     // ------------------ 处理回调，插入Init函数
                     if (_propertyToCallbackData.TryGetValue(property.Name, out CodeGenCallbackData callbackData))
                     {
-                        // AddCallbackInstruction(type, statePtr, initMethodReference.Resolve(), callbackCtor, registerMethodReference, callbackData.methodName, callbackData.invokeDurResim, lastFieldSize,
-                        //     propertySize);
+                        int propertySize = StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
+                        AddCallbackInstruction(type, statePtr, initMethodReference.Resolve(), callbackCtor, registerMethodReference, callbackData.methodName, callbackData.invokeDurResim, lastFieldSize, propertySize);
+                        var message = new DiagnosticMessage
+                        {
+                            DiagnosticType = DiagnosticType.Warning,
+                            MessageData =
+                                $"Type1--{type.Name}:{property.Name}",
+                        };
+                        diagnostics.Add(message);
                     }
-
-                    // ------------------ 设置getter
-                    AddPropertyInstructions(property, stateBlockProp, ref lastFieldSize);
 
                     // ------------------ 插入Init函数
                 }
             }
 
-            // EndInternalInitModify(initMethodReference.Resolve());
+            EndInternalInitModify(initMethodReference.Resolve());
             return diagnostics;
         }
 
@@ -316,34 +329,6 @@ namespace StargateNet
                 ilProcessor.Emit(OpCodes.Ldind_R8);
             }
         }
-
-        // private List<DiagnosticMessage> ProcessMethod(MethodDefinition methodDefinition, Dictionary<string, MethodDefinition> networkCallbacks)
-        // {
-        //     List<DiagnosticMessage> diagnostics = new List<DiagnosticMessage>();
-        //     // 处理有NetworkCallBackAttribute标记的
-        //     if (methodDefinition.CustomAttributes.All(attr => attr.AttributeType.Name != nameof(NetworkCallBackAttribute)))
-        //         return diagnostics;
-        //
-        //     CustomAttribute customAttribute = methodDefinition.CustomAttributes.First(attr => attr.AttributeType.Name == nameof(NetworkCallBackAttribute));
-        //     TypeDefinition typeDefinition = methodDefinition.DeclaringType;
-        //     TypeReference typeReference = typeDefinition.Module.ImportReference(typeDefinition);
-        //     string propName = (string)customAttribute.ConstructorArguments[0].Value;
-        //     bool invokeDurResim = (bool)customAttribute.ConstructorArguments[1].Value;
-        //     MethodReference methodReference = methodDefinition.Module.ImportReference(methodDefinition);
-        //     if (_propertyToCallbackData.TryGetValue(propName, out CodeGenCallbackData callbackData))
-        //     {
-        //     }
-        //
-        //     networkCallbacks.TryAdd(methodDefinition.FullName, CreateCallBackMethod(typeDefinition, typeReference, propName, methodReference));
-        //     typeDefinition.Methods.Add(methodDefinition);
-        //     diagnostics.Add(new DiagnosticMessage()
-        //     {
-        //         DiagnosticType = DiagnosticType.Warning,
-        //         MessageData =
-        //             $"{methodDefinition.DeclaringType.FullName}.{methodDefinition.Name}",
-        //     });
-        //     return diagnostics;
-        // }
 
 
         /// <summary>

@@ -14,8 +14,8 @@ namespace StargateNet
     {
         internal override Tick FromTick => this._fromTick;
         internal override Tick ToTick => this._toTick;
-        internal override bool HasSnapshot => this.FromSnapshot != null && this.ToSnapshot != null;
-        internal override float Alpha => _alpha;
+        public override bool HasSnapshot => this.FromSnapshot != null && this.ToSnapshot != null;
+        public override float Alpha => _alpha;
         internal override float InterpolationTime { get; }
         /// <summary>
         /// 帧时间+距离上次收包过了多久-积攒插值时间，这个值会被用于判断插值时间是否已经超时。||含义是还差多少时间才能把包全部消耗完,即interploate的延迟||

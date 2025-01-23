@@ -3,15 +3,15 @@
     public abstract class Interpolation
     {
         internal StargateEngine Engine { private set; get; }
-        internal Snapshot FromSnapshot { get; set; }
-        internal Snapshot ToSnapshot { get; set; }
+        public Snapshot FromSnapshot { get; set; }
+        public Snapshot ToSnapshot { get; set; }
         internal abstract Tick FromTick { get; }
 
         internal abstract Tick ToTick { get; }
 
-        internal abstract bool HasSnapshot { get; }
+        public abstract bool HasSnapshot { get; }
 
-        internal abstract float Alpha { get; }
+        public abstract float Alpha { get; }
         /// <summary>
         /// 暂时没什么用
         /// </summary>
