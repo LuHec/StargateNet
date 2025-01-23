@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using UnityEngine;
 
 namespace StargateNet
 {
@@ -15,12 +16,12 @@ namespace StargateNet
         internal int inputSource = -1;
         internal StargateEngine engine;
         internal NetworkObject entityObject; // Truly Object
-        internal SharedNetworkObjectMeta sharedNetworkObjectMeta; // 存储回调函数
+        internal NetworkObjectSharedMeta networkObjectSharedMeta; // 存储回调函数
         internal int entityBlockWordSize; // Networked Field Size, 不包括bitmap大小(两者大小一致)
         internal bool dirty = false;
         private unsafe int* _stateBlock; // Networked Field memory block base address
         private unsafe int* _dirtyMap; // bit dirtymap
-        
+
         /// <summary>
         /// 初始化脚本等.获取大小等等
         /// </summary>
@@ -53,12 +54,12 @@ namespace StargateNet
 
         internal void InitObject()
         {
-            foreach (var script in entityObject.NetworkScripts) 
+            foreach (var script in entityObject.NetworkScripts)
             {
                 script.NetworkStart(this.engine.SgNetworkGalaxy);
             }
         }
-        
+
         internal bool FetchInput<T>(out T input) where T : INetworkInput
         {
             return this.engine.FetchInput(out input, this.inputSource);
@@ -95,7 +96,7 @@ namespace StargateNet
         internal unsafe long GetStateBlockIdx(int* stateBlockPtr)
         {
             long idx = this._stateBlock - stateBlockPtr;
-            if(idx < 0 || idx > entityBlockWordSize) throw new Exception("State block idx is out of range");
+            if (idx < 0 || idx > entityBlockWordSize) throw new Exception("State block idx is out of range");
             return idx;
         }
 
@@ -158,27 +159,41 @@ namespace StargateNet
         }
 
         /// <summary>
-        /// ILProcessor使用，用于插入到Entity初始化时
+        /// ILProcessor使用，用于插入到Entity初始化时.
+        /// tips：不要改名字，IL那边用字符串的
         /// </summary>
         /// <param name="stargateNetworkScript"></param>
         /// <param name="invokeDurResim"></param>
-        /// <param name="propertyStart"></param>
+        /// <param name="propertyStart">整个属性的地址</param>
+        /// <param name="propertyPartPtr">属性一部分的地址，这个一般在Vector3这类使用，存储方式是4个字节为一个单位</param>
         /// <param name="propertyWordSize"></param>
+        /// <param name="callbackEvent"></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void InternalRegisterCallback(
             IStargateNetworkScript stargateNetworkScript,
             int invokeDurResim,
             int* propertyStart,
-            int propertyWordSize
-            )
+            int* propertyPartPtr,
+            int propertyWordSize,
+            CallbackEvent callbackEvent
+        )
         {
             Entity entity = stargateNetworkScript.Entity;
-            
+            int propertyIdx = (int)(propertyStart - entity._stateBlock);
+            // 以int4为一个块进行存储，这样能让诸如vector3类型的block索引到同一个wrapper
+            int key = (int)(propertyPartPtr - entity._stateBlock);
+            entity.networkObjectSharedMeta.callbacks.Add(key, new CallbackWrapper(
+                invokeDurResim,
+                -1,
+                propertyIdx,
+                propertyWordSize,
+                callbackEvent
+            ));
+            Debug.LogError($"callback test");
         }
 
         public static unsafe void InternalRest()
         {
-            
         }
     }
 }

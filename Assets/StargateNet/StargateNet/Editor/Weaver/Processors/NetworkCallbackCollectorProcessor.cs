@@ -44,7 +44,6 @@ namespace StargateNet
                     var itfDef = GetImplementINetworkEntityScript(type);
                     if (itfDef != null)
                     {
-                        
                         diagnostics.AddRange(CollectMethod(type));
                     }
                 }

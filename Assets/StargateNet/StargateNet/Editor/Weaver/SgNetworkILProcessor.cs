@@ -51,12 +51,9 @@ namespace StargateNet
             // 读入符号表
             readerParameters.SymbolStream = new MemoryStream(compiledAssembly.InMemoryAssembly.PdbData);
             // 读入目标程序集定义
-            var targetAssembly = AssemblyDefinition.ReadAssembly(
-                new MemoryStream(compiledAssembly.InMemoryAssembly.PeData),
-                readerParameters);
+            var targetAssembly = AssemblyDefinition.ReadAssembly(new MemoryStream(compiledAssembly.InMemoryAssembly.PeData), readerParameters);
             // 排除没有引用StargateNet的程序集
-            if (targetAssembly.MainModule.AssemblyReferences.All(refName => refName.Name != StargateNetAsmdefName) &&
-                compiledAssembly.Name != StargateNetAsmdefName)
+            if (targetAssembly.MainModule.AssemblyReferences.All(refName => refName.Name != StargateNetAsmdefName) && compiledAssembly.Name != StargateNetAsmdefName)
                 return new ILPostProcessResult(null!);
             // 载入sgnet程序集
             AssemblyDefinition stargateNetAssembly = targetAssembly;
@@ -64,14 +61,13 @@ namespace StargateNet
             {
                 // (assembly可能是引用了Sgnet程序集的用户程序集，所以要把Sgnet程序集也加载出来)
                 stargateNetAssembly =
-                    loader.Resolve(
-                        targetAssembly.MainModule.AssemblyReferences.First(refName =>
+                    loader.Resolve(targetAssembly.MainModule.AssemblyReferences.First(refName =>
                             refName.Name == StargateNetAsmdefName));
             }
 
             // 处理程序集，注入代码 
             List<DiagnosticMessage> diagnostics = new();
- 
+
             // 收集NetworkCallBack，需要创建函数，所以传入StargateNet程序集
             Dictionary<string, CodeGenCallbackData> propertyToCallbackData = new();
             diagnostics.AddRange(new NetworkCallbackCollectorProcessor().ProcessAssembly(targetAssembly, stargateNetAssembly, ref propertyToCallbackData));

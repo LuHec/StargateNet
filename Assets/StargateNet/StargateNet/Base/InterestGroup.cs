@@ -4,7 +4,7 @@ namespace StargateNet
 {
     /// <summary>
     /// 用于存储每一帧特定客户端的同步对象。暂时先不管分包同步的问题
-    /// </summary>
+    /// </summary>   
     public class InterestGroup
     {
         internal StargateEngine engine;
@@ -13,6 +13,11 @@ namespace StargateNet
         internal InterestGroup(StargateEngine engine)
         {
             this.engine = engine;
+        }
+
+        internal void CaculateGroups()
+        {
+            
         }
     }
 }

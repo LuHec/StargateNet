@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Cecil.Rocks;
+using Mono.Collections.Generic;
 using Unity.CompilationPipeline.Common.Diagnostics;
+using UnityEngine;
 
 namespace StargateNet
 {
@@ -35,7 +38,6 @@ namespace StargateNet
             }
 
             var diagnostics = new List<DiagnosticMessage>();
-
             foreach (var module in assembly.Modules)
             {
                 foreach (var type in module.GetTypes())
@@ -43,8 +45,6 @@ namespace StargateNet
                     var itfDef = GetImplementINetworkEntityScript(type);
                     if (itfDef != null)
                     {
-                        _networkBehaviorType = type.Module.ImportReference(typeof(NetworkBehavior));
-                        _callbackDataType = type.Module.ImportReference(typeof(PropCallbackData));
                         diagnostics.AddRange(ProcessType(type, itfDef));
                     }
                 }
@@ -83,11 +83,9 @@ namespace StargateNet
             return null;
         }
 
-        private IEnumerable<DiagnosticMessage> ProcessType(TypeDefinition type,
-            InterfaceImplementation targetInterfaceImp)
+        private IEnumerable<DiagnosticMessage> ProcessType(TypeDefinition type, InterfaceImplementation targetInterfaceImp)
         {
             var diagnostics = new List<DiagnosticMessage>();
-
             foreach (var field in type.Fields)
             {
                 if (field.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(ReplicatedAttribute)))
@@ -130,28 +128,37 @@ namespace StargateNet
                 }
             }
 
-            // 找到接口的StateBlock
-            var entityProp = targetInterfaceImp.InterfaceType.Resolve().Properties
-                .FirstOrDefault(p => p.Name == "Entity");
-            // 找到接口的Entity
-            var stateBlockProp = targetInterfaceImp.InterfaceType.Resolve().Properties
-                .FirstOrDefault(p => p.Name == "StateBlock");
-            Int64 lastFieldSize = 0;
+            var entityProp = targetInterfaceImp.InterfaceType.Resolve().Properties.FirstOrDefault(p => p.Name == "Entity"); // 找到接口的StateBlock
+            var stateBlockProp = targetInterfaceImp.InterfaceType.Resolve().Properties.FirstOrDefault(p => p.Name == "StateBlock"); // 找到接口的Entity
+            if (stateBlockProp == null || entityProp == null) return diagnostics;
 
-            // 查找所有的基类，然后计算出总偏移量
-            // 查找基类中的 StateBlockSize 属性
-            if (type.BaseType != null)
+            // _networkBehaviorType = type.Module.ImportReference(_definitions[typeof(IStargateNetworkScript).FullName]);
+            // _callbackDataType = type.Module.ImportReference(_definitions[typeof(PropCallbackData).FullName]);
+            // var initMethodReference = type.Module.ImportReference(typeof(StargateBehavior).GetMethod("InternalInit"));
+            // var registerMethodReference = type.Module.ImportReference(typeof(Entity).GetMethod("InternalRegisterCallback"));
+            // var statePtr = type.Module.ImportReference(typeof(StargateBehavior).GetProperty("StateBlock").GetMethod);
+            // var callbackCtor = type.Module.ImportReference(type.Module.ImportReference(typeof(CallbackEvent)).Resolve().Methods.First(m => m.Name == ".ctor"));
+
+            // StartInternalInitModify(initMethodReference.Resolve());
+            int lastFieldSize = 0;
+            if (type.BaseType != null) // 查找所有的基类，然后计算出总偏移量，查找基类中的 StateBlockSize 属性
             {
                 var queue = new Queue<TypeDefinition>();
                 queue.Enqueue(type.BaseType.Resolve());
                 while (queue.Count > 0)
                 {
                     var currentType = queue.Dequeue();
-                    foreach (var prop in currentType.Properties)
+                    foreach (var property in currentType.Properties)
                     {
-                        if (prop.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(ReplicatedAttribute)))
+                        if (property.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(ReplicatedAttribute)))
                         {
-                            lastFieldSize += StargateNetProcessorUtil.CalculateFieldSize(prop.PropertyType);
+                            lastFieldSize += StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
+                            if (_propertyToCallbackData.TryGetValue(property.Name, out CodeGenCallbackData callbackData)) // 查找Callback
+                            {
+                                int propertySize = StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
+                                // AddCallbackInstruction(type, statePtr, initMethodReference.Resolve(), callbackCtor, registerMethodReference, callbackData.methodName, callbackData.invokeDurResim,
+                                //     lastFieldSize, propertySize);
+                            }
                         }
                     }
 
@@ -164,8 +171,6 @@ namespace StargateNet
                 }
             }
 
-            if (stateBlockProp == null || entityProp == null) return diagnostics;
-
             foreach (var property in type.Properties)
             {
                 if (property.CustomAttributes.Any(attr => attr.AttributeType.Name == nameof(ReplicatedAttribute)))
@@ -175,64 +180,39 @@ namespace StargateNet
                         var message = new DiagnosticMessage
                         {
                             DiagnosticType = DiagnosticType.Error,
-                            MessageData =
-                                $"Property '{property.Name}' in type '{type.FullName}' is of type '{property.PropertyType.FullName}' which can not be networked.",
+                            MessageData = $"Property '{property.Name}' in type '{type.FullName}' is of type '{property.PropertyType.FullName}' which can not be networked.",
                         };
                         diagnostics.Add(message);
                         continue;
                     }
 
+                    int propertySize = StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
+                    // ------------------ 处理回调，插入Init函数
+                    if (_propertyToCallbackData.TryGetValue(property.Name, out CodeGenCallbackData callbackData))
+                    {
+                        // AddCallbackInstruction(type, statePtr, initMethodReference.Resolve(), callbackCtor, registerMethodReference, callbackData.methodName, callbackData.invokeDurResim, lastFieldSize,
+                        //     propertySize);
+                    }
+
                     // ------------------ 设置getter
-                    var module = property.DeclaringType.Module; // 在getter方法前插入将属性值设置为默认值的代码
-                    var getIL = property.GetMethod.Body.GetILProcessor(); // 先获取所有的指令，然后清除原先的指令，插入新指令
-                    getIL.Body.Instructions.Clear(); // 清除原先的指令
-                    getIL.Emit(OpCodes.Ldarg_0); // 加载this
-                    getIL.Emit(OpCodes.Callvirt, module.ImportReference(stateBlockProp.GetMethod)); // 加载this.State值
-                    getIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
-                    getIL.Emit(OpCodes.Add); // 加上偏移量
-                    if (IfUnityType(property))
-                    {
-                        ProcessIfUnityType(property, getIL, module); // 如果是Unity类型，通过自定义反序列化的方式取出值
-                        getIL.Emit(OpCodes.Ret); // 返回   
-                    }
-                    else
-                    {
-                        // 数据只有4字节的和8字节的(long)
-                        getIL.Emit(OpCodes.Conv_I);
-                        ProcessIfPrimitiveType(property, getIL, module);
-                        getIL.Emit(OpCodes.Ret); // 返回  
-                    }
+                    AddPropertyInstructions(property, stateBlockProp, ref lastFieldSize);
 
-                    // ------------------ 设置Setter
-                    var setIL = property.SetMethod.Body.GetILProcessor();
-                    setIL.Body.Instructions.Clear();
-                    setIL.Emit(OpCodes.Ldarg_0); // 加载参数1this
-                    setIL.Emit(OpCodes.Ldarga_S, (byte)1); // 参数value的地址
-                    setIL.Emit(OpCodes.Conv_U); // 取地址(转成native的int*)
-                    setIL.Emit(OpCodes.Ldarg_0); // 加载this
-                    setIL.Emit(OpCodes.Callvirt,
-                        module.ImportReference(stateBlockProp.GetMethod)); // 加载参数3StateBlock地址
-                    setIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
-                    setIL.Emit(OpCodes.Add); // 加上偏移量
-                    setIL.Emit(OpCodes.Ldc_I4, StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType) / 4); // 加载参数4字节数量
-                    setIL.Emit(OpCodes.Call, module.ImportReference(_definitions[typeof(StargateNet.Entity).FullName].Methods.First(me => me.Name == nameof(Entity.DirtifyData))));
-                    setIL.Emit(OpCodes.Ret); // 返回  
-
-                    lastFieldSize += StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
+                    // ------------------ 插入Init函数
                 }
             }
 
+            // EndInternalInitModify(initMethodReference.Resolve());
             return diagnostics;
         }
 
-        private void AddPropertyInstructions(PropertyDefinition property, PropertyDefinition stateBlockProp, Int64 lastFieldSize)
+        private void AddPropertyInstructions(PropertyDefinition property, PropertyDefinition stateBlockProp, ref int lastFieldSize)
         {
             var module = property.DeclaringType.Module; // 在getter方法前插入将属性值设置为默认值的代码
             var getIL = property.GetMethod.Body.GetILProcessor(); // 先获取所有的指令，然后清除原先的指令，插入新指令
             getIL.Body.Instructions.Clear(); // 清除原先的指令
             getIL.Emit(OpCodes.Ldarg_0); // 加载this
             getIL.Emit(OpCodes.Callvirt, module.ImportReference(stateBlockProp.GetMethod)); // 加载this.State值
-            getIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
+            getIL.Emit(OpCodes.Ldc_I4, lastFieldSize); // 加载偏移量
             getIL.Emit(OpCodes.Add); // 加上偏移量
             if (IfUnityType(property))
             {
@@ -255,14 +235,13 @@ namespace StargateNet
             setIL.Emit(OpCodes.Conv_U); // 取地址(转成native的int*)
             setIL.Emit(OpCodes.Ldarg_0); // 加载this
             setIL.Emit(OpCodes.Callvirt, module.ImportReference(stateBlockProp.GetMethod)); // 加载参数3StateBlock地址
-            setIL.Emit(OpCodes.Ldc_I8, lastFieldSize); // 加载偏移量
+            setIL.Emit(OpCodes.Ldc_I4, lastFieldSize); // 加载偏移量
             setIL.Emit(OpCodes.Add); // 加上偏移量
-            setIL.Emit(OpCodes.Ldc_I4,
-                (int)(StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType) / 4)); // 加载参数4字节数量
-            setIL.Emit(OpCodes.Call,
-                module.ImportReference(_definitions[typeof(StargateNet.Entity).FullName].Methods
-                    .First(me => me.Name == nameof(Entity.DirtifyData))));
+            setIL.Emit(OpCodes.Ldc_I4, StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType) / 4); // 加载参数4:字数量(即几个int大小)
+            setIL.Emit(OpCodes.Call, module.ImportReference(_definitions[typeof(Entity).FullName].Methods.First(me => me.Name == nameof(Entity.DirtifyData))));
             setIL.Emit(OpCodes.Ret); // 返回  
+
+            lastFieldSize += StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
         }
 
         private bool IfUnityType(PropertyDefinition propertyDef)
@@ -338,42 +317,46 @@ namespace StargateNet
             }
         }
 
-        private List<DiagnosticMessage> ProcessMethod(MethodDefinition methodDefinition, Dictionary<string, MethodDefinition> networkCallbacks)
-        {
-            List<DiagnosticMessage> diagnostics = new List<DiagnosticMessage>();
-            // 处理有NetworkCallBackAttribute标记的
-            if (methodDefinition.CustomAttributes.All(attr => attr.AttributeType.Name != nameof(NetworkCallBackAttribute)))
-                return diagnostics;
+        // private List<DiagnosticMessage> ProcessMethod(MethodDefinition methodDefinition, Dictionary<string, MethodDefinition> networkCallbacks)
+        // {
+        //     List<DiagnosticMessage> diagnostics = new List<DiagnosticMessage>();
+        //     // 处理有NetworkCallBackAttribute标记的
+        //     if (methodDefinition.CustomAttributes.All(attr => attr.AttributeType.Name != nameof(NetworkCallBackAttribute)))
+        //         return diagnostics;
+        //
+        //     CustomAttribute customAttribute = methodDefinition.CustomAttributes.First(attr => attr.AttributeType.Name == nameof(NetworkCallBackAttribute));
+        //     TypeDefinition typeDefinition = methodDefinition.DeclaringType;
+        //     TypeReference typeReference = typeDefinition.Module.ImportReference(typeDefinition);
+        //     string propName = (string)customAttribute.ConstructorArguments[0].Value;
+        //     bool invokeDurResim = (bool)customAttribute.ConstructorArguments[1].Value;
+        //     MethodReference methodReference = methodDefinition.Module.ImportReference(methodDefinition);
+        //     if (_propertyToCallbackData.TryGetValue(propName, out CodeGenCallbackData callbackData))
+        //     {
+        //     }
+        //
+        //     networkCallbacks.TryAdd(methodDefinition.FullName, CreateCallBackMethod(typeDefinition, typeReference, propName, methodReference));
+        //     typeDefinition.Methods.Add(methodDefinition);
+        //     diagnostics.Add(new DiagnosticMessage()
+        //     {
+        //         DiagnosticType = DiagnosticType.Warning,
+        //         MessageData =
+        //             $"{methodDefinition.DeclaringType.FullName}.{methodDefinition.Name}",
+        //     });
+        //     return diagnostics;
+        // }
 
-            CustomAttribute customAttribute = methodDefinition.CustomAttributes.First(attr => attr.AttributeType.Name == nameof(NetworkCallBackAttribute));
-            TypeDefinition typeDefinition = methodDefinition.DeclaringType;
-            TypeReference typeReference = typeDefinition.Module.ImportReference(typeDefinition);
-            string propName = (string)customAttribute.ConstructorArguments[0].Value;
-            bool invokeDurResim = (bool)customAttribute.ConstructorArguments[1].Value;
-            MethodReference methodReference = methodDefinition.Module.ImportReference(methodDefinition);
-            networkCallbacks.TryAdd(methodDefinition.FullName, CreateCallBackMethod(typeDefinition, typeReference, propName, methodReference));
-            typeDefinition.Methods.Add(methodDefinition);
-            diagnostics.Add(new DiagnosticMessage()
-            {
-                DiagnosticType = DiagnosticType.Warning,
-                MessageData =
-                    $"{methodDefinition.DeclaringType.FullName}.{methodDefinition.Name}",
-            });
-            return diagnostics;
-        }
 
         /// <summary>
         /// 为属性回调创建Wrapper
         /// </summary>
         /// <param name="typeDefinition">函数所在的类，应当为NetworkBehavior的子类或自身</param>
         /// <param name="behaviourType">NetworkBehaivro</param>
-        /// <param name="proName"></param>
+        /// <param name="callbackName"></param>
         /// <param name="callbackMethod"></param>
         /// <returns></returns>
-        private MethodDefinition CreateCallBackMethod(TypeDefinition typeDefinition, TypeReference behaviourType,
-            string proName, MethodReference callbackMethod)
+        private MethodDefinition CreateCallBackMethod(TypeDefinition typeDefinition, TypeReference behaviourType, string callbackName, MethodReference callbackMethod)
         {
-            MethodDefinition methodDefinition = new MethodDefinition(proName + "__handler",
+            MethodDefinition methodDefinition = new MethodDefinition(callbackName + "__handler",
                 Mono.Cecil.MethodAttributes.Private | Mono.Cecil.MethodAttributes.Static | Mono.Cecil.MethodAttributes.HideBySig, typeDefinition.Module.TypeSystem.Void);
             methodDefinition.Parameters.Add(new ParameterDefinition("beh", Mono.Cecil.ParameterAttributes.None, _networkBehaviorType));
             methodDefinition.Parameters.Add(new ParameterDefinition("callbk", Mono.Cecil.ParameterAttributes.None, _callbackDataType));
@@ -387,5 +370,66 @@ namespace StargateNet
             typeDefinition.Methods.Add(methodDefinition);
             return methodDefinition;
         }
+
+        private void StartInternalInitModify(MethodDefinition initMethod)
+        {
+            initMethod.Body.Instructions.Clear();
+        }
+
+        /// <summary>
+        /// 在NetowrkBehavior.InternalInit函数中插入指令，调用Entity.InternalRegisterCallback，从而为每一个int*分配回调函数
+        /// </summary>
+        private void AddCallbackInstruction(
+            TypeDefinition type,
+            MethodReference entityStatePtr,
+            MethodDefinition initMethod,
+            MethodReference callbackCtor,
+            MethodReference internalRegMethod,
+            string callbackMethodName,
+            bool invokeDurResim,
+            int stateOffset,
+            int propertySize
+        )
+        {
+            MethodDefinition methodDefinition = type.GetMethods().FirstOrDefault(method => method.Name == callbackMethodName);
+            if (callbackMethodName == "" || methodDefinition == null) return;
+            MethodDefinition callbackWarpper = CreateCallBackMethod(type, type.Module.ImportReference(type), callbackMethodName, methodDefinition);
+            int wordSize = propertySize / sizeof(int);
+            ILProcessor ilProcessor = initMethod.Body.GetILProcessor();
+            Collection<Instruction> instructions = ilProcessor.Body.Instructions;
+            for (int index = 0; index < wordSize; index++)
+            {
+                instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0)); // 加载StargateScript自身
+                instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, invokeDurResim ? 1 : 0));
+                instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
+                instructions.Add(ilProcessor.Create(OpCodes.Callvirt, entityStatePtr)); // 加载Script.state指针，此处为基地址
+                instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, stateOffset / 4)); // 通过offset得到属性的内存地址
+                instructions.Add(ilProcessor.Create(OpCodes.Add)); // 将地址和偏移量相加：(int*)ptr + (int)offset 
+                instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
+                instructions.Add(ilProcessor.Create(OpCodes.Callvirt, entityStatePtr));
+                instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, stateOffset / 4 + index));
+                instructions.Add(ilProcessor.Create(OpCodes.Add));
+                instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, propertySize / 4));
+                instructions.Add(ilProcessor.Create(OpCodes.Ldftn, callbackWarpper)); // 创建CallbackEvent委托
+                instructions.Add(ilProcessor.Create(OpCodes.Newobj, callbackCtor));
+                instructions.Add(ilProcessor.Create(OpCodes.Call, internalRegMethod)); // 调用注册函数
+            }
+        }
+
+        private void EndInternalInitModify(MethodDefinition initMethod)
+        {
+            ILProcessor ilProcessor = initMethod.Body.GetILProcessor();
+            initMethod.Body.Instructions.Add(ilProcessor.Create(OpCodes.Ret));
+        }
+
+        private bool IsValidCallbackMethod(MethodDefinition method)
+        {
+            return method.Parameters.Count == 1 && method.Parameters[0].ParameterType.FullName == typeof(CallbackData).FullName;
+        }
+
+        // private bool IsRootBehavior(TypeDefinition type)
+        // {
+        //     return type. type.FullName == typeof(NetworkBehavior).FullName ;
+        // }
     }
 }

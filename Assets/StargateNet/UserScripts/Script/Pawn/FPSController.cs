@@ -65,7 +65,11 @@ public class FPSController : NetworkBehavior
     [Replicated]
     public float VerticalSpeed { get; set; }
 
-    
+    [NetworkCallBack(nameof(VerticalSpeed), false)]
+    public void OnVerticalSpeedChanged(CallbackData callbackData)
+    {
+        
+    }
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
@@ -88,10 +92,10 @@ public class FPSController : NetworkBehavior
     {
         Vector3 movement = Vector3.zero;
         bool isGrounded = IsGrounded();
-        if (isGrounded && VerticalSpeed <= 0f)
-        {
-            VerticalSpeed = 0f;
-        }
+        // if (isGrounded && VerticalSpeed <= 0f)
+        // {
+        //     VerticalSpeed = -1f;
+        // }
 
         if (this.FetchInput(out NetworkInput input))
         {
@@ -121,8 +125,8 @@ public class FPSController : NetworkBehavior
         }
 
         // 重力
-        VerticalSpeed -= gravity * galaxy.FixedDeltaTime;
-        cc.Move((movement + new Vector3(0, VerticalSpeed, 0)) * galaxy.FixedDeltaTime);
+        VerticalSpeed -= gravity * galaxy.FixedDeltaTime * (isGrounded ? 0 : 1);
+        cc.Move((movement + new Vector3(0f, VerticalSpeed, 0)) * galaxy.FixedDeltaTime);
     }
 
     public override void NetworkUpdate(SgNetworkGalaxy galaxy)
