@@ -89,5 +89,19 @@ namespace StargateNet
                     throw new Exception($"Unsported Type:{typeDefinition.FullName}");
             }
         }
+        
+        public static bool IsSubclassOf(this TypeDefinition typeDefinition, string ClassTypeFullName)
+        {
+            if (!typeDefinition.IsClass)
+                return false;
+            for (TypeReference baseType = typeDefinition.BaseType; baseType != null; baseType = baseType.Resolve().BaseType)
+            {
+                if (baseType.FullName == ClassTypeFullName)
+                    return true;
+                if (baseType.Resolve() == null)
+                    return false;
+            }
+            return false;
+        }
     }
 }

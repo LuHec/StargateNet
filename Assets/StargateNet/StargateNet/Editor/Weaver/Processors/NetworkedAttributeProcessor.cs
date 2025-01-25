@@ -38,20 +38,50 @@ namespace StargateNet
             }
 
             var diagnostics = new List<DiagnosticMessage>();
-            foreach (var module in assembly.Modules)
+
+
+            List<TypeDefinition> types = new(512);
+            // foreach (var module in assembly.Modules)
+            // {
+            foreach (var type in assembly.MainModule.GetTypes())
             {
-                foreach (var type in module.GetTypes())
-                {
-                    var itfDef = GetImplementINetworkEntityScript(type);
-                    if (itfDef != null)
-                    {
-                        diagnostics.AddRange(ProcessType(type, itfDef));
-                    }
-                }
+                if (IsRootBehavior(type))
+                    types.Add(type);
+                // var itfDef = GetImplementINetworkEntityScript(type);
+                // if (itfDef != null)
+                // {
+                //     diagnostics.AddRange(ProcessType(type));
+                // }
+            }
+            // }
+
+            foreach (var type in types)
+            {
+                if(IsRootBehavior(type))
+                    ProcessRootBehavior(type, assembly.MainModule);
             }
 
             return diagnostics;
         }
+
+        private void ProcessRootBehavior(TypeDefinition typeDefinition, ModuleDefinition module)
+        {
+            if (IsRootBehavior(typeDefinition))
+                ProcessTree(typeDefinition, module);
+        }
+
+        private void ProcessTree(TypeDefinition root, ModuleDefinition module)
+        {
+            ProcessType(root);
+            foreach (TypeDefinition type in module.Types)
+            {
+                if (type.IsSubclassOf(root.FullName) && type.BaseType != null && type.BaseType.FullName == root.FullName)
+                {
+                    ProcessTree(type, module);
+                }
+            }
+        }
+
 
         private InterfaceImplementation GetImplementINetworkEntityScript(TypeDefinition type)
         {
@@ -83,7 +113,7 @@ namespace StargateNet
             return null;
         }
 
-        private IEnumerable<DiagnosticMessage> ProcessType(TypeDefinition type, InterfaceImplementation targetInterfaceImp)
+        private IEnumerable<DiagnosticMessage> ProcessType(TypeDefinition type)
         {
             var diagnostics = new List<DiagnosticMessage>();
             foreach (var field in type.Fields)
@@ -128,19 +158,21 @@ namespace StargateNet
                 }
             }
 
-            var entityProp = targetInterfaceImp.InterfaceType.Resolve().Properties.FirstOrDefault(p => p.Name == "Entity"); // 找到接口的StateBlock
-            var stateBlockProp = targetInterfaceImp.InterfaceType.Resolve().Properties.FirstOrDefault(p => p.Name == "StateBlock"); // 找到接口的Entity
+            //
+            // var entityProp = targetInterfaceImp.InterfaceType.Resolve().Properties.FirstOrDefault(p => p.Name == "Entity"); // 找到接口的StateBlock
+            // var stateBlockProp = targetInterfaceImp.InterfaceType.Resolve().Properties.FirstOrDefault(p => p.Name == "StateBlock"); // 找到接口的Entity
+            var entityProp = type.Module.ImportReference(typeof(StargateBehavior)).Resolve().Properties.FirstOrDefault(p => p.Name == "Entity");
+            var stateBlockProp = type.Module.ImportReference(typeof(StargateBehavior)).Resolve().Properties.FirstOrDefault(p => p.Name == "StateBlock");
             if (stateBlockProp == null || entityProp == null) return diagnostics;
-            
-            _networkBehaviorType = type.Module.ImportReference(_definitions[typeof(IStargateNetworkScript).FullName]);
-            _callbackDataType = type.Module.ImportReference(_definitions[typeof(CallbackData).FullName]);
-            var initMethodReference = type.Module.ImportReference(type.Module.ImportReference(typeof(StargateBehavior)).Resolve().Methods.FirstOrDefault(m => m.Name == "InternalInit"));
+
+            _networkBehaviorType = type.Module.ImportReference(typeof(IStargateNetworkScript));
+            _callbackDataType = type.Module.ImportReference(typeof(CallbackData));
+            //TODO:应该改成每个类型独立的Init,目前这样是没用的
+            var initMethod = FindOrAddOverridableMethod(type, "InternalInit");
             var registerMethodReference = type.Module.ImportReference(type.Module.ImportReference(typeof(Entity)).Resolve().Methods.FirstOrDefault(m => m.Name == "InternalRegisterCallback"));
             var statePtr = type.Module.ImportReference(type.Module.ImportReference(typeof(StargateBehavior)).Resolve().Properties.FirstOrDefault(p => p.Name == "StateBlock").GetMethod);
             var callbackCtor = type.Module.ImportReference(type.Module.ImportReference(typeof(CallbackEvent)).Resolve().Methods.First(m => m.Name == ".ctor"));
-
-
-            // StartInternalInitModify(initMethodReference.Resolve());
+            
             int lastFieldSize = 0;
             if (type.BaseType != null) // 查找所有的基类，然后计算出总偏移量，查找基类中的 StateBlockSize 属性
             {
@@ -157,14 +189,14 @@ namespace StargateNet
                             if (_propertyToCallbackData.TryGetValue(property.Name, out CodeGenCallbackData callbackData)) // 查找Callback
                             {
                                 int propertySize = StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
-                                AddCallbackInstruction(type, statePtr, initMethodReference.Resolve(), callbackCtor, registerMethodReference, callbackData.methodName, callbackData.invokeDurResim,
+                                AddCallbackInstruction(type, statePtr, initMethod.Resolve(), callbackCtor, registerMethodReference, callbackData.methodName, callbackData.invokeDurResim,
                                     lastFieldSize, propertySize);
                                 var message = new DiagnosticMessage
                                 {
                                     DiagnosticType = DiagnosticType.Warning,
                                     MessageData =
                                         $"Type0--{type.Name}:{property.Name}",
-                                }; 
+                                };
                                 diagnostics.Add(message);
                             }
                         }
@@ -200,7 +232,8 @@ namespace StargateNet
                     if (_propertyToCallbackData.TryGetValue(property.Name, out CodeGenCallbackData callbackData))
                     {
                         int propertySize = StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
-                        AddCallbackInstruction(type, statePtr, initMethodReference.Resolve(), callbackCtor, registerMethodReference, callbackData.methodName, callbackData.invokeDurResim, lastFieldSize, propertySize);
+                        AddCallbackInstruction(type, statePtr, initMethod.Resolve(), callbackCtor, registerMethodReference, callbackData.methodName, callbackData.invokeDurResim,
+                            lastFieldSize, propertySize);
                         var message = new DiagnosticMessage
                         {
                             DiagnosticType = DiagnosticType.Warning,
@@ -213,8 +246,8 @@ namespace StargateNet
                     // ------------------ 插入Init函数
                 }
             }
-
-            EndInternalInitModify(initMethodReference.Resolve());
+            EndInternalInitModify(initMethod);
+            
             return diagnostics;
         }
 
@@ -358,7 +391,7 @@ namespace StargateNet
 
         private void StartInternalInitModify(MethodDefinition initMethod)
         {
-            initMethod.Body.Instructions.Clear();
+            initMethod.Body.Instructions.RemoveAt(initMethod.Body.Instructions.Count - 1);
         }
 
         /// <summary>
@@ -395,6 +428,7 @@ namespace StargateNet
                 instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, stateOffset / 4 + index));
                 instructions.Add(ilProcessor.Create(OpCodes.Add));
                 instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, propertySize / 4));
+                instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
                 instructions.Add(ilProcessor.Create(OpCodes.Ldftn, callbackWarpper)); // 创建CallbackEvent委托
                 instructions.Add(ilProcessor.Create(OpCodes.Newobj, callbackCtor));
                 instructions.Add(ilProcessor.Create(OpCodes.Call, internalRegMethod)); // 调用注册函数
@@ -412,9 +446,30 @@ namespace StargateNet
             return method.Parameters.Count == 1 && method.Parameters[0].ParameterType.FullName == typeof(CallbackData).FullName;
         }
 
-        // private bool IsRootBehavior(TypeDefinition type)
-        // {
-        //     return type. type.FullName == typeof(NetworkBehavior).FullName ;
-        // }
+        private bool IsRootBehavior(TypeDefinition type)
+        {
+            return type.IsSubclassOf(typeof(NetworkBehavior).FullName) && type.BaseType != null && type.BaseType.FullName == typeof(NetworkBehavior).FullName;
+        }
+
+        private MethodDefinition FindOrAddOverridableMethod(TypeDefinition typeDefinition, string methodName)
+        {
+            MethodDefinition overridableMethod = typeDefinition.Methods.FirstOrDefault(methodDefinition => methodDefinition.Name == methodName);
+            if (overridableMethod == null)
+            {
+                overridableMethod = new MethodDefinition(methodName, Mono.Cecil.MethodAttributes.Public | Mono.Cecil.MethodAttributes.Virtual | Mono.Cecil.MethodAttributes.HideBySig,
+                    typeDefinition.Module.TypeSystem.Void);
+                typeDefinition.Methods.Add(overridableMethod);
+            }
+            //
+            overridableMethod.Body.Instructions.Clear();
+            if (!IsRootBehavior(typeDefinition))
+            {
+                MethodReference baseMethod = typeDefinition.Module.ImportReference(typeDefinition.BaseType.Resolve().Methods.FirstOrDefault(methodDefinition => methodDefinition.Name == methodName));
+                ILProcessor ilProcessor = overridableMethod.Body.GetILProcessor();
+                overridableMethod.Body.Instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
+                overridableMethod.Body.Instructions.Add(ilProcessor.Create(OpCodes.Call, baseMethod));
+            }
+            return overridableMethod;
+        }
     }
 }

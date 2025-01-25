@@ -54,12 +54,12 @@ namespace StargateNet
             
         }
         
-        public void InternalInit()
+        public virtual void InternalInit()
         {
             
         }
 
-        public void InternalReset()
+        public virtual void InternalReset()
         {
         }
 

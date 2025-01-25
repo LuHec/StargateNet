@@ -56,6 +56,10 @@ namespace StargateNet
         {
             foreach (var script in entityObject.NetworkScripts)
             {
+                script.InternalInit();
+            }
+            foreach (var script in entityObject.NetworkScripts)
+            {
                 script.NetworkStart(this.engine.SgNetworkGalaxy);
             }
         }
@@ -183,13 +187,13 @@ namespace StargateNet
             int propertyIdx = (int)(propertyStart - entity._stateBlock);
             // 以int4为一个块进行存储，这样能让诸如vector3类型的block索引到同一个wrapper
             int key = (int)(propertyPartPtr - entity._stateBlock);
-            entity.networkObjectSharedMeta.callbacks.Add(key, new CallbackWrapper(
-                invokeDurResim,
-                -1,
-                propertyIdx,
-                propertyWordSize,
-                callbackEvent
-            ));
+            // entity.networkObjectSharedMeta.callbacks.Add(key, new CallbackWrapper(
+            //     invokeDurResim,
+            //     -1,
+            //     propertyIdx,
+            //     propertyWordSize,
+            //     callbackEvent
+            // ));
         }
 
         public static unsafe void InternalRest()
