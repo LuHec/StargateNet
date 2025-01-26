@@ -34,6 +34,7 @@ namespace StargateNet
         public InterpolationLocal InterpolationLocal { get; private set; }
         public InterpolationRemote InterpolationRemote { get; private set; }
         internal NetworkEventManager NetworkEventManager { get; private set; }
+        internal StargateReflectionData ReflectionData { get; private set; }
         internal bool Simulated { get; private set; }
         internal bool IsConnected { get; set; }
         internal IObjectSpawner ObjectSpawner { get; private set; }
@@ -80,6 +81,7 @@ namespace StargateNet
                 : configData.maxNetworkObjects;
             this.maxEntities = StargateNetUtil.AlignTo(this.maxEntities, 32); // 对齐一个int,申请足够大小的内存给id map
             this.EntityMetaManager = new EntityMetaManager(this.maxEntities, this);
+            this.ReflectionData = new StargateReflectionData();
             //用于物体Sync var的内存大小
             long totalObjectStateByteSize = configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
             this.WorldState = new WorldState(this, configData.savedSnapshotsCount, new Snapshot(totalObjectStateByteSize, this.maxEntities, monitor)); //专门用于物体Sync var的分配器

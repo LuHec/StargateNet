@@ -74,8 +74,7 @@ namespace StargateNet
         internal unsafe void AddEntity(NetworkObject networkObject, int networkId, int worldIdx, int inputSource)
         {
             NetworkObjectRef networkObjectRef = new NetworkObjectRef(networkId);
-            Entity entity = this.CreateEntity(networkObject, networkObjectRef, worldIdx, inputSource,
-                out int stateWordSize);
+            Entity entity = this.CreateEntity(networkObject, networkObjectRef, worldIdx, inputSource, out int stateWordSize);
             networkObject.Initialize(this.engine, entity, networkObject.GetComponentsInChildren<IStargateNetworkScript>());
             this.entitiesTable.Add(networkObjectRef, entity);
             this.paddingToAddEntities.Add(entity);

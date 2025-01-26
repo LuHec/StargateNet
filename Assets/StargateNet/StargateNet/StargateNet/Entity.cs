@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
@@ -49,15 +50,37 @@ namespace StargateNet
             {
                 networkBehaviors[i].StateBlock = this._stateBlock + wordOffset;
                 wordOffset += networkBehaviors[i].StateBlockSize / 4; // 懒得改ilprocessor，所以暂时用字节数
+                networkBehaviors[i].Entity = this;
+            }
+
+            BehaviorToHash(networkBehaviors);
+        }
+
+        private void BehaviorToHash(NetworkBehavior[] networkBehaviors)
+        {
+            string str = "";
+            for (int i = 0; i < networkBehaviors.Length; i++)
+            {
+                str += networkBehaviors[i].GetType();
+            }
+
+            int hash = str.GetHashCode();
+            Dictionary<int, NetworkObjectSharedMeta> networkObjectSharedMetas = this.engine.ReflectionData.NetworkObjectSharedMetas;
+            if (!networkObjectSharedMetas.TryGetValue(hash, out NetworkObjectSharedMeta meta))
+            {
+                meta = new NetworkObjectSharedMeta();
+                networkObjectSharedMetas.Add(hash, meta);
+            }
+
+            this.networkObjectSharedMeta = meta;
+            foreach (var beh in networkBehaviors)
+            {
+                beh.InternalInit();
             }
         }
 
         internal void InitObject()
         {
-            foreach (var script in entityObject.NetworkScripts)
-            {
-                script.InternalInit();
-            }
             foreach (var script in entityObject.NetworkScripts)
             {
                 script.NetworkStart(this.engine.SgNetworkGalaxy);
@@ -89,6 +112,7 @@ namespace StargateNet
             this.poolId = -1;
             this.worldMetaId = -1;
             this.networkId = NetworkObjectRef.InvalidNetworkObjectRef;
+            this.networkObjectSharedMeta = null;
         }
 
         internal unsafe int GetState(int idx)
@@ -160,6 +184,12 @@ namespace StargateNet
             int wordSize)
         {
             stargateNetworkScript.Entity.SetData(newValue, address, wordSize);
+            NetworkObjectSharedMeta sharedMeta = stargateNetworkScript.Entity.networkObjectSharedMeta;
+            int key = (int)(address - stargateNetworkScript.Entity._stateBlock);
+            if (sharedMeta.callbacks.TryGetValue(key, out CallbackWrapper wrapper))
+            {
+                wrapper.callbackEvent.Invoke(stargateNetworkScript, new CallbackData());
+            }
         }
 
         /// <summary>
@@ -182,18 +212,17 @@ namespace StargateNet
             CallbackEvent callbackEvent
         )
         {
-            Debug.LogError($"callback test");
             Entity entity = stargateNetworkScript.Entity;
             int propertyIdx = (int)(propertyStart - entity._stateBlock);
             // 以int4为一个块进行存储，这样能让诸如vector3类型的block索引到同一个wrapper
             int key = (int)(propertyPartPtr - entity._stateBlock);
-            // entity.networkObjectSharedMeta.callbacks.Add(key, new CallbackWrapper(
-            //     invokeDurResim,
-            //     -1,
-            //     propertyIdx,
-            //     propertyWordSize,
-            //     callbackEvent
-            // ));
+            entity.networkObjectSharedMeta.callbacks.Add(key, new CallbackWrapper(
+                invokeDurResim,
+                -1,
+                propertyIdx,
+                propertyWordSize,
+                callbackEvent
+            ));
         }
 
         public static unsafe void InternalRest()
