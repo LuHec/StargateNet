@@ -224,29 +224,39 @@ namespace StargateNet
                 previousData = (int*)this.previousState.NetworkStates.pools[entity.poolId].dataPtr + entity.entityBlockWordSize + dataIdx,
                 offset = 0,
                 propertyIdx = callbackWrapper.propertyIndex,
-                wordSize = callbackWrapper.propertyWordSize
+                wordSize = callbackWrapper.propertyWordSize,
+                behaviour = entity.entityObject.NetworkScripts[callbackWrapper.behaviorIndex]
             });
         }
 
         internal unsafe void OnEntityStateChangedLocal(Entity entity, int dataIdx)
         {
             if (!entity.networkObjectSharedMeta.callbacks.TryGetValue(dataIdx, out CallbackWrapper callbackWrapper) || callbackWrapper.invokeDurResim == 0 && this.engine.IsResimulation)
-            {
                 return;
-            }
+            if (entity.networkId.refValue != this.previousState.GetWorldObjectMeta(entity.worldMetaId).networkId)
+                return;
 
+            int* previousData = (int*)this.previousState.NetworkStates.pools[entity.poolId].dataPtr + entity.entityBlockWordSize + dataIdx;
             CallbackData callbackData = new CallbackData()
             {
                 Event = callbackWrapper.callbackEvent,
-                previousData = (int*)this.previousState.NetworkStates.pools[entity.poolId].dataPtr + entity.entityBlockWordSize + dataIdx,
+                previousData = previousData,
                 offset = 0,
                 propertyIdx = callbackWrapper.propertyIndex,
                 wordSize = callbackWrapper.propertyWordSize,
                 behaviour = entity.entityObject.NetworkScripts[callbackWrapper.behaviorIndex]
             };
-            
-            
+
+
             callbackData.Event(callbackData.behaviour, callbackData);
+        }
+
+        internal void InvokeRemoteCallbackEvent()
+        {
+            foreach (CallbackData callbackData in remoteCallbacks)
+            {
+                callbackData.Event(callbackData.behaviour, callbackData);
+            }
         }
 
         /// <summary>

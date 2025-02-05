@@ -65,11 +65,11 @@ public class FPSController : NetworkBehavior
     [Replicated]
     public float VerticalSpeed { get; set; }
 
-    [NetworkCallBack(nameof(VerticalSpeed), false)]
-    public void OnVerticalSpeedChanged(CallbackData callbackData)
-    {
-        Debug.LogError($"callback test");
-    }
+    // [NetworkCallBack(nameof(VerticalSpeed), false)]
+    // public void OnVerticalSpeedChanged(CallbackData callbackData)
+    // {
+    //     Debug.LogError($"callback test");
+    // }
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {

@@ -210,6 +210,7 @@ namespace StargateNet
                     this.RollBackGroup(this._predictedEntities, lastAuthorSnapshot);
                 this.DeserializeToGamecode();
                 this.SyncPhysicTransform();
+                this.InvokeRemoteCallbackEvent();
                 this.IsResimulation = true;
                 for (int i = 0; i < this.inputs.Count; i++)
                 {
