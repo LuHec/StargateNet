@@ -32,18 +32,6 @@ namespace StargateNet
             this._metaPoolId = metaPoolId;
             this._dirtyPoolId = dirtyPoolId;
         }
-        
-        // public Snapshot(int* worldObjectMeta, int* dirtyObjectMetaMap, StargateAllocator networkStates, int metaCnt)
-        // {
-        //     this.metaCnt = metaCnt;
-        //     this.snapshotTick = Tick.InvalidTick;
-        //     this._worldObjectMeta = (NetworkObjectMeta*)worldObjectMeta;
-        //     this._dirtyObjectMetaMap = dirtyObjectMetaMap;
-        //     this.NetworkStates = networkStates;
-        //     this.NetworkStates.FlushZero(this._worldObjectMeta);
-        //     this.NetworkStates.FlushZero(this._dirtyObjectMetaMap);
-        //     this.Init(Tick.InvalidTick);
-        // }
 
         internal void Init(Tick tick)
         {

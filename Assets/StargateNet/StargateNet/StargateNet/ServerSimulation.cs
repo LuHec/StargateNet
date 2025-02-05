@@ -26,6 +26,7 @@ namespace StargateNet
                 if(clientData.Started)
                     clientData.PrepareCurrentInput(this.engine.Tick);
             }
+            this.engine.WorldState.CurrentSnapshot.CopyTo(this.previousState);
         }
 
         internal override void PostFixedUpdate()

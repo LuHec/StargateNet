@@ -57,7 +57,7 @@ namespace StargateNet
 
             foreach (var type in types)
             {
-                if(IsRootBehavior(type))
+                if (IsRootBehavior(type))
                     ProcessRootBehavior(type, assembly.MainModule);
             }
 
@@ -172,7 +172,7 @@ namespace StargateNet
             var registerMethodReference = type.Module.ImportReference(type.Module.ImportReference(typeof(Entity)).Resolve().Methods.FirstOrDefault(m => m.Name == "InternalRegisterCallback"));
             var statePtr = type.Module.ImportReference(type.Module.ImportReference(typeof(StargateBehavior)).Resolve().Properties.FirstOrDefault(p => p.Name == "StateBlock").GetMethod);
             var callbackCtor = type.Module.ImportReference(type.Module.ImportReference(typeof(CallbackEvent)).Resolve().Methods.First(m => m.Name == ".ctor"));
-            
+
             int lastFieldSize = 0;
             if (type.BaseType != null) // 查找所有的基类，然后计算出总偏移量，查找基类中的 StateBlockSize 属性
             {
@@ -227,7 +227,7 @@ namespace StargateNet
                     }
 
                     // ------------------ 设置getter
-                    AddPropertyInstructions(property, stateBlockProp, ref lastFieldSize);
+                    AddPropertyInstructions(property, stateBlockProp, lastFieldSize);
                     // ------------------ 处理回调，插入Init函数
                     if (_propertyToCallbackData.TryGetValue(property.Name, out CodeGenCallbackData callbackData))
                     {
@@ -243,15 +243,17 @@ namespace StargateNet
                         diagnostics.Add(message);
                     }
 
-                    // ------------------ 插入Init函数
+                    // 
+                    lastFieldSize += StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
                 }
             }
+
             EndInternalInitModify(initMethod);
-            
+
             return diagnostics;
         }
 
-        private void AddPropertyInstructions(PropertyDefinition property, PropertyDefinition stateBlockProp, ref int lastFieldSize)
+        private void AddPropertyInstructions(PropertyDefinition property, PropertyDefinition stateBlockProp, int lastFieldSize)
         {
             var module = property.DeclaringType.Module; // 在getter方法前插入将属性值设置为默认值的代码
             var getIL = property.GetMethod.Body.GetILProcessor(); // 先获取所有的指令，然后清除原先的指令，插入新指令
@@ -286,8 +288,6 @@ namespace StargateNet
             setIL.Emit(OpCodes.Ldc_I4, StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType) / 4); // 加载参数4:字数量(即几个int大小)
             setIL.Emit(OpCodes.Call, module.ImportReference(_definitions[typeof(Entity).FullName].Methods.First(me => me.Name == nameof(Entity.DirtifyData))));
             setIL.Emit(OpCodes.Ret); // 返回  
-
-            lastFieldSize += StargateNetProcessorUtil.CalculateFieldSize(property.PropertyType);
         }
 
         private bool IfUnityType(PropertyDefinition propertyDef)
@@ -380,6 +380,7 @@ namespace StargateNet
             methodDefinition.Parameters.Add(new ParameterDefinition("callbk", Mono.Cecil.ParameterAttributes.None, _callbackDataType));
             var ilProcessor = methodDefinition.Body.GetILProcessor();
             var instructions = methodDefinition.Body.Instructions;
+            
             instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
             instructions.Add(ilProcessor.Create(OpCodes.Castclass, behaviourType));
             instructions.Add(ilProcessor.Create(OpCodes.Ldarg_1));
@@ -388,6 +389,40 @@ namespace StargateNet
             typeDefinition.Methods.Add(methodDefinition);
             return methodDefinition;
         }
+        // private MethodDefinition CreateCallBackMethod(TypeDefinition typeDefinition, TypeReference behaviourType, string callbackName, MethodReference callbackMethod)
+        // {
+        //     MethodDefinition methodDefinition = new MethodDefinition(callbackName + "__handler",
+        //         Mono.Cecil.MethodAttributes.Private | Mono.Cecil.MethodAttributes.Static | Mono.Cecil.MethodAttributes.HideBySig, typeDefinition.Module.TypeSystem.Void);
+        //     methodDefinition.Parameters.Add(new ParameterDefinition("beh", Mono.Cecil.ParameterAttributes.None, _networkBehaviorType));
+        //     methodDefinition.Parameters.Add(new ParameterDefinition("callbk", Mono.Cecil.ParameterAttributes.None, _callbackDataType));
+        //     
+        //     var ilProcessor = methodDefinition.Body.GetILProcessor();
+        //     var instructions = methodDefinition.Body.Instructions;
+        //     
+        //     // 打印 callbackData
+        //     var callbkVariable = new VariableDefinition(_callbackDataType);
+        //     methodDefinition.Body.Variables.Add(callbkVariable);
+        //     var debugLogMethod = typeDefinition.Module.ImportReference(typeof(UnityEngine.Debug).GetMethod("Log", new[] { typeof(object) }));
+        //     // instructions.Add(ilProcessor.Create(OpCodes.Ldloc, callbkVariable)); // 加载 callbackData
+        //     instructions.Add(ilProcessor.Create(OpCodes.Ldarg_1)); 
+        //     instructions.Add(ilProcessor.Create(OpCodes.Box, _callbackDataType)); // 将结构体装箱为 object
+        //     instructions.Add(ilProcessor.Create(OpCodes.Call, debugLogMethod)); // 调用 Debug.Log
+        //     
+        //     // instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
+        //     // instructions.Add(ilProcessor.Create(OpCodes.Castclass, behaviourType));
+        //     //
+        //     // instructions.Add(ilProcessor.Create(OpCodes.Ldloca_S, callbkVariable));
+        //     // instructions.Add(ilProcessor.Create(OpCodes.Initobj, _callbackDataType));
+        //     // instructions.Add(ilProcessor.Create(OpCodes.Ldloc, callbkVariable));
+        //     // // instructions.Add(ilProcessor.Create(OpCodes.Ldarg_1));
+        //     // instructions.Add(ilProcessor.Create(OpCodes.Callvirt, callbackMethod));
+        //     instructions.Add(ilProcessor.Create(OpCodes.Ret));
+        //
+        //     // 将方法添加到类型定义中
+        //     typeDefinition.Methods.Add(methodDefinition);
+        //
+        //     return methodDefinition;
+        // }
 
         private void StartInternalInitModify(MethodDefinition initMethod)
         {
@@ -421,16 +456,16 @@ namespace StargateNet
                 instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, invokeDurResim ? 1 : 0));
                 instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
                 instructions.Add(ilProcessor.Create(OpCodes.Callvirt, entityStatePtr)); // 加载Script.state指针，此处为基地址
-                instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, stateOffset / 4)); // 通过offset得到属性的内存地址
+                instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, stateOffset)); // 通过offset得到属性的内存地址
                 instructions.Add(ilProcessor.Create(OpCodes.Add)); // 将地址和偏移量相加：(int*)ptr + (int)offset 
                 instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
                 instructions.Add(ilProcessor.Create(OpCodes.Callvirt, entityStatePtr));
-                instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, stateOffset / 4 + index));
+                instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, stateOffset + index * sizeof(int)));
                 instructions.Add(ilProcessor.Create(OpCodes.Add));
                 instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, propertySize / 4));
                 instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
-                instructions.Add(ilProcessor.Create(OpCodes.Ldftn, callbackWarpper)); // 创建CallbackEvent委托
-                instructions.Add(ilProcessor.Create(OpCodes.Newobj, callbackCtor));
+                instructions.Add(ilProcessor.Create(OpCodes.Ldftn, callbackWarpper));
+                instructions.Add(ilProcessor.Create(OpCodes.Newobj, callbackCtor)); // 创建CallbackEvent委托
                 instructions.Add(ilProcessor.Create(OpCodes.Call, internalRegMethod)); // 调用注册函数
             }
         }
@@ -460,6 +495,7 @@ namespace StargateNet
                     typeDefinition.Module.TypeSystem.Void);
                 typeDefinition.Methods.Add(overridableMethod);
             }
+
             //
             overridableMethod.Body.Instructions.Clear();
             if (!IsRootBehavior(typeDefinition))
@@ -469,6 +505,7 @@ namespace StargateNet
                 overridableMethod.Body.Instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
                 overridableMethod.Body.Instructions.Add(ilProcessor.Create(OpCodes.Call, baseMethod));
             }
+
             return overridableMethod;
         }
     }

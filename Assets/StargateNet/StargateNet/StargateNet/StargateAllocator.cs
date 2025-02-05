@@ -87,7 +87,7 @@ namespace StargateNet
             MemoryPool pool;
             pool.dataPtr = data;
             pool.used = true;
-            pool.byteSize = byteSize;
+            pool.tlsfByteSize = byteSize;
             if (this._recycledPoolId.Count > 0)
             {
                 poolId = this._recycledPoolId.Dequeue();
@@ -107,7 +107,7 @@ namespace StargateNet
             MemoryPool pool = this.pools[id];
             if (!pool.used) return;
             this.Free(pool.dataPtr);
-            pool.byteSize = -1;
+            pool.tlsfByteSize = -1;
             pool.dataPtr = null;
             pool.used = false;
             this.pools[id] = pool;
@@ -127,11 +127,11 @@ namespace StargateNet
                 MemoryPool thisMemoryPool = this.pools[poolIdx];
                 MemoryPool destMemoryPool;
                 destMemoryPool.used = thisMemoryPool.used;
-                destMemoryPool.byteSize = thisMemoryPool.used ? thisMemoryPool.byteSize : -1;
-                destMemoryPool.dataPtr = thisMemoryPool.used ? dest.Malloc(thisMemoryPool.byteSize) : null;
+                destMemoryPool.tlsfByteSize = thisMemoryPool.used ? thisMemoryPool.tlsfByteSize : -1;
+                destMemoryPool.dataPtr = thisMemoryPool.used ? dest.Malloc(thisMemoryPool.tlsfByteSize) : null;
                 if (thisMemoryPool.used)
                 {
-                    for (int byteIdx = 0; byteIdx < thisMemoryPool.byteSize; byteIdx++)
+                    for (int byteIdx = 0; byteIdx < thisMemoryPool.tlsfByteSize; byteIdx++)
                     {
                         ((byte*)destMemoryPool.dataPtr)[byteIdx] = ((byte*)thisMemoryPool.dataPtr)[byteIdx];
                     }
@@ -152,7 +152,7 @@ namespace StargateNet
                 MemoryPool pool = pools[i];
                 if (!pool.used) continue;
                 this.Free(pool.dataPtr);
-                pool.byteSize = -1;
+                pool.tlsfByteSize = -1;
                 pool.dataPtr = null;
                 pools[i] = pool;
                 _recycledPoolId.Enqueue(i);
@@ -165,11 +165,14 @@ namespace StargateNet
         public struct MemoryPool
         {
             public bool used;
-            public void* dataPtr;
+            /// <summary>
+            /// 注意：bitmap在前，data在后
+            /// </summary>
+            public void* dataPtr; 
             /// <summary>
             /// 这个不是给state用的！！！！包含了tlsf的尾部合并信息！！！！不要用这个！！！！
             /// </summary>
-            public long byteSize; 
+            public long tlsfByteSize; 
         }
     }
 }

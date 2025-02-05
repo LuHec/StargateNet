@@ -24,6 +24,7 @@ namespace StargateNet
         public bool IsServer => Peer.IsServer;
         public bool IsClient => Peer.IsClient;
         internal float InterpolateDelay => this.IsClient ? this.InterpolationRemote.CurrentBufferTime : 0f;
+        internal bool IsResimulation => this.IsClient && this.ClientSimulation.IsResimulation;
         internal ILagCompensateComponent LagCompensateComponent { get; private set; }
         internal StargatePhysic PhysicSimulationUpdate { get; private set; }
         internal EntityMetaManager EntityMetaManager { get; private set; }
@@ -114,7 +115,8 @@ namespace StargateNet
             // 给插值组件用
             this.Simulation.fromSnapshot = new Snapshot(totalObjectStateByteSize, this.maxEntities, monitor);
             this.Simulation.toSnapshot = this.WorldState.CurrentSnapshot;
-
+            // 用于缓存数值，给回调函数使用。由于需要存储一个固定的指针地址，所以不能用WorldState
+            this.Simulation.previousState = new Snapshot(totalObjectStateByteSize, this.maxEntities, monitor);
             this.Simulated = true;
             this.IsRunning = true;
 

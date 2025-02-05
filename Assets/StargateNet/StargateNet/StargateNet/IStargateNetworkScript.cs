@@ -7,7 +7,7 @@ namespace StargateNet
     { 
         unsafe int* StateBlock { get; }
         new Entity Entity { get; }
-        
+        int ScriptIdx { get; set; }
         void Initialize(Entity entity);
         void InternalInit();
         void InternalReset();

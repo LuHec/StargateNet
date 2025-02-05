@@ -1,18 +1,14 @@
 using System;
 using System.Collections.Generic;
 using Riptide.Utils;
+using UnityEngine;
 
 namespace StargateNet
 {
     public abstract class Simulation
     {
         internal StargateEngine engine;
-
-        /// <summary>
-        /// 在CS都是WorldState.CurrentState
-        /// </summary>
         internal Snapshot fromSnapshot;
-
         internal Snapshot toSnapshot;
         internal Dictionary<short, ClientInput> clientInputs = new(256); // 存放输入，服务端存放所有InputSource的输入，客户端只存自己的输入
         internal Dictionary<NetworkObjectRef, Entity> entitiesTable; // 记录当前的Entities，但并不直接执行这些实例
@@ -23,6 +19,10 @@ namespace StargateNet
         internal SimulationInput currentInput;
         protected Queue<SimulationInput> inputPool = new(256);
         protected Queue<Entity> reuseEntities = new(32);
+
+        internal Snapshot previousState;
+        protected HashSet<CallbackData> remoteCallbacks = new(2048);
+        // protected CallbackData[] callbackData = new CallbackData[2048];
 
         internal Simulation(StargateEngine engine)
         {
@@ -206,11 +206,55 @@ namespace StargateNet
         }
 
         /// <summary>
-        /// 在Update期间调整NetworkInput.需要注意这里InputSource是假参数！！！！字典的key是input的类型！！！！
+        /// DataIdx就是property address - entity base address
         /// </summary>
-        internal void SetInput(int inputSource, INetworkInput networkInput, bool needRefreshAlpha = false)
+        /// <param name="entity"></param>
+        /// <param name="dataIdx"></param>
+        /// <param name="isServer"></param>
+        internal unsafe void OnEntityStateRemoteChanged(Entity entity, int dataIdx, bool isServer)
         {
-            ClientInput clientInput = new ClientInput() { networkInput = networkInput, alpha = this.engine.InterpolationRemote.Alpha, remoteFromTick = this.engine.InterpolationRemote.FromTick};
+            if (!entity.networkObjectSharedMeta.callbacks.TryGetValue(dataIdx, out CallbackWrapper callbackWrapper))
+            {
+                return;
+            }
+
+            this.remoteCallbacks.Add(new CallbackData()
+            {
+                Event = callbackWrapper.callbackEvent,
+                previousData = (int*)this.previousState.NetworkStates.pools[entity.poolId].dataPtr + entity.entityBlockWordSize + dataIdx,
+                offset = 0,
+                propertyIdx = callbackWrapper.propertyIndex,
+                wordSize = callbackWrapper.propertyWordSize
+            });
+        }
+
+        internal unsafe void OnEntityStateChangedLocal(Entity entity, int dataIdx)
+        {
+            if (!entity.networkObjectSharedMeta.callbacks.TryGetValue(dataIdx, out CallbackWrapper callbackWrapper) || callbackWrapper.invokeDurResim == 0 && this.engine.IsResimulation)
+            {
+                return;
+            }
+
+            CallbackData callbackData = new CallbackData()
+            {
+                Event = callbackWrapper.callbackEvent,
+                previousData = (int*)this.previousState.NetworkStates.pools[entity.poolId].dataPtr + entity.entityBlockWordSize + dataIdx,
+                offset = 0,
+                propertyIdx = callbackWrapper.propertyIndex,
+                wordSize = callbackWrapper.propertyWordSize,
+                behaviour = entity.entityObject.NetworkScripts[callbackWrapper.behaviorIndex]
+            };
+            
+            
+            callbackData.Event(callbackData.behaviour, callbackData);
+        }
+
+        /// <summary>
+        /// 在Update期间调整NetworkInput.暂时还只有一种input type
+        /// </summary>
+        internal void SetInput(int inputType, INetworkInput networkInput, bool needRefreshAlpha = false)
+        {
+            ClientInput clientInput = new ClientInput() { networkInput = networkInput, alpha = this.engine.InterpolationRemote.Alpha, remoteFromTick = this.engine.InterpolationRemote.FromTick };
             if (this.clientInputs.ContainsKey(0))
             {
                 var oClientInput = this.clientInputs[0];
@@ -251,7 +295,7 @@ namespace StargateNet
 
             SimulationInput resInput = inputPool.Dequeue();
             resInput.Init(srvTick, targetTick, alpha, remoteFromTick);
-            
+
             return resInput;
         }
 

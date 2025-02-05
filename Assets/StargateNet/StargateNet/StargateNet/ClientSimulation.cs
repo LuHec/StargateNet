@@ -16,6 +16,7 @@ namespace StargateNet
         internal List<StargateAllocator> predictedSnapshots; // 客户端用于预测snapshot，由于客户端不会预测物体的销毁和生成，所以只存属性
         internal List<SimulationInput> inputs = new(128);
         internal double serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
+        internal bool IsResimulation { private set; get; }
         private readonly int _maxPredictedTicks;
         private List<Entity> _predictedEntities = new(32);
         private List<IClientSimulationCallbacks> _clientSimulationCallbacksList = new(128);
@@ -108,13 +109,14 @@ namespace StargateNet
         {
             return isMultiPacket && srvTick >= this.authoritativeTick + 1 && srvClientAuthorTick <= this.authoritativeTick;
         }
-
+        
         private void InvokeClientOnPreRollBack()
         {
             foreach (var callbacks in this._clientSimulationCallbacksList)
             {
                 callbacks?.OnPreRollBack();
             }
+            this.remoteCallbacks.Clear();
         }
 
         private void InvokeClientOnPostResimulation()
@@ -196,6 +198,7 @@ namespace StargateNet
                 this.RemoveAckedInput(this.authoritativeTick - 1); // 移除服务器接收到的输入(即使丢包了也不管，服务器不会重新模拟)
                 this.InvokeClientOnPreRollBack();
                 Snapshot lastAuthorSnapshot = this.engine.WorldState.FromSnapshot; // 服务端发来的最新Snapshot
+                this.engine.WorldState.CurrentSnapshot.CopyTo(this.previousState); // 准备回调数据
                 this._predictedEntities.Clear();
                 foreach (var entity in this.entities)
                 {
@@ -207,16 +210,16 @@ namespace StargateNet
                     this.RollBackGroup(this._predictedEntities, lastAuthorSnapshot);
                 this.DeserializeToGamecode();
                 this.SyncPhysicTransform();
-
+                this.IsResimulation = true;
                 for (int i = 0; i < this.inputs.Count; i++)
                 {
                     this.currentInput = this.inputs[i];
-                    Debug.Log($"currentTick :{this.currentTick}, resim input targetTick:" + currentInput.clientTargetTick);
                     this.ExecuteNetworkFixedUpdate();
                     this.SerializeToNetcode();
                     this.currentTick++;
                 }
 
+                this.IsResimulation = true;
                 this.InvokeClientOnPostResimulation();
             }
 
@@ -270,9 +273,13 @@ namespace StargateNet
             int poolId = entity.poolId;
             int* predictedData = (int*)predictedState.pools[poolId].dataPtr + entity.entityBlockWordSize;
             int* authorData = (int*)authorState.pools[poolId].dataPtr + entity.entityBlockWordSize;
-            for (int i = 0; i < entity.entityBlockWordSize; i++) // 回滚数据
+            for (int dataIdx = 0; dataIdx < entity.entityBlockWordSize; dataIdx++) // 回滚数据
             {
-                predictedData[i] = authorData[i];
+                if (predictedData[dataIdx] != authorData[dataIdx])
+                {
+                    this.OnEntityStateRemoteChanged(entity, dataIdx, false);
+                }
+                predictedData[dataIdx] = authorData[dataIdx];
             }
         }
 
