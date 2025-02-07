@@ -151,7 +151,7 @@ namespace StargateNet
             this.WorldState.CurrentSnapshot.NetworkStates.HandledRelease();
             this.Simulation.HandledRelease();
         }
-
+        
         /// <summary>
         /// Called every frame.
         /// </summary>
@@ -358,6 +358,16 @@ namespace StargateNet
         internal T GetInput<T>() where T : INetworkInput
         {
             return this.Simulation.GetInput<T>(0);
+        }
+
+        public NetworkObject GetNetworkObject(NetworkObjectRef networkObjectRef)
+        {
+            if (this.Simulation.entitiesTable.TryGetValue(networkObjectRef, out Entity entity))
+            {
+                return entity.entityObject;
+            }
+
+            return null;
         }
 
         private void OnEntityDestroy(NetworkObject networkObject)

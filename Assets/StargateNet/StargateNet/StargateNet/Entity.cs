@@ -15,7 +15,7 @@ namespace StargateNet
         public int worldMetaId = -1; // meta的idx，客户端服务端一定是一致的
         public int poolId = -1; // 内存的idx，客户端和服务端不一定一致
         public int inputSource = -1;
-        internal StargateEngine engine;
+        public StargateEngine engine;
         internal NetworkObject entityObject; // Truly Object
         internal NetworkObjectSharedMeta networkObjectSharedMeta; // 存储回调函数
         public int entityBlockWordSize; // Networked Field Size, 不包括bitmap大小(两者大小一致)
@@ -219,7 +219,7 @@ namespace StargateNet
             int propertyIdx = (int)(propertyStart - entity.stateBlock);
             // 以int4为一个块进行存储，这样能让诸如vector3类型的block索引到同一个wrapper
             int key = (int)(propertyPartPtr - entity.stateBlock);
-            entity.networkObjectSharedMeta.callbacks.Add(key, new CallbackWrapper(
+            entity.networkObjectSharedMeta.callbacks.TryAdd(key, new CallbackWrapper(
                 invokeDurResim,
                 stargateNetworkScript.ScriptIdx,
                 propertyIdx,

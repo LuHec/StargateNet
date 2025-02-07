@@ -166,6 +166,7 @@ namespace StargateNet
                     msg.AddFloat(networkInput.YawPitch.y);
                     msg.AddBool(networkInput.IsJump);
                     msg.AddBool(networkInput.IsFire);
+                    msg.AddBool(networkInput.IsInteract);
                 }
             }
 

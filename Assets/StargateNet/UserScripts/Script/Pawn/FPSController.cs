@@ -58,21 +58,22 @@ public class FPSController : NetworkBehavior
 
     private Vector2 _localYawPitch;
     bool IsGrounded() => Physics.Raycast(foot.position, Vector3.down, groundDis);
-
+    
     /// <summary>
     /// 跳跃和重力的速度
     /// </summary>
     [Replicated]
     public float VerticalSpeed { get; set; }
-
-    // [NetworkCallBack(nameof(VerticalSpeed), false)]
-    // public void OnVerticalSpeedChanged(CallbackData callbackData)
-    // {
-    //     Debug.LogError($"callback test");
-    // }
+    
+    // ---------------------------------- Component ---------------------------------- //
+    protected AttributeComponent attributeComponent;
+    // ---------------------------------- Component ---------------------------------- //
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
+        attributeComponent = GetComponent<AttributeComponent>();
+        attributeComponent.owner = this;
+        
         cameraPoint.forward = transform.forward;
         if (this.IsLocalPlayer())
         {
@@ -200,6 +201,7 @@ public class FPSController : NetworkBehavior
         networkInput.YawPitch = new Vector2(_localYawPitch.x, _localYawPitch.y);
         networkInput.IsJump |= Input.GetKeyDown(KeyCode.Space);
         networkInput.IsFire |= Input.GetMouseButtonDown(0);
+        networkInput.IsInteract |= Input.GetKey(KeyCode.E);
         // 处理延迟补偿
         //TODO:暂时这么写！！还在想办法解决怎么把这个狗屎延迟补偿输入给提取出用户代码
         galaxy.SetInput(networkInput, Input.GetMouseButtonDown(0));

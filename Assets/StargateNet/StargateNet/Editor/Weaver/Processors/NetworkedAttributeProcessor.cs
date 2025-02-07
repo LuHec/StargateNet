@@ -463,7 +463,8 @@ namespace StargateNet
                 instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, stateOffset + index * sizeof(int)));
                 instructions.Add(ilProcessor.Create(OpCodes.Add));
                 instructions.Add(ilProcessor.Create(OpCodes.Ldc_I4, propertySize / 4));
-                instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
+                // instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0)); 静态函数没有this！！！！！！！！！！！！！！！
+                instructions.Add(ilProcessor.Create(OpCodes.Ldnull));
                 instructions.Add(ilProcessor.Create(OpCodes.Ldftn, callbackWarpper));
                 instructions.Add(ilProcessor.Create(OpCodes.Newobj, callbackCtor)); // 创建CallbackEvent委托
                 instructions.Add(ilProcessor.Create(OpCodes.Call, internalRegMethod)); // 调用注册函数

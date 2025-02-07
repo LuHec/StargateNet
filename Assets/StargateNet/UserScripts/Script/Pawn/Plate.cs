@@ -26,6 +26,6 @@ public class Plate : NetworkBehavior
     [NetworkCallBack(nameof(TestV), false)]
     public void OnVerticalSpeedChanged(CallbackData callbackData)
     {
-        Debug.LogError($"PreviousData:{callbackData.GetPreviousData<Vector3>()}, CurrentData:{TestV}");
+        
     }
 }

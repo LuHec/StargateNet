@@ -158,7 +158,8 @@ namespace StargateNet
                                 y = msg.GetFloat(),
                             },
                             IsJump = msg.GetBool(),
-                            IsFire = msg.GetBool()
+                            IsFire = msg.GetBool(),
+                            IsInteract = msg.GetBool(),
                         }
                     };
 
