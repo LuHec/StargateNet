@@ -7,5 +7,6 @@ public class NetworkWeapon : NetworkBehavior
     public GameObject weaponModel;
     public int maxAmmo = 31;
     public float fireRate = 0.1f;
+    [Replicated]
     public int AmmoCount{get;set;}
 }

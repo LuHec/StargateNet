@@ -112,7 +112,7 @@ public class FPSController : NetworkBehavior
                 VerticalSpeed = jumpSpeed;
             }
 
-            if (input.IsFire)
+            if (input.IsFire && attributeComponent.WeaponRef != -1)
             {
                 GizmoTimerDrawer.Instance.DrawRayWithTimer(cameraPoint.position, cameraPoint.forward * 50f, 5f,
                     Color.green);
@@ -121,6 +121,17 @@ public class FPSController : NetworkBehavior
                 if (hit.collider != null)
                 {
                     GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hit.point, .5f, 5f, Color.red);
+                }
+            }
+
+            if (input.IsInteract && IsServer)
+            {
+                GizmoTimerDrawer.Instance.DrawRayWithTimer(cameraPoint.position, cameraPoint.forward * 20f, 5f,
+                    Color.red);
+                galaxy.NetworkRaycast(cameraPoint.transform.position, cameraPoint.forward, this.InputSource, out RaycastHit hit, 20f, ~0);
+                if (hit.collider != null)
+                {
+                    attributeComponent.SetNetworkWeapon(hit.collider.GetComponent<NetworkObject>());
                 }
             }
         }

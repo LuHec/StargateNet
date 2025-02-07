@@ -138,7 +138,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4831352236730223633}
-  m_Father: {fileID: 2942176371875200917}
+  m_Father: {fileID: 5347739045762566522}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4744184013172469766
 GameObject:
@@ -452,6 +452,38 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &7529809457825609264
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5347739045762566522}
+  m_Layer: 0
+  m_Name: Ancor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5347739045762566522
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7529809457825609264}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.572, y: -0.276, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 9166682964219372946}
+  m_Father: {fileID: 2942176371875200917}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8879167412728206321
 GameObject:
   m_ObjectHideFlags: 0
@@ -481,7 +513,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 9166682964219372946}
+  - {fileID: 5347739045762566522}
   m_Father: {fileID: 3063326188549370508}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &610722302350948979
@@ -573,12 +605,12 @@ PrefabInstance:
     - target: {fileID: 5404179526034224806, guid: 79b02dee71e0e8f43b2018ce7536f482,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.898
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5404179526034224806, guid: 79b02dee71e0e8f43b2018ce7536f482,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.387
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5404179526034224806, guid: 79b02dee71e0e8f43b2018ce7536f482,
         type: 3}
@@ -624,6 +656,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Vector
+      objectReference: {fileID: 0}
+    - target: {fileID: 7729773817608672209, guid: 79b02dee71e0e8f43b2018ce7536f482,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

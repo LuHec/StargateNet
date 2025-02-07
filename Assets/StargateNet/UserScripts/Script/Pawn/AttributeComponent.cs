@@ -21,11 +21,13 @@ public class AttributeComponent : NetworkBehavior
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
-        WeaponRef = -1;
+        if (IsServer)
+            WeaponRef = -1;
     }
 
     public void SetNetworkWeapon(NetworkObject networkObject)
     {
+        if (networkObject == null) return;
         NetworkWeapon networkWeapon = networkObject.GetComponent<NetworkWeapon>();
         if (networkWeapon == null) return;
         WeaponRef = networkObject.NetworkId.refValue;
@@ -33,16 +35,25 @@ public class AttributeComponent : NetworkBehavior
 
     public void ThrowWeapon()
     {
-        
     }
 
     [NetworkCallBack(nameof(WeaponRef), true)]
     public void OnWeaponRefChanged(CallbackData callbackData)
     {
+        Debug.LogError("ChangeWeapon");
+        if (callbackData.GetPreviousData<int>() != WeaponRef)
+        {
+            if (_weaponModel != null)
+                Destroy(_weaponModel);
+            this._networkWeapon = null;
+        }
+
+        if (WeaponRef == -1) return;
         NetworkObject networkObject = Entity.engine.GetNetworkObject(new NetworkObjectRef(WeaponRef));
         _networkWeapon = networkObject.GetComponent<NetworkWeapon>();
-        if(_networkWeapon== null) return;
+        if (_networkWeapon == null) return;
 
         _weaponModel = Instantiate(_networkWeapon.weaponModel, owner.handPoint);
+        networkObject.gameObject.SetActive(false);
     }
 }

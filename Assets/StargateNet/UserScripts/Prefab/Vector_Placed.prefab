@@ -1053,6 +1053,7 @@ GameObject:
   - component: {fileID: 5404179526034224806}
   - component: {fileID: 6496100176427873409}
   - component: {fileID: 1840194217466500163}
+  - component: {fileID: 8415101746974425420}
   - component: {fileID: 8544034581204158230}
   - component: {fileID: 5421382638982640578}
   m_Layer: 9
@@ -1107,6 +1108,22 @@ MonoBehaviour:
   needCorrect: 0
   errorMagnitude: 1.8
   correctionMultiplier: 1.28
+--- !u!114 &8415101746974425420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7729773817608672209}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6038015bd9f64a83a46aa25eeab5de3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  weaponModel: {fileID: 7729773817608672209, guid: 79b02dee71e0e8f43b2018ce7536f482,
+    type: 3}
+  maxAmmo: 31
+  fireRate: 0.1
 --- !u!54 &8544034581204158230
 Rigidbody:
   m_ObjectHideFlags: 0
