@@ -22,6 +22,7 @@ namespace StargateNet
         private Queue<int> _connectionId2Reuse = new(16);
         private List<int> _cachedMetaIds;
         private List<SimulationInput> _cachedInputs = new List<SimulationInput>(128);
+        private ReadWriteBuffer _writeBuffer;
 
 
         public SgServerPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
@@ -30,6 +31,7 @@ namespace StargateNet
             this.Server.ClientConnected += this.OnConnect;
             this.Server.MessageReceived += this.OnReceiveMessage;
             this.Server.ClientDisconnected += this.OnDisConnect;
+            this._writeBuffer = new ReadWriteBuffer(configData.maxSnapshotSendSize);
         }
 
         public void StartServer(ushort port, ushort maxClientCount)
@@ -92,6 +94,7 @@ namespace StargateNet
                 RiptideLogger.Log(LogType.Debug, $"{msg.BytesInUse} meta size");
                 clientConnection.WriteState(msg, isMultiPak);
                 RiptideLogger.Log(LogType.Debug, $"{msg.BytesInUse} all size");
+                
                 this.Server.Send(msg, (ushort)i);
                 clientConnection.clientData.isFirstPak = false;
                 

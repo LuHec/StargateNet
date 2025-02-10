@@ -17,5 +17,6 @@ namespace StargateNet
         [Range(8, 300)]public int MaxPredictedTicks = 8;
         public List<GameObject> NetworkObjects;
         public long maxObjectStateBytes;
+        [Tooltip("单帧服务器能发送给客户端最大数据量")]public int maxSnapshotSendSize;
     }
 }

@@ -16,6 +16,7 @@ namespace StargateNet
         internal Client Client { private set; get; }
         internal bool HeavyPakLoss { get; set; }
         internal bool PakLoss { private set; get; }
+        private ReadWriteBuffer _readBuffer;
 
         public SgClientPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -24,6 +25,7 @@ namespace StargateNet
             this.Client.Connected += this.OnConnected;
             this.Client.ClientDisconnected += this.OnDisConnected;
             this.Client.MessageReceived += this.OnReceiveMessage;
+            this._readBuffer = new ReadWriteBuffer(configData.maxSnapshotSendSize);
         }
 
 

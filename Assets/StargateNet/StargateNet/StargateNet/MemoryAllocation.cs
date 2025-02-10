@@ -4,7 +4,7 @@ namespace StargateNet
 {
     public static class MemoryAllocation
     {
-        internal static IMemoryAllocator Allocator;
+        public static IMemoryAllocator Allocator;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void* Malloc(long size, int alignment = 8)

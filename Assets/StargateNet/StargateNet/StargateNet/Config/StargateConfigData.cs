@@ -14,5 +14,6 @@ namespace StargateNet
         public List<GameObject> networkPrefabs;
         public int maxPredictedTicks;
         public long maxObjectStateBytes; // 单个NetworkObject的内存大小
+        public int maxSnapshotSendSize;  // 单帧能发送的最大Snapshot大小
     }
 }
