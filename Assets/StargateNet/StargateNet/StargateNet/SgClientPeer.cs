@@ -93,6 +93,7 @@ namespace StargateNet
             this.Client.Connect($"{ServerIP}:{Port}", useMessageHandlers: false);
         }
 
+        private int _totalPacketBytes = 0;
         /// <summary>
         /// 客户端只会收到DS
         /// </summary>
@@ -114,6 +115,7 @@ namespace StargateNet
             if (srvTick > this.Engine.ClientSimulation.authoritativeTick)
             {
                 this._readBuffer.Reset();
+                this._totalPacketBytes = 0;
             }
             int fragmentBytes = msg.GetInt();
             int lastFragmentBytes = msg.GetInt();
@@ -121,6 +123,7 @@ namespace StargateNet
             int fragmentId = msg.GetShort();
             this._fragmentCount = fragmentCount;
             if (this._fragmentIndex.Contains(fragmentId)) return;
+            _totalPacketBytes += fragmentBytes;
             this._fragmentIndex.Add(fragmentId);
             int temp = fragmentBytes;
             while (temp-- > 0)
@@ -134,6 +137,7 @@ namespace StargateNet
             if (this._fragmentCount != this._fragmentIndex.Count) return;
             this._fragmentCount = 0;
             this._fragmentIndex.Clear();
+            
             Tick srvRcvedClientTick = new Tick(this._readBuffer.GetInt());
             Tick srvRcvedClientInputTick = new Tick(this._readBuffer.GetInt());
             this.Engine.ClientSimulation.serverInputRcvTimeAvg = this._readBuffer.GetDouble();
@@ -160,6 +164,7 @@ namespace StargateNet
             this.Engine.WorldState.CurrentSnapshot.CleanMap(); // CurrentSnapshot将作为本帧的开始，必须要清理干净，否则下次收到包，delta就出错了
             this.Engine.WorldState.ClientUpdateState(srvTick, rcvBuffer); // 对于客户端来说FromTick才是权威，CurrentTick可以被修改
             this.Engine.InterpolationRemote.AddSnapshot(srvTick, rcvBuffer);
+            this._totalPacketBytes = 0;
         }
 
         /// <summary>
