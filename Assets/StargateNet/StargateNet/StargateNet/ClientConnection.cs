@@ -47,10 +47,10 @@ namespace StargateNet
         /// 服务端默认发上一帧的delta，只有客户端表示丢包了才会发多个差分包.
         /// 不能用ClientTick == -1来判断是否是第一个包，因为有滞后性。这里默认客户端收到了首个包，如果后续有丢包，那客户端会通知服务端发全量包
         /// </summary>
-        /// <param name="msg"></param>
+        /// <param name="writeBuffer"></param>
         /// <param name="cachedMeta"></param>
         /// <param name="isMultiPak"></param>
-        public unsafe void WriteMeta(Message msg, bool isMultiPak, List<int> cachedMeta)
+        public unsafe void WriteMeta(ReadWriteBuffer writeBuffer, bool isMultiPak, List<int> cachedMeta)
         {
             WorldState worldState = this.engine.WorldState;
             Snapshot curSnapshot = worldState.CurrentSnapshot;
@@ -60,28 +60,28 @@ namespace StargateNet
                 int hisTickCount = this.engine.SimTick.tickValue - this.lastAckTick.tickValue;
                 bool isMissingTooManyFrames =
                     this.clientData.isFirstPak || hisTickCount > this.engine.WorldState.HistoryCount;
-                msg.AddBool(isMissingTooManyFrames); // 全量标识
-                this.HandleMultiPacketMeta(msg, curSnapshot, isMissingTooManyFrames, hisTickCount);
+                writeBuffer.AddBool(isMissingTooManyFrames); // 全量标识
+                this.HandleMultiPacketMeta(writeBuffer, curSnapshot, isMissingTooManyFrames, hisTickCount);
             }
             else
             {
-                msg.AddBool(false); // 全量标识
-                this.WriteCachedMeta(msg, curSnapshot, cachedMeta);
+                writeBuffer.AddBool(false); // 全量标识
+                this.WriteCachedMeta(writeBuffer, curSnapshot, cachedMeta);
             }
 
-            msg.AddInt(-1); // meta写入终止符号
+            writeBuffer.AddInt(-1); // meta写入终止符号
         }
 
         /// <summary>
         /// 处理多包差分元数据逻辑
         /// </summary>
-        private void HandleMultiPacketMeta(Message msg, Snapshot curSnapshot, bool isMissingTooManyFrames,
+        private void HandleMultiPacketMeta(ReadWriteBuffer writeBuffer, Snapshot curSnapshot, bool isMissingTooManyFrames,
             int hisTickCount)
         {
             // 发送全量数据
             if (isMissingTooManyFrames)
             {
-                this.WriteFullMeta(msg, curSnapshot);
+                this.WriteFullMeta(writeBuffer, curSnapshot);
             }
             else
             {
@@ -94,29 +94,29 @@ namespace StargateNet
                     hisTickCount--;
                 }
 
-                this.WriteDeltaMeta(msg, curSnapshot);
+                this.WriteDeltaMeta(writeBuffer, curSnapshot);
             }
         }
 
         /// <summary>
         /// 处理全量元数据，只发送没被销毁的物体
         /// </summary>
-        private void WriteFullMeta(Message msg, Snapshot curSnapshot)
+        private void WriteFullMeta(ReadWriteBuffer writeBuffer, Snapshot curSnapshot)
         {
             for (int id = 0; id < this.engine.ConfigData.maxNetworkObjects; id++)
             {
                 NetworkObjectMeta meta = curSnapshot.GetWorldObjectMeta(id);
                 if (!meta.destroyed) // 销毁对象无需发送
                 {
-                    this.AddNetworkObjectMeta(msg, id, meta);
+                    this.AddNetworkObjectMeta(writeBuffer, id, meta);
                 }
             }
         }
 
         /// <summary>
-        /// 处理差分元数据，发送所有dirty物体。TODO:进一步优化？On^2的复杂度有点烂了
+        /// 处理差分元数据，发送所有dirty物体。
         /// </summary>
-        private void WriteDeltaMeta(Message msg, Snapshot curSnapshot)
+        private void WriteDeltaMeta(ReadWriteBuffer writeBuffer, Snapshot curSnapshot)
         {
             foreach (var hisSnapshot in this._cachedSnapshots)
             {
@@ -132,7 +132,7 @@ namespace StargateNet
                 if (this._cachedDirtyMetaIds[id])
                 {
                     NetworkObjectMeta meta = curSnapshot.GetWorldObjectMeta(id);
-                    AddNetworkObjectMeta(msg, id, meta);
+                    AddNetworkObjectMeta(writeBuffer, id, meta);
                 }
             }
         }
@@ -140,33 +140,33 @@ namespace StargateNet
         /// <summary>
         /// 写入缓存元数据
         /// </summary>
-        private void WriteCachedMeta(Message msg, Snapshot curSnapshot, List<int> cachedMeta)
+        private void WriteCachedMeta(ReadWriteBuffer writeBuffer, Snapshot curSnapshot, List<int> cachedMeta)
         {
             foreach (int id in cachedMeta)
             {
                 NetworkObjectMeta meta = curSnapshot.GetWorldObjectMeta(id);
-                AddNetworkObjectMeta(msg, id, meta);
+                AddNetworkObjectMeta(writeBuffer, id, meta);
             }
         }
 
         /// <summary>
         /// 添加网络对象元数据
         /// </summary>
-        private void AddNetworkObjectMeta(Message msg, int id, NetworkObjectMeta meta)
+        private void AddNetworkObjectMeta(ReadWriteBuffer readWriteBuffer, int id, NetworkObjectMeta meta)
         {
-            msg.AddInt(id);
-            msg.AddInt(meta.networkId);
-            msg.AddInt(meta.prefabId);
-            msg.AddInt(meta.inputSource);
-            msg.AddBool(meta.destroyed);
+            readWriteBuffer.AddInt(id);
+            readWriteBuffer.AddInt(meta.networkId);
+            readWriteBuffer.AddInt(meta.prefabId);
+            readWriteBuffer.AddInt(meta.inputSource);
+            readWriteBuffer.AddBool(meta.destroyed);
         }
 
         /// <summary>
         /// 写入Entity的状态，TODO：增加AOI
         /// </summary>
-        /// <param name="msg"></param>
+        /// <param name="writeBuffer"></param>
         /// <param name="isMultiPak"></param>
-        public void WriteState(Message msg, bool isMultiPak)
+        public void WriteState(ReadWriteBuffer writeBuffer, bool isMultiPak)
         {
             WorldState worldState = this.engine.WorldState;
             Simulation simulation = this.engine.Simulation;
@@ -176,7 +176,7 @@ namespace StargateNet
                 int hisTickCount = this.engine.SimTick.tickValue - this.lastAckTick.tickValue;
                 bool isMissingTooManyFrames =
                     this.clientData.isFirstPak || hisTickCount > this.engine.WorldState.HistoryCount;
-                this.HandleMultiPacketState(msg, isMissingTooManyFrames);
+                this.HandleMultiPacketState(writeBuffer, isMissingTooManyFrames);
             }
             else
             {
@@ -185,44 +185,44 @@ namespace StargateNet
                     Entity entity = simulation.entities[worldIdx];
                     if (entity != null && entity.dirty && !worldState.CurrentSnapshot.IsObjectDestroyed(worldIdx))
                     {
-                        msg.AddInt(worldIdx);
+                        writeBuffer.AddInt(worldIdx);
                         for (int idx = 0; idx < entity.entityBlockWordSize; idx++)
                         {
                             if (!entity.IsStateDirty(idx)) continue;
-                            msg.AddInt(idx);
-                            msg.AddInt(entity.GetState(idx));
+                            writeBuffer.AddInt(idx);
+                            writeBuffer.AddInt(entity.GetState(idx));
                         }
 
-                        msg.AddInt(-1); // 单个Entity终止符号
+                        writeBuffer.AddInt(-1); // 单个Entity终止符号
                     }
                 }
             }
 
-            msg.AddInt(-1); // 状态写入终止符号
+            writeBuffer.AddInt(-1); // 状态写入终止符号
         }
 
         /// <summary>
         /// 处理多帧Snapshot和全量Snapshot的状态写入
         /// </summary>
-        /// <param name="msg"></param>
+        /// <param name="writeBuffer"></param>
         /// <param name="isMissingTooManyFrames"></param>
-        private void HandleMultiPacketState(Message msg, bool isMissingTooManyFrames)
+        private void HandleMultiPacketState(ReadWriteBuffer writeBuffer, bool isMissingTooManyFrames)
         {
             if (isMissingTooManyFrames)
             {
-                this.WriteFullState(msg);
+                this.WriteFullState(writeBuffer);
             }
             else
             {
-                this.WriteDeltaState(msg);
+                this.WriteDeltaState(writeBuffer);
             }
         }
 
         /// <summary>
         /// 写入所有状态，不管有没有dirty
         /// </summary>
-        /// <param name="msg"></param>
-        private void WriteFullState(Message msg)
+        /// <param name="writeBuffer"></param>
+        private void WriteFullState(ReadWriteBuffer writeBuffer)
         {
             Simulation simulation = this.engine.Simulation;
             WorldState worldState = this.engine.WorldState;
@@ -232,14 +232,14 @@ namespace StargateNet
                 Entity entity = simulation.entities[worldIdx];
                 if (entity != null && !worldState.CurrentSnapshot.IsObjectDestroyed(worldIdx))
                 {
-                    msg.AddInt(worldIdx);
+                    writeBuffer.AddInt(worldIdx);
                     for (int idx = 0; idx < entity.entityBlockWordSize; idx++)
                     {
-                        msg.AddInt(idx);
-                        msg.AddInt(entity.GetState(idx));
+                        writeBuffer.AddInt(idx);
+                        writeBuffer.AddInt(entity.GetState(idx));
                     }
 
-                    msg.AddInt(-1); // 单个Entity终止符号
+                    writeBuffer.AddInt(-1); // 单个Entity终止符号
                 }
             }
         }
@@ -247,8 +247,8 @@ namespace StargateNet
         /// <summary>
         /// 写入多帧的状态，只要过去这个Entity发生了变化，那就会被写入
         /// </summary>
-        /// <param name="msg"></param>
-        private void WriteDeltaState(Message msg)
+        /// <param name="writeBuffer"></param>
+        private void WriteDeltaState(ReadWriteBuffer writeBuffer)
         {
             Simulation simulation = this.engine.Simulation;
             WorldState worldState = this.engine.WorldState;
@@ -258,9 +258,9 @@ namespace StargateNet
                 Entity entity = simulation.entities[worldIdx];
                 if (entity != null && !worldState.CurrentSnapshot.IsObjectDestroyed(worldIdx))
                 {
-                    msg.AddInt(worldIdx);
-                    this.WriteEntityDeltaState(msg, entity, worldIdx);
-                    msg.AddInt(-1); // 单个Entity终止符号
+                    writeBuffer.AddInt(worldIdx);
+                    this.WriteEntityDeltaState(writeBuffer, entity, worldIdx);
+                    writeBuffer.AddInt(-1); // 单个Entity终止符号
                 }
             }
         }
@@ -268,10 +268,10 @@ namespace StargateNet
         /// <summary>
         /// 写入单个Entity的状态，只要过去Entity发生了变化，那就会被写入
         /// </summary>
-        /// <param name="msg"></param>
+        /// <param name="writeBuffer"></param>
         /// <param name="entity"></param>
         /// <param name="worldMetaId"></param>
-        private unsafe void WriteEntityDeltaState(Message msg, Entity entity, int worldMetaId)
+        private unsafe void WriteEntityDeltaState(ReadWriteBuffer writeBuffer, Entity entity, int worldMetaId)
         {
             this._cachedDirtyStateIds.Clear();
 
@@ -303,8 +303,8 @@ namespace StargateNet
 
             foreach (var stateId in this._cachedDirtyStateIds)
             {
-                msg.AddInt(stateId);
-                msg.AddInt(entity.GetState(stateId));
+                writeBuffer.AddInt(stateId);
+                writeBuffer.AddInt(entity.GetState(stateId));
             }
         }
     }

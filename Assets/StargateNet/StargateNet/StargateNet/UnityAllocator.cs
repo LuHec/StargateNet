@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
@@ -18,7 +19,14 @@ namespace StargateNet
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Clear(void* ptr, long sizeBytes) => UnsafeUtility.MemClear(ptr, sizeBytes);
 
+        /// <summary>
+        /// 别用！！！会爆炸！！！
+        /// </summary>
+        /// <param name="dest"></param>
+        /// <param name="source"></param>
+        /// <param name="sizeBytes"></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Obsolete("别用！！！会爆炸！！！")]
         public unsafe void Copy(void* dest, void* source, long sizeBytes)
         {
             UnsafeUtility.MemCpy(dest, source, sizeBytes);

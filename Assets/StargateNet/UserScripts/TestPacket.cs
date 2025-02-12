@@ -72,7 +72,7 @@ public class TestPacket : MonoBehaviour
         
         Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
         msg.AddLong(size);
-        while (!writeBuffer.EOF())
+        while (!writeBuffer.ReadEOF())
         {
             msg.AddByte(writeBuffer.GetByte());
             // readBuffer.AddByte(writeBuffer.GetByte());

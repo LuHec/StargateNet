@@ -7,6 +7,7 @@ namespace StargateNet
         internal StargateEngine Engine { get; set; }
         internal float InKBps => bytesIn.AvgKBps;
         internal float OutKBps => bytesOut.AvgKBps;
+        internal const int MTU = 1300;
         protected DataAccumulator bytesIn;
         protected DataAccumulator bytesOut;
 

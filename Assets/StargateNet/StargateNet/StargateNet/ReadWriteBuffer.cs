@@ -4,31 +4,37 @@ namespace StargateNet
 {
     public class ReadWriteBuffer
     {
-        public readonly long bufferSize;        // 缓冲区大小（字节）
-        private unsafe byte* _buffer;           // 缓冲区起始指针
-        private unsafe byte* _writePosition;  // 当前写入位置
-        private unsafe byte* _readPosition;     // 当前读取位置
-        private int _bitPositionWrite;          // 当前写入操作的位（0到7）
-        private int _bitPositionRead;           // 当前读取操作的位（0到7）
+        public readonly long bufferBytes; // 缓冲区大小（字节）
+        private unsafe byte* _buffer; // 缓冲区起始指针
+        private unsafe byte* _writePosition; // 当前写入位置
+        private unsafe byte* _readPosition; // 当前读取位置
+        private int _bitPositionWrite; // 当前写入操作的位（0到7）
+        private int _bitPositionRead; // 当前读取操作的位（0到7）
 
-        private const int BitsPerByte = sizeof(byte) * 8;      // 每字节8位
-        private const int BitsPerInt = sizeof(int) * 8;        // 每整数32位
+        private const int BitsPerByte = sizeof(byte) * 8; 
+        private const int BitsPerInt = sizeof(int) * 8;  
+        private const int BitsPerDouble = sizeof(double) * 8;
 
-        public unsafe ReadWriteBuffer(long bufferSize)
+        public unsafe ReadWriteBuffer(long bufferBytes)
         {
-            this.bufferSize = bufferSize;
-            this._buffer = (byte*)MemoryAllocation.Malloc(this.bufferSize); // 分配字节数组
-            this._writePosition = _buffer; // 初始化时指针指向缓冲区的开始位置
-            this._readPosition = _buffer; // 读取指针初始化为缓冲区开始
-            this._bitPositionWrite = 0; // 初始化写入位指针
-            this._bitPositionRead = 0;  // 初始化读取位指针
+            this.bufferBytes = bufferBytes;
+            this._buffer = (byte*)MemoryAllocation.Malloc(this.bufferBytes); 
+            this._writePosition = _buffer; 
+            this._readPosition = _buffer;
+            this._bitPositionWrite = 0; 
+            this._bitPositionRead = 0; 
+        }
+
+        public unsafe void* Get()
+        {
+            return this._buffer;
         }
 
         #region Add 方法
 
         public unsafe void AddBool(bool value)
         {
-            if ((_writePosition - _buffer) * BitsPerByte + _bitPositionWrite >= bufferSize * BitsPerByte)
+            if ((_writePosition - _buffer) * BitsPerByte + _bitPositionWrite >= bufferBytes * BitsPerByte)
             {
                 throw new InvalidOperationException("Buffer overflow!");
             }
@@ -54,7 +60,7 @@ namespace StargateNet
 
         public unsafe void AddByte(byte value)
         {
-            if ((_writePosition - _buffer) * BitsPerByte + _bitPositionWrite + BitsPerByte > bufferSize * BitsPerByte)
+            if ((_writePosition - _buffer) * BitsPerByte + _bitPositionWrite + BitsPerByte > bufferBytes * BitsPerByte)
             {
                 throw new InvalidOperationException("Buffer overflow!");
             }
@@ -68,7 +74,7 @@ namespace StargateNet
 
         public unsafe void AddInt(int value)
         {
-            if ((_writePosition - _buffer) * BitsPerByte + _bitPositionWrite + BitsPerInt > bufferSize * BitsPerByte)
+            if ((_writePosition - _buffer) * BitsPerByte + _bitPositionWrite + BitsPerInt > bufferBytes * BitsPerByte)
             {
                 throw new InvalidOperationException("Buffer overflow!");
             }
@@ -80,13 +86,29 @@ namespace StargateNet
             }
         }
 
+        public unsafe void AddDouble(double value)
+        {
+            if ((_writePosition - _buffer) * BitsPerByte + _bitPositionWrite + BitsPerDouble > bufferBytes * BitsPerByte)
+            {
+                throw new InvalidOperationException("Buffer overflow!");
+            }
+
+
+            long bits = BitConverter.DoubleToInt64Bits(value);
+            for (int i = 0; i < BitsPerDouble; i++)
+            {
+                bool bitValue = (bits & (1L << i)) != 0;
+                AddBool(bitValue); // 按位存储double的64位表示
+            }
+        }
+
         #endregion
 
         #region Get 方法
 
         public unsafe bool GetBool()
         {
-            if ((_readPosition - _buffer) * BitsPerByte + _bitPositionRead >= bufferSize * BitsPerByte)
+            if ((_readPosition - _buffer) * BitsPerByte + _bitPositionRead >= bufferBytes * BitsPerByte)
             {
                 throw new InvalidOperationException("Buffer underflow!");
             }
@@ -107,7 +129,7 @@ namespace StargateNet
 
         public unsafe byte GetByte()
         {
-            if ((_readPosition - _buffer) * BitsPerByte + _bitPositionRead + BitsPerByte > bufferSize * BitsPerByte)
+            if ((_readPosition - _buffer) * BitsPerByte + _bitPositionRead + BitsPerByte > bufferBytes * BitsPerByte)
             {
                 throw new InvalidOperationException("Buffer underflow!");
             }
@@ -127,7 +149,7 @@ namespace StargateNet
 
         public unsafe int GetInt()
         {
-            if ((_readPosition - _buffer) * BitsPerByte + _bitPositionRead + BitsPerInt > bufferSize * BitsPerByte)
+            if ((_readPosition - _buffer) * BitsPerByte + _bitPositionRead + BitsPerInt > bufferBytes * BitsPerByte)
             {
                 throw new InvalidOperationException("Buffer underflow!");
             }
@@ -145,27 +167,88 @@ namespace StargateNet
             return result;
         }
 
+        public unsafe double GetDouble()
+        {
+            if ((_readPosition - _buffer) * BitsPerByte + _bitPositionRead + BitsPerDouble > bufferBytes * BitsPerByte)
+            {
+                throw new InvalidOperationException("Buffer underflow!");
+            }
+
+            long bits = 0;
+            for (int i = 0; i < BitsPerDouble; i++)
+            {
+                bool bitValue = GetBool(); // 按位获取数据
+                if (bitValue)
+                {
+                    bits |= (1L << i); // 设置对应位
+                }
+            }
+
+            // Convert the 64-bit bit pattern back to a double
+            return BitConverter.Int64BitsToDouble(bits);
+        }
+
         #endregion
 
-        public unsafe long RemainingSpace => bufferSize - (_writePosition - _buffer);
+        public unsafe long RemainingSpace => bufferBytes - (_writePosition - _buffer);
 
         public unsafe void Reset()
         {
             _writePosition = _buffer; // 重置指针到缓冲区开始位置
             _readPosition = _buffer; // 重置读取指针
             _bitPositionWrite = 0; // 重置写入位指针
-            _bitPositionRead = 0;  // 重置读取位指针
+            _bitPositionRead = 0; // 重置读取位指针
+            MemoryAllocation.Clear(_buffer, bufferBytes);
         }
 
-        public unsafe bool EOF()
+        public unsafe void ResetRead()
+        {
+            _readPosition = _buffer;
+            _bitPositionRead = 0;
+        }
+
+        public unsafe bool ReadEOF()
         {
             return (_readPosition - _buffer) * 8 + _bitPositionRead >= (_writePosition - _buffer) * 8 + _bitPositionWrite;
         }
 
+        /// <summary>
+        /// 向下取整，只在发包准备分包时使用
+        /// </summary>
+        /// <returns></returns>
+        public unsafe long ReadRemainBytes()
+        {
+            long readRemainBytes = (_writePosition - _readPosition) * 8 + _bitPositionRead;
+            return (readRemainBytes + 7) / 8;
+        }
+
+        /// <summary>
+        /// 向上取整
+        /// </summary>
+        /// <returns></returns>
         public unsafe long GetUsedBytes()
         {
             long usedBits = (_writePosition - _buffer) * 8 + _bitPositionWrite;
             return (usedBits + 7) / 8;
+        }
+
+        public unsafe void CopyTo(ReadWriteBuffer dest, int from, int bytes)
+        {
+            if (this.bufferBytes - from < bytes || dest.bufferBytes < bytes)
+            {
+                throw new InvalidOperationException("Buffer overflow!");
+            }
+
+            for (int i = 0; i < bytes; i++)
+            {
+                dest._buffer[i] = this._buffer[i + from];
+            }
+        }
+
+        public unsafe void SetSize(int bytes, int bits)
+        {
+            this._writePosition = this._buffer + bytes;
+            this._bitPositionWrite = bits;
         }
     }
 }

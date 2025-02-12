@@ -1,21 +1,114 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using Riptide;
+using StargateNet;
 using UnityEngine;
 
 public class Test : MonoBehaviour
 {
     public bool simluate;
 
-    // Start is called before the first frame update
-    void Awake()
+    private ReadWriteBuffer readBuffer;
+    private ReadWriteBuffer writeBuffer;
+    private ReadWriteBuffer fragmentBuffer;
+    private Server server;
+    private Client client;
+
+    // For testing communication
+    private const int Port = 7777;
+
+    private void Awake()
     {
-        Physics.simulationMode = SimulationMode.Script;
+        Debug.Log(BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(30.1)));
+        StartServer();
     }
 
-    // Update is called once per frame
+    void Start()
+    {
+        MemoryAllocation.Allocator = new UnityAllocator();
+        readBuffer = new ReadWriteBuffer(4096);
+        writeBuffer = new ReadWriteBuffer(4096);
+        fragmentBuffer = new ReadWriteBuffer(4096);
+        // Start as a server if running locally (could add condition to run as either client or server)
+
+        StartClient();
+    }
+
+    void StartServer()
+    {
+        // Initialize and start the server
+        server = new Server();
+        server.ClientConnected += OnConnect;
+        server.Start(Port, 10);
+        Debug.Log("Server started on port " + Port);
+    }
+
+    void StartClient()
+    {
+        // Initialize and connect the client
+        client = new Client();
+        client.MessageReceived += OnClientReceiveMessage;
+        client.Connect($"127.0.0.1:{Port}"); // Connect to the server running on the same machine
+
+        Debug.Log("Client connected to server.");
+    }
+
     void Update()
     {
-        if (simluate)
-            Physics.Simulate(Time.fixedDeltaTime);
+        server.Update();
+        client.Update();
+    }
+
+    void OnApplicationQuit()
+    {
+        server?.Stop();
+        client?.Disconnect();
+    }
+
+    void OnConnect(object sender, ServerConnectedEventArgs args)
+    {
+        Message message = Message.Create(MessageSendMode.Unreliable, 1);
+        writeBuffer.AddInt(-1);
+        writeBuffer.AddInt(102);
+        writeBuffer.AddBool(true);
+        writeBuffer.AddBool(false);
+        writeBuffer.AddInt(102);
+        writeBuffer.AddBool(true);
+        writeBuffer.AddDouble(30.21);
+        writeBuffer.AddInt(250);
+        message.AddInt((int)writeBuffer.GetUsedBytes());
+        while (!writeBuffer.ReadEOF())
+        {
+            message.AddByte(writeBuffer.GetByte());
+        }
+
+        args.Client.Send(message);
+    }
+
+    unsafe void OnClientReceiveMessage(object sender, MessageReceivedEventArgs args)
+    {
+        Message msg = args.Message;
+        int size = msg.GetInt();
+        int temp = size;
+        Debug.LogWarning($"packet:{size}");
+        while (temp-- > 0)
+        {
+            fragmentBuffer.AddByte(msg.GetByte());
+        }
+
+        // readBuffer.SetSize(size, 0);
+        fragmentBuffer.CopyTo(readBuffer, 0, size);
+        readBuffer.ResetRead();
+        Debug.LogWarning($"readBuffer:{readBuffer.ReadRemainBytes()}");
+        Debug.LogWarning(readBuffer.GetInt());
+        Debug.LogWarning(readBuffer.GetInt());
+        Debug.LogWarning(readBuffer.GetBool());
+        Debug.LogWarning(readBuffer.GetBool());
+        Debug.LogWarning(readBuffer.GetInt());
+        Debug.LogWarning(readBuffer.GetBool());
+        Debug.LogWarning(readBuffer.GetDouble());
+        Debug.LogWarning(readBuffer.GetInt());
+        
     }
 }

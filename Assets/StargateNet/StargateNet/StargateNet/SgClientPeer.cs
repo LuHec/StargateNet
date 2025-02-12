@@ -17,6 +17,9 @@ namespace StargateNet
         internal bool HeavyPakLoss { get; set; }
         internal bool PakLoss { private set; get; }
         private ReadWriteBuffer _readBuffer;
+        private ReadWriteBuffer _fragmentBuffer;
+        private List<int> _fragmentIndex = new List<int>(8);
+        private int _fragmentCount = -1;
 
         public SgClientPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -26,6 +29,7 @@ namespace StargateNet
             this.Client.ClientDisconnected += this.OnDisConnected;
             this.Client.MessageReceived += this.OnReceiveMessage;
             this._readBuffer = new ReadWriteBuffer(configData.maxSnapshotSendSize);
+            this._fragmentBuffer = new ReadWriteBuffer(MTU + 300);
         }
 
 
@@ -96,6 +100,7 @@ namespace StargateNet
         /// <param name="args"></param>
         private unsafe void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
+            this._fragmentBuffer.Reset();
             // 更新数据
             this.bytesIn.Add(args.Message.BytesInUse);
             this.HeavyPakLoss = false;
@@ -103,12 +108,37 @@ namespace StargateNet
 
             // 收包
             var msg = args.Message;
+            // ------------------------------------Msg Header ------------------------------------
             Tick srvTick = new Tick(msg.GetInt());
-            Tick srvRcvedClientTick = new Tick(msg.GetInt());
-            Tick srvRcvedClientInputTick = new Tick(msg.GetInt());
-            this.Engine.ClientSimulation.serverInputRcvTimeAvg = msg.GetDouble();
-            bool isMultiPacket = msg.GetBool();
-            bool isFullPacket = msg.GetBool();
+            if (srvTick < this.Engine.ClientSimulation.authoritativeTick) return;
+            if (srvTick > this.Engine.ClientSimulation.authoritativeTick)
+            {
+                this._readBuffer.Reset();
+            }
+            int fragmentBytes = msg.GetInt();
+            int lastFragmentBytes = msg.GetInt();
+            int fragmentCount = msg.GetShort();
+            int fragmentId = msg.GetShort();
+            this._fragmentCount = fragmentCount;
+            if (this._fragmentIndex.Contains(fragmentId)) return;
+            this._fragmentIndex.Add(fragmentId);
+            int temp = fragmentBytes;
+            while (temp-- > 0)
+            {
+                byte bt = msg.GetByte();
+                this._fragmentBuffer.AddByte(bt);
+            }
+            this._fragmentBuffer.CopyTo(this._readBuffer, lastFragmentBytes, fragmentBytes);
+            // ------------------------------------ ReadBuffer Data ------------------------------------
+            this._readBuffer.ResetRead();
+            if (this._fragmentCount != this._fragmentIndex.Count) return;
+            this._fragmentCount = 0;
+            this._fragmentIndex.Clear();
+            Tick srvRcvedClientTick = new Tick(this._readBuffer.GetInt());
+            Tick srvRcvedClientInputTick = new Tick(this._readBuffer.GetInt());
+            this.Engine.ClientSimulation.serverInputRcvTimeAvg = this._readBuffer.GetDouble();
+            bool isMultiPacket = this._readBuffer.GetBool();
+            bool isFullPacket = this._readBuffer.GetBool();
             this.Engine.SimulationClock.OnRecvPak();
             if (!this.Engine.ClientSimulation.OnRcvPak(srvTick, srvRcvedClientTick, srvRcvedClientInputTick,
                     isMultiPacket, isFullPacket))
@@ -121,11 +151,11 @@ namespace StargateNet
             // if (!this.Engine.WorldState.HasInitialized) this.Engine.WorldState.Init(srvTick);
             Snapshot rcvBuffer = this.Engine.ClientSimulation.rcvBuffer;
             rcvBuffer.Init(srvTick);
-            this.ReceiveMeta(msg, isFullPacket);
+            this.ReceiveMeta(this._readBuffer, isFullPacket);
             this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta，处理服务端生成和销毁的物体
             this.CopyMetaToBuffer(srvTick);
             this.CopyFromStateToBuffer(); // 这一步也需要ChangedMeta
-            this.ReceiveStateToBuffer(msg); // 这里不直接把状态更新到WorldState中
+            this.ReceiveStateToBuffer(this._readBuffer); // 这里不直接把状态更新到WorldState中
             this.Engine.EntityMetaManager.PostChanged(); // 清除Changed
             this.Engine.WorldState.CurrentSnapshot.CleanMap(); // CurrentSnapshot将作为本帧的开始，必须要清理干净，否则下次收到包，delta就出错了
             this.Engine.WorldState.ClientUpdateState(srvTick, rcvBuffer); // 对于客户端来说FromTick才是权威，CurrentTick可以被修改
@@ -176,17 +206,17 @@ namespace StargateNet
             this.bytesOut.Add(msg.BytesInUse);
         }
 
-        private void ReceiveMeta(Message msg, bool isFullPak)
+        private void ReceiveMeta(ReadWriteBuffer readBuffer, bool isFullPak)
         {
             while (true)
             {
-                int wordMetaIdx = msg.GetInt();
+                int wordMetaIdx = readBuffer.GetInt();
                 if (wordMetaIdx < 0) break;
 
-                int networkId = msg.GetInt();
-                int prefabId = msg.GetInt();
-                int inputSource = msg.GetInt();
-                bool destroyed = msg.GetBool();
+                int networkId = readBuffer.GetInt();
+                int prefabId = readBuffer.GetInt();
+                int inputSource = readBuffer.GetInt();
+                bool destroyed = readBuffer.GetBool();
                 this.Engine.EntityMetaManager.changedMetas.TryAdd(wordMetaIdx, new NetworkObjectMeta()
                 {
                     networkId = networkId,
@@ -250,7 +280,7 @@ namespace StargateNet
             }
         }
 
-        private unsafe void ReceiveStateToBuffer(Message msg)
+        private unsafe void ReceiveStateToBuffer(ReadWriteBuffer readBuffer)
         {
             Snapshot buffer = this.Engine.ClientSimulation.rcvBuffer;
             // 外层是找meta，内层找object state
@@ -270,16 +300,16 @@ namespace StargateNet
             // }
             while (true)
             {
-                int worldMetaIdx = msg.GetInt();
+                int worldMetaIdx = readBuffer.GetInt();
                 if (worldMetaIdx < 0) break;
                 int networkId = buffer.GetWorldObjectMeta(worldMetaIdx).networkId;
                 Entity entity = this.Engine.Simulation.entitiesTable[new NetworkObjectRef(networkId)];
                 int* dataPtr = (int*)buffer.NetworkStates.pools[entity.poolId].dataPtr + entity.entityBlockWordSize;
                 while (true)
                 {
-                    int dirtyStateId = msg.GetInt();
+                    int dirtyStateId = readBuffer.GetInt();
                     if (dirtyStateId < 0) break;
-                    int data = msg.GetInt();
+                    int data = readBuffer.GetInt();
                     dataPtr[dirtyStateId] = data;
                 }
             }

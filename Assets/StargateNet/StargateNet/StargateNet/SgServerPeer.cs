@@ -16,8 +16,7 @@ namespace StargateNet
         internal ushort MaxClientCount { private set; get; }
         internal Server Server { private set; get; }
 
-        internal List<ClientConnection>
-            clientConnections; // 暂时先用List(有隐患，Riptide给Client的id是递增的，一个CLient断线重连后获得的id和以前不一样)
+        internal List<ClientConnection> clientConnections; // 暂时先用List(有隐患，Riptide给Client的id是递增的，一个CLient断线重连后获得的id和以前不一样)
 
         private Queue<int> _connectionId2Reuse = new(16);
         private List<int> _cachedMetaIds;
@@ -78,28 +77,47 @@ namespace StargateNet
                 ClientConnection clientConnection = this.clientConnections[i];
                 if (!clientConnection.connected) continue;
                 clientConnection.PrepareToWrite();
-                // ------------------ Header ------------------
-                Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
+                this._writeBuffer.Reset();
                 // 判断是否发送多帧包。现在是只要客户端不回话，服务端就会一直发多帧包
                 bool isMultiPak = clientConnection.clientData.isFirstPak || clientConnection.clientData.pakLoss;
                 Tick authorTick = this.Engine.SimTick;
                 Tick lastAckedAuthorTick = clientConnection.clientData.clientLastAuthorTick;
-                msg.AddInt(authorTick.tickValue);
-                msg.AddInt(lastAckedAuthorTick.tickValue);
-                msg.AddInt(clientConnection.clientData.LastTargetTick.tickValue);
-                msg.AddDouble(clientConnection.clientData.deltaPakTime); // 两次收到客户端包的间隔
-                // ------------------ Data ------------------
-                msg.AddBool(isMultiPak);
-                clientConnection.WriteMeta(msg, isMultiPak, _cachedMetaIds);
-                RiptideLogger.Log(LogType.Debug, $"{msg.BytesInUse} meta size");
-                clientConnection.WriteState(msg, isMultiPak);
-                RiptideLogger.Log(LogType.Debug, $"{msg.BytesInUse} all size");
-                
-                this.Server.Send(msg, (ushort)i);
-                clientConnection.clientData.isFirstPak = false;
-                
-                // 数据更新
-                this.bytesOut.Add(msg.BytesInUse);
+                // ------------------ Data ------------------ 除了ServerTick以外，都不会作为Header
+                this._writeBuffer.AddInt(lastAckedAuthorTick.tickValue);
+                this._writeBuffer.AddInt(clientConnection.clientData.LastTargetTick.tickValue);
+                this._writeBuffer.AddDouble(clientConnection.clientData.deltaPakTime); // 两次收到客户端包的间隔
+                this._writeBuffer.AddBool(isMultiPak);
+                clientConnection.WriteMeta(this._writeBuffer, isMultiPak, _cachedMetaIds);
+                clientConnection.WriteState(this._writeBuffer, isMultiPak);
+                // 分包
+                int fragmentId = 0;
+                int fragmentCount = ((int)this._writeBuffer.GetUsedBytes() + MTU - 1) / MTU;
+                int lastFragmentSize = 0;
+                while (!this._writeBuffer.ReadEOF())
+                {
+                    // ------------------ Header ------------------
+                    int sendRemainBytes = (int)this._writeBuffer.ReadRemainBytes();
+                    int fragmentBytes = sendRemainBytes >= MTU ? MTU : sendRemainBytes;
+                    if (fragmentBytes == 0)
+                    {
+                        break;
+                    }
+                    Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
+                    msg.AddInt(authorTick.tickValue); // server tick作为Header
+                    msg.AddInt(fragmentBytes);
+                    msg.AddInt(lastFragmentSize);
+                    msg.AddShort((short)fragmentCount);
+                    msg.AddShort((short)fragmentId ++);
+                    while (fragmentBytes -- > 0)
+                    {
+                        byte bt = _writeBuffer.GetByte();
+                        msg.AddByte(bt);
+                    }
+                    this.Server.Send(msg, (ushort)i);
+                    clientConnection.clientData.isFirstPak = false;
+                    this.bytesOut.Add(msg.BytesInUse);
+                    lastFragmentSize += fragmentBytes;
+                }
             }
         }
 
@@ -116,6 +134,7 @@ namespace StargateNet
         private void PrepareToSend()
         {
             this._cachedMetaIds.Clear();
+            this._writeBuffer.Reset();
         }
         
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
