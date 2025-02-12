@@ -70,7 +70,7 @@ public class Test : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Unreliable, 1);
         writeBuffer.AddInt(-1);
-        writeBuffer.AddInt(102);
+        writeBuffer.AddInt(-1);
         writeBuffer.AddBool(true);
         writeBuffer.AddBool(false);
         writeBuffer.AddInt(102);

@@ -33,5 +33,7 @@ namespace StargateNet
                 sta.Initialize(networkEntity);
             }
         }
+        
+        
     }
 }

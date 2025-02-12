@@ -218,8 +218,8 @@ namespace StargateNet
         /// <returns></returns>
         public unsafe long ReadRemainBytes()
         {
-            long readRemainBytes = (_writePosition - _readPosition) * 8 + _bitPositionRead;
-            return (readRemainBytes + 7) / 8;
+            long readRemainBits = (_writePosition + _bitPositionWrite - _readPosition) * 8 + _bitPositionRead;
+            return (readRemainBits + 7) / 8;
         }
 
         /// <summary>
