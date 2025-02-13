@@ -93,10 +93,12 @@ namespace StargateNet
                 int fragmentId = 0;
                 int fragmentCount = ((int)this._writeBuffer.GetUsedBytes() + MTU - 1) / MTU;
                 int lastFragmentSize = 0;
+                Debug.Log($"Tick{authorTick},total:{_writeBuffer.GetUsedBytes()}");
                 while (!this._writeBuffer.ReadEOF())
                 {
                     // ------------------ Header ------------------
-                    int sendRemainBytes = (int)this._writeBuffer.ReadRemainBytes();
+                    // long bytesRead = this._writeBuffer.BytesReadPosition(); // 这里只会发送完整的字节，所以可以无视bits
+                    int sendRemainBytes = (int)this._writeBuffer.GetUsedBytes() - lastFragmentSize;
                     int fragmentBytes = sendRemainBytes >= MTU ? MTU : sendRemainBytes;
                     if (fragmentBytes == 0)
                     {
@@ -106,9 +108,11 @@ namespace StargateNet
                     msg.AddInt(authorTick.tickValue); // server tick作为Header
                     msg.AddInt(fragmentBytes);
                     msg.AddInt(lastFragmentSize);
-                    msg.AddShort((short)fragmentCount);
+                    // msg.AddShort((short)fragmentCount);
                     msg.AddShort((short)fragmentId ++);
-                    while (fragmentBytes -- > 0)
+                    msg.AddBool(fragmentId == fragmentCount);
+                    int temp = fragmentBytes;
+                    while (temp -- > 0)
                     {
                         byte bt = _writeBuffer.GetByte();
                         msg.AddByte(bt);

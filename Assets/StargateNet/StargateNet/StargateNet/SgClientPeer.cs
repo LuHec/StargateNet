@@ -16,6 +16,7 @@ namespace StargateNet
         internal Client Client { private set; get; }
         internal bool HeavyPakLoss { get; set; }
         internal bool PakLoss { private set; get; }
+        internal Tick LastReceivedTick { private set; get; }
         private ReadWriteBuffer _readBuffer;
         private ReadWriteBuffer _fragmentBuffer;
         private List<int> _fragmentIndex = new List<int>(8);
@@ -30,6 +31,7 @@ namespace StargateNet
             this.Client.MessageReceived += this.OnReceiveMessage;
             this._readBuffer = new ReadWriteBuffer(configData.maxSnapshotSendSize);
             this._fragmentBuffer = new ReadWriteBuffer(MTU + 300);
+            this.LastReceivedTick = Tick.InvalidTick;
         }
 
 
@@ -111,17 +113,21 @@ namespace StargateNet
             var msg = args.Message;
             // ------------------------------------Msg Header ------------------------------------
             Tick srvTick = new Tick(msg.GetInt());
-            if (srvTick < this.Engine.ClientSimulation.authoritativeTick) return;
-            if (srvTick > this.Engine.ClientSimulation.authoritativeTick)
+            if (srvTick < this.LastReceivedTick) return;
+            if (srvTick > this.LastReceivedTick)
             {
                 this._readBuffer.Reset();
                 this._totalPacketBytes = 0;
+                this._fragmentCount = 0;
+                this._fragmentIndex.Clear();
             }
+
+            this.LastReceivedTick = srvTick;
             int fragmentBytes = msg.GetInt();
             int lastFragmentBytes = msg.GetInt();
-            int fragmentCount = msg.GetShort();
             int fragmentId = msg.GetShort();
-            this._fragmentCount = fragmentCount;
+            bool isLastFragment = msg.GetBool();
+            if (!isLastFragment) _fragmentCount++;
             if (this._fragmentIndex.Contains(fragmentId)) return;
             _totalPacketBytes += fragmentBytes;
             this._fragmentIndex.Add(fragmentId);
@@ -134,10 +140,10 @@ namespace StargateNet
             this._fragmentBuffer.CopyTo(this._readBuffer, lastFragmentBytes, fragmentBytes);
             // ------------------------------------ ReadBuffer Data ------------------------------------
             this._readBuffer.ResetRead();
-            if (this._fragmentCount != this._fragmentIndex.Count) return;
+            if (this._fragmentCount != this._fragmentIndex.Count - 1) return;
             this._fragmentCount = 0;
             this._fragmentIndex.Clear();
-            
+            Debug.LogWarning($"Tick:{srvTick},total:{_totalPacketBytes}");
             Tick srvRcvedClientTick = new Tick(this._readBuffer.GetInt());
             Tick srvRcvedClientInputTick = new Tick(this._readBuffer.GetInt());
             this.Engine.ClientSimulation.serverInputRcvTimeAvg = this._readBuffer.GetDouble();

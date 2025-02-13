@@ -78,27 +78,48 @@ public class Test : MonoBehaviour
         writeBuffer.AddDouble(30.21);
         writeBuffer.AddInt(250);
         message.AddInt((int)writeBuffer.GetUsedBytes());
-        while (!writeBuffer.ReadEOF())
+        message.AddInt(0);
+        message.AddInt(10);
+        int bytes = (int)writeBuffer.GetUsedBytes();
+        int temp = 10;
+        while (temp -- > 0)
         {
             message.AddByte(writeBuffer.GetByte());
         }
-
         args.Client.Send(message);
+        Message msg = Message.Create(MessageSendMode.Unreliable, 1);
+        msg.AddInt((int)writeBuffer.GetUsedBytes());
+        msg.AddInt(10);
+        msg.AddInt(bytes - 10);
+         temp = bytes - 10;
+         while (temp -- > 0)
+         {
+             msg.AddByte(writeBuffer.GetByte());
+         }
+
+         args.Client.Send(msg);
     }
 
+    private int count = 0;
     unsafe void OnClientReceiveMessage(object sender, MessageReceivedEventArgs args)
     {
         Message msg = args.Message;
+        fragmentBuffer.Reset();
+        count++;
         int size = msg.GetInt();
-        int temp = size;
-        Debug.LogWarning($"packet:{size}");
+        int fragStart = msg.GetInt();
+        int fragSize = msg.GetInt();
+        
+        int temp = fragSize;
+        Debug.LogWarning($"packet:{fragSize}");
         while (temp-- > 0)
         {
             fragmentBuffer.AddByte(msg.GetByte());
         }
 
         // readBuffer.SetSize(size, 0);
-        fragmentBuffer.CopyTo(readBuffer, 0, size);
+        fragmentBuffer.CopyTo(readBuffer, fragStart, fragSize);
+        if (count != 2) return;
         readBuffer.ResetRead();
         Debug.LogWarning($"readBuffer:{readBuffer.ReadRemainBytes()}");
         Debug.LogWarning(readBuffer.GetInt());

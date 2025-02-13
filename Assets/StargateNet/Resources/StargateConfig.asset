@@ -24,4 +24,4 @@ MonoBehaviour:
   - {fileID: 7095134503880436856, guid: 69e03efa710929f47b22396aa0160455, type: 3}
   - {fileID: 7729773817608672209, guid: 9a0ff6a11c5092a40843d0dc8739a233, type: 3}
   maxObjectStateBytes: 40
-  maxSnapshotSendSize: 20240
+  maxSnapshotSendSize: 102400

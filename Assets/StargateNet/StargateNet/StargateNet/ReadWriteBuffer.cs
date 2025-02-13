@@ -149,7 +149,7 @@ namespace StargateNet
 
         public unsafe int GetInt()
         {
-            if ((_readPosition - _buffer) * BitsPerByte + _bitPositionRead + BitsPerInt > bufferBytes * BitsPerByte)
+            if (((_readPosition - _buffer) * BitsPerByte + _bitPositionRead + BitsPerInt) > (bufferBytes * BitsPerByte))
             {
                 throw new InvalidOperationException("Buffer underflow!");
             }
@@ -213,6 +213,15 @@ namespace StargateNet
         }
 
         /// <summary>
+        /// 返回已经读过的字节
+        /// </summary>
+        /// <returns>bytes</returns>
+        public unsafe long BytesReadPosition()
+        {
+            return _readPosition - _buffer;
+        }
+
+        /// <summary>
         /// 向下取整，只在发包准备分包时使用
         /// </summary>
         /// <returns></returns>
@@ -236,14 +245,14 @@ namespace StargateNet
 
         public unsafe void CopyTo(ReadWriteBuffer dest, int from, int bytes)
         {
-            if (this.bufferBytes - from < bytes || dest.bufferBytes < bytes)
+            if (dest.bufferBytes - from < bytes || this.bufferBytes < bytes)
             {
                 throw new InvalidOperationException("Buffer overflow!");
             }
 
             for (int i = 0; i < bytes; i++)
             {
-                dest._buffer[i] = this._buffer[i + from];
+                dest._buffer[i + from] = this._buffer[i];
             }
         }
 
