@@ -192,7 +192,7 @@ namespace StargateNet
 
         public unsafe long RemainingSpace => bufferBytes - (_writePosition - _buffer);
 
-        public unsafe void Reset()
+        public unsafe void Clear()
         {
             _writePosition = _buffer; // 重置指针到缓冲区开始位置
             _readPosition = _buffer; // 重置读取指针

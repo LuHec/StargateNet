@@ -21,7 +21,10 @@ namespace StargateNet
         private ReadWriteBuffer _readBuffer;
         private ReadWriteBuffer _fragmentBuffer;
         private List<int> _fragmentIndex = new List<int>(8);
-        private int _fragmentCount = -1;
+        /// <summary>
+        /// 可以通过id值来推算总的分片数量，比如到达id为2，不是最后一个分片，那期望的就是3，以此类推，如果是最后i一个分片，id为6，那期望的分片就是6
+        /// </summary>
+        private int _expectedFragmentCount = 1;
 
         public SgClientPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -184,24 +187,32 @@ namespace StargateNet
 
         private void OnReceiveSnapshot(Message msg)
         {
-            this._fragmentBuffer.Reset();
+            this._fragmentBuffer.Clear();
             // ------------------------------------Msg Header ------------------------------------
             Tick srvTick = new Tick(msg.GetInt());
             if (srvTick < this.LastReceivedTick) return;
             if (srvTick > this.LastReceivedTick)
             {
-                this._readBuffer.Reset();
+                this._readBuffer.Clear();
                 this._totalPacketBytes = 0;
-                this._fragmentCount = 0;
+                this._expectedFragmentCount = 1;
                 this._fragmentIndex.Clear();
             }
 
             this.LastReceivedTick = srvTick;
             int fragmentBytes = msg.GetInt();
             int lastFragmentBytes = msg.GetInt();
-            int fragmentId = msg.GetShort();
+            short fragmentId = msg.GetShort();
             bool isLastFragment = msg.GetBool();
-            if (!isLastFragment) _fragmentCount++;
+            if (!isLastFragment) 
+            {
+                //不是最后一个分片，那么期望的分片数量就是id+1
+                _expectedFragmentCount = Mathf.Max(fragmentId + 1, _expectedFragmentCount);
+            }
+            else
+            {
+                _expectedFragmentCount = fragmentId;
+            }
             if (this._fragmentIndex.Contains(fragmentId)) return;
             _totalPacketBytes += fragmentBytes;
             this._fragmentIndex.Add(fragmentId);
@@ -215,9 +226,9 @@ namespace StargateNet
             this._fragmentBuffer.CopyTo(this._readBuffer, lastFragmentBytes, fragmentBytes);
             // ------------------------------------ ReadBuffer Data ------------------------------------
             this._readBuffer.ResetRead();
-            if (this._fragmentCount != this._fragmentIndex.Count - 1) return;
-            this._fragmentCount = 0;
-            this._fragmentIndex.Clear();
+            if (fragmentId != -1 && this._expectedFragmentCount != this._fragmentIndex.Count) return;// -1表示没有分包。在分包时，如果包数量不对就返回。
+            // this._expectedFragmentCount = 1;
+            // this._fragmentIndex.Clear();
             Debug.LogWarning($"Tick:{srvTick},total:{_totalPacketBytes}");
             Tick srvRcvedClientTick = new Tick(this._readBuffer.GetInt());
             Tick srvRcvedClientInputTick = new Tick(this._readBuffer.GetInt());

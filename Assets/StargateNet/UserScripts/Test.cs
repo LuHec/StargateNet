@@ -104,7 +104,7 @@ public class Test : MonoBehaviour
     unsafe void OnClientReceiveMessage(object sender, MessageReceivedEventArgs args)
     {
         Message msg = args.Message;
-        fragmentBuffer.Reset();
+        fragmentBuffer.Clear();
         count++;
         int size = msg.GetInt();
         int fragStart = msg.GetInt();

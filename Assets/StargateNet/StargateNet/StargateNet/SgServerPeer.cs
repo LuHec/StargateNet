@@ -78,7 +78,7 @@ namespace StargateNet
                 ClientConnection clientConnection = this._clientConnections[i];
                 if (!clientConnection.connected) continue;
                 clientConnection.PrepareToWrite();
-                this._writeBuffer.Reset();
+                this._writeBuffer.Clear();
                 // 判断是否发送多帧包。现在是只要客户端不回话，服务端就会一直发多帧包
                 bool isMultiPak = clientConnection.clientData.isFirstPak || clientConnection.clientData.pakLoss;
                 Tick authorTick = this.Engine.SimTick;
@@ -91,10 +91,11 @@ namespace StargateNet
                 clientConnection.WriteMeta(this._writeBuffer, isMultiPak, _cachedMetaIds);
                 clientConnection.WriteState(this._writeBuffer, isMultiPak);
                 // 分包
-                int fragmentId = 0;
                 int fragmentCount = ((int)this._writeBuffer.GetUsedBytes() + MTU - 1) / MTU;
+                short fragmentId = 1;
+                if (fragmentCount == 1) fragmentId = -1; // -1表示单个包
                 int lastFragmentSize = 0;
-                Debug.Log($"Tick{authorTick},total:{_writeBuffer.GetUsedBytes()}");
+                Debug.Log($"Tick{authorTick},total:{_writeBuffer.GetUsedBytes()}，{fragmentCount} packets");
                 while (!this._writeBuffer.ReadEOF())
                 {
                     // ------------------ Header ------------------
@@ -112,8 +113,8 @@ namespace StargateNet
                     msg.AddInt(fragmentBytes);
                     msg.AddInt(lastFragmentSize);
                     // msg.AddShort((short)fragmentCount);
-                    msg.AddShort((short)fragmentId++);
-                    msg.AddBool(fragmentId == fragmentCount);
+                    msg.AddShort(fragmentId);
+                    msg.AddBool(fragmentId == -1 || fragmentId == fragmentCount);
                     int temp = fragmentBytes;
                     while (temp-- > 0)
                     {
@@ -125,6 +126,7 @@ namespace StargateNet
                     clientConnection.clientData.isFirstPak = false;
                     this.bytesOut.Add(msg.BytesInUse);
                     lastFragmentSize += fragmentBytes;
+                    fragmentId++;
                 }
             }
         }
@@ -142,7 +144,7 @@ namespace StargateNet
         private void PrepareToSend()
         {
             this._cachedMetaIds.Clear();
-            this._writeBuffer.Reset();
+            this._writeBuffer.Clear();
         }
 
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
