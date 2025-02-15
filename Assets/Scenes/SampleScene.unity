@@ -2341,9 +2341,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f27f0803dfb445febb01c83738cecb34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverPort: 7777
+  serverPort: 58835
   maxClientCount: 20
-  toServerIp: 127.0.0.1
+  toServerIp: 101.70.156.105
   test: {fileID: 7095134503880436856, guid: 8d3dc2fde6a162047a445be0dff25124, type: 3}
 --- !u!1 &1723073775
 GameObject:

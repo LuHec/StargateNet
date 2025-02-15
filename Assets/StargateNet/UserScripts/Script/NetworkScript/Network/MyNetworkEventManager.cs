@@ -6,6 +6,7 @@ using UnityEngine;
 public class MyNetworkEventManager : NetworkEventManager
 {
     [SerializeField] private GameObject playerPawn;
+    private HashSet<int> _playerIds = new HashSet<int>(128);
 
     public override void OnNetworkEngineStart(SgNetworkGalaxy galaxy)
     {
@@ -17,6 +18,7 @@ public class MyNetworkEventManager : NetworkEventManager
 
     public override void OnPlayerConnected(SgNetworkGalaxy galaxy, int playerId)
     {
+        if(!_playerIds.Add(playerId)) return;
         galaxy.NetworkSpawn(playerPawn, Vector3.zero, Quaternion.identity, playerId);
     }
 

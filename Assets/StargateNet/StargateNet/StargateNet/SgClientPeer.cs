@@ -17,6 +17,7 @@ namespace StargateNet
         internal bool HeavyPakLoss { get; set; }
         internal bool PakLoss { private set; get; }
         internal Tick LastReceivedTick { private set; get; }
+        private readonly string _clientGuid;
         private ReadWriteBuffer _readBuffer;
         private ReadWriteBuffer _fragmentBuffer;
         private List<int> _fragmentIndex = new List<int>(8);
@@ -32,6 +33,8 @@ namespace StargateNet
             this._readBuffer = new ReadWriteBuffer(configData.maxSnapshotSendSize);
             this._fragmentBuffer = new ReadWriteBuffer(MTU + 300);
             this.LastReceivedTick = Tick.InvalidTick;
+
+            this._clientGuid = Guid.NewGuid().ToString();
         }
 
 
@@ -80,7 +83,7 @@ namespace StargateNet
         private void OnConnected(object sender, EventArgs e)
         {
             RiptideLogger.Log(LogType.Debug, "Client Connected");
-            this.Engine.IsConnected = true;
+            SendRequestMessage();
         }
 
         private void OnConnectionFailed(object sender, ConnectionFailedEventArgs args)
@@ -96,6 +99,7 @@ namespace StargateNet
         }
 
         private int _totalPacketBytes = 0;
+
         /// <summary>
         /// 客户端只会收到DS
         /// </summary>
@@ -103,74 +107,21 @@ namespace StargateNet
         /// <param name="args"></param>
         private unsafe void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
         {
-            this._fragmentBuffer.Reset();
+            // 收包
+            var msg = args.Message;
+            ToClientProtocol protocol = (ToClientProtocol)msg.GetUInt();
             // 更新数据
             this.bytesIn.Add(args.Message.BytesInUse);
             this.HeavyPakLoss = false;
             this.PakLoss = false;
-
-            // 收包
-            var msg = args.Message;
-            // ------------------------------------Msg Header ------------------------------------
-            Tick srvTick = new Tick(msg.GetInt());
-            if (srvTick < this.LastReceivedTick) return;
-            if (srvTick > this.LastReceivedTick)
+            if (protocol == ToClientProtocol.ConnectReply)
             {
-                this._readBuffer.Reset();
-                this._totalPacketBytes = 0;
-                this._fragmentCount = 0;
-                this._fragmentIndex.Clear();
+                OnReceiveConnectReply();
             }
-
-            this.LastReceivedTick = srvTick;
-            int fragmentBytes = msg.GetInt();
-            int lastFragmentBytes = msg.GetInt();
-            int fragmentId = msg.GetShort();
-            bool isLastFragment = msg.GetBool();
-            if (!isLastFragment) _fragmentCount++;
-            if (this._fragmentIndex.Contains(fragmentId)) return;
-            _totalPacketBytes += fragmentBytes;
-            this._fragmentIndex.Add(fragmentId);
-            int temp = fragmentBytes;
-            while (temp-- > 0)
+            else
             {
-                byte bt = msg.GetByte();
-                this._fragmentBuffer.AddByte(bt);
+                OnReceiveSnapshot(msg);
             }
-            this._fragmentBuffer.CopyTo(this._readBuffer, lastFragmentBytes, fragmentBytes);
-            // ------------------------------------ ReadBuffer Data ------------------------------------
-            this._readBuffer.ResetRead();
-            if (this._fragmentCount != this._fragmentIndex.Count - 1) return;
-            this._fragmentCount = 0;
-            this._fragmentIndex.Clear();
-            Debug.LogWarning($"Tick:{srvTick},total:{_totalPacketBytes}");
-            Tick srvRcvedClientTick = new Tick(this._readBuffer.GetInt());
-            Tick srvRcvedClientInputTick = new Tick(this._readBuffer.GetInt());
-            this.Engine.ClientSimulation.serverInputRcvTimeAvg = this._readBuffer.GetDouble();
-            bool isMultiPacket = this._readBuffer.GetBool();
-            bool isFullPacket = this._readBuffer.GetBool();
-            this.Engine.SimulationClock.OnRecvPak();
-            if (!this.Engine.ClientSimulation.OnRcvPak(srvTick, srvRcvedClientTick, srvRcvedClientInputTick,
-                    isMultiPacket, isFullPacket))
-            {
-                this.PakLoss = true;
-                return;
-            }
-
-            // 用服务端下发的结果更新环形队列
-            // if (!this.Engine.WorldState.HasInitialized) this.Engine.WorldState.Init(srvTick);
-            Snapshot rcvBuffer = this.Engine.ClientSimulation.rcvBuffer;
-            rcvBuffer.Init(srvTick);
-            this.ReceiveMeta(this._readBuffer, isFullPacket);
-            this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta，处理服务端生成和销毁的物体
-            this.CopyMetaToBuffer(srvTick);
-            this.CopyFromStateToBuffer(); // 这一步也需要ChangedMeta
-            this.ReceiveStateToBuffer(this._readBuffer); // 这里不直接把状态更新到WorldState中
-            this.Engine.EntityMetaManager.PostChanged(); // 清除Changed
-            this.Engine.WorldState.CurrentSnapshot.CleanMap(); // CurrentSnapshot将作为本帧的开始，必须要清理干净，否则下次收到包，delta就出错了
-            this.Engine.WorldState.ClientUpdateState(srvTick, rcvBuffer); // 对于客户端来说FromTick才是权威，CurrentTick可以被修改
-            this.Engine.InterpolationRemote.AddSnapshot(srvTick, rcvBuffer);
-            this._totalPacketBytes = 0;
         }
 
         /// <summary>
@@ -179,6 +130,7 @@ namespace StargateNet
         public void SendClientPak()
         {
             Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToServer);
+            msg.AddUInt((uint)ToServerProtocol.Input);
             // 有没有丢ds包，如果丢包了就要求服务端发从上一次客户端收到的authorTick之后的所有包
             msg.AddBool(this.PakLoss);
             msg.AddInt(this.Engine.ClientSimulation.authoritativeTick.tickValue);
@@ -215,6 +167,85 @@ namespace StargateNet
 
             this.Client.Send(msg);
             this.bytesOut.Add(msg.BytesInUse);
+        }
+
+        private void SendRequestMessage()
+        {
+            Message msg = Message.Create(MessageSendMode.Reliable, Protocol.ToServer);
+            msg.AddUInt((uint)ToServerProtocol.ConnectRequest);
+            msg.AddString(this._clientGuid);
+            this.Client.Send(msg);
+        }
+
+        private void OnReceiveConnectReply()
+        {
+            this.Engine.IsConnected = true;
+        }
+
+        private void OnReceiveSnapshot(Message msg)
+        {
+            this._fragmentBuffer.Reset();
+            // ------------------------------------Msg Header ------------------------------------
+            Tick srvTick = new Tick(msg.GetInt());
+            if (srvTick < this.LastReceivedTick) return;
+            if (srvTick > this.LastReceivedTick)
+            {
+                this._readBuffer.Reset();
+                this._totalPacketBytes = 0;
+                this._fragmentCount = 0;
+                this._fragmentIndex.Clear();
+            }
+
+            this.LastReceivedTick = srvTick;
+            int fragmentBytes = msg.GetInt();
+            int lastFragmentBytes = msg.GetInt();
+            int fragmentId = msg.GetShort();
+            bool isLastFragment = msg.GetBool();
+            if (!isLastFragment) _fragmentCount++;
+            if (this._fragmentIndex.Contains(fragmentId)) return;
+            _totalPacketBytes += fragmentBytes;
+            this._fragmentIndex.Add(fragmentId);
+            int temp = fragmentBytes;
+            while (temp-- > 0)
+            {
+                byte bt = msg.GetByte();
+                this._fragmentBuffer.AddByte(bt);
+            }
+
+            this._fragmentBuffer.CopyTo(this._readBuffer, lastFragmentBytes, fragmentBytes);
+            // ------------------------------------ ReadBuffer Data ------------------------------------
+            this._readBuffer.ResetRead();
+            if (this._fragmentCount != this._fragmentIndex.Count - 1) return;
+            this._fragmentCount = 0;
+            this._fragmentIndex.Clear();
+            Debug.LogWarning($"Tick:{srvTick},total:{_totalPacketBytes}");
+            Tick srvRcvedClientTick = new Tick(this._readBuffer.GetInt());
+            Tick srvRcvedClientInputTick = new Tick(this._readBuffer.GetInt());
+            this.Engine.ClientSimulation.serverInputRcvTimeAvg = this._readBuffer.GetDouble();
+            bool isMultiPacket = this._readBuffer.GetBool();
+            bool isFullPacket = this._readBuffer.GetBool();
+            this.Engine.SimulationClock.OnRecvPak();
+            if (!this.Engine.ClientSimulation.OnRcvPak(srvTick, srvRcvedClientTick, srvRcvedClientInputTick,
+                    isMultiPacket, isFullPacket))
+            {
+                this.PakLoss = true;
+                return;
+            }
+
+            // 用服务端下发的结果更新环形队列
+            // if (!this.Engine.WorldState.HasInitialized) this.Engine.WorldState.Init(srvTick);
+            Snapshot rcvBuffer = this.Engine.ClientSimulation.rcvBuffer;
+            rcvBuffer.Init(srvTick);
+            this.ReceiveMeta(this._readBuffer, isFullPacket);
+            this.Engine.EntityMetaManager.OnMetaChanged(); // 处理改变的meta，处理服务端生成和销毁的物体
+            this.CopyMetaToBuffer(srvTick);
+            this.CopyFromStateToBuffer(); // 这一步也需要ChangedMeta
+            this.ReceiveStateToBuffer(this._readBuffer); // 这里不直接把状态更新到WorldState中
+            this.Engine.EntityMetaManager.PostChanged(); // 清除Changed
+            this.Engine.WorldState.CurrentSnapshot.CleanMap(); // CurrentSnapshot将作为本帧的开始，必须要清理干净，否则下次收到包，delta就出错了
+            this.Engine.WorldState.ClientUpdateState(srvTick, rcvBuffer); // 对于客户端来说FromTick才是权威，CurrentTick可以被修改
+            this.Engine.InterpolationRemote.AddSnapshot(srvTick, rcvBuffer);
+            this._totalPacketBytes = 0;
         }
 
         private void ReceiveMeta(ReadWriteBuffer readBuffer, bool isFullPak)

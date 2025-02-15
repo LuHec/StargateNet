@@ -15,14 +15,15 @@ namespace StargateNet
         internal ushort Port { private set; get; }
         internal ushort MaxClientCount { private set; get; }
         internal Server Server { private set; get; }
-
-        internal List<ClientConnection> clientConnections; // 暂时先用List(有隐患，Riptide给Client的id是递增的，一个CLient断线重连后获得的id和以前不一样)
-
+        private int _idCounter = 1;
+        private Dictionary<int, int> _guidToIdMap = new Dictionary<int, int>(512);
+        private Dictionary<int, int> _clinetIdToGuidMap = new Dictionary<int, int>(512);
+        private HashSet<int> _pendingConnectionIds = new HashSet<int>(512);
+        private List<ClientConnection> _clientConnections;
         private Queue<int> _connectionId2Reuse = new(16);
         private List<int> _cachedMetaIds;
         private List<SimulationInput> _cachedInputs = new List<SimulationInput>(128);
         private ReadWriteBuffer _writeBuffer;
-
 
         public SgServerPeer(StargateEngine engine, StargateConfigData configData) : base(engine, configData)
         {
@@ -38,8 +39,8 @@ namespace StargateNet
             this.Port = port;
             this.MaxClientCount = maxClientCount;
             this.Server.Start(port, maxClientCount, useMessageHandlers: false);
-            this.clientConnections = new List<ClientConnection>(maxClientCount);
-            this.clientConnections.Add(new ClientConnection(this.Engine)); // 用来占位的，connection从1开始
+            this._clientConnections = new List<ClientConnection>(maxClientCount);
+            this._clientConnections.Add(new ClientConnection(this.Engine)); // 用来占位的，connection从1开始
             this._cachedMetaIds = new(this.Engine.maxEntities);
             RiptideLogger.Log(LogType.Debug, "Server Start");
         }
@@ -58,8 +59,8 @@ namespace StargateNet
         /// <param name="msg">数据</param> 
         public void SendMessageUnreliable(ushort clientId, Message msg)
         {
-            if (clientConnections[clientId].connected)
-                this.Server.Send(msg, clientConnections[clientId].connection);
+            if (_clientConnections[clientId].connected)
+                this.Server.Send(msg, _clientConnections[clientId].connection);
         }
 
         public unsafe void SendServerPak()
@@ -72,9 +73,9 @@ namespace StargateNet
                     this._cachedMetaIds.Add(idx);
             }
 
-            for (int i = 1; i < this.clientConnections.Count; i++)
+            for (int i = 1; i < this._clientConnections.Count; i++)
             {
-                ClientConnection clientConnection = this.clientConnections[i];
+                ClientConnection clientConnection = this._clientConnections[i];
                 if (!clientConnection.connected) continue;
                 clientConnection.PrepareToWrite();
                 this._writeBuffer.Reset();
@@ -104,19 +105,22 @@ namespace StargateNet
                     {
                         break;
                     }
+
                     Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToClient);
+                    msg.AddUInt((uint)ToClientProtocol.Snapshot);
                     msg.AddInt(authorTick.tickValue); // server tick作为Header
                     msg.AddInt(fragmentBytes);
                     msg.AddInt(lastFragmentSize);
                     // msg.AddShort((short)fragmentCount);
-                    msg.AddShort((short)fragmentId ++);
+                    msg.AddShort((short)fragmentId++);
                     msg.AddBool(fragmentId == fragmentCount);
                     int temp = fragmentBytes;
-                    while (temp -- > 0)
+                    while (temp-- > 0)
                     {
                         byte bt = _writeBuffer.GetByte();
                         msg.AddByte(bt);
                     }
+
                     this.Server.Send(msg, (ushort)i);
                     clientConnection.clientData.isFirstPak = false;
                     this.bytesOut.Add(msg.BytesInUse);
@@ -140,8 +144,22 @@ namespace StargateNet
             this._cachedMetaIds.Clear();
             this._writeBuffer.Reset();
         }
-        
+
         private void OnReceiveMessage(object sender, MessageReceivedEventArgs args)
+        {
+            Message msg = args.Message;
+            ToServerProtocol protocol = (ToServerProtocol)msg.GetUInt();
+            if (protocol == ToServerProtocol.ConnectRequest)
+            {
+                AckClientConnectRequest(args);
+            }
+            else if (protocol == ToServerProtocol.Input)
+            {
+                ReceiveInput(args);
+            }
+        }
+
+        private void ReceiveInput(MessageReceivedEventArgs args)
         {
             PrepareToReceive();
             var msg = args.Message;
@@ -151,7 +169,9 @@ namespace StargateNet
             int clientLastAuthorTick = msg.GetInt();
             int inputCount = msg.GetShort();
             RiptideLogger.Log(LogType.Warning, $"client send input count: {inputCount}");
-            ClientData clientData = this.clientConnections[args.FromConnection.Id].clientData;
+            int guid = this._clinetIdToGuidMap[args.FromConnection.Id];
+            int playerId = this._guidToIdMap[guid];
+            ClientData clientData = this._clientConnections[playerId].clientData;
             clientData.deltaPakTime = this.Engine.SimulationClock.Time - clientData.lastPakTime;
             clientData.lastPakTime = this.Engine.SimulationClock.Time;
             clientData.clientLastAuthorTick = new Tick(clientLastAuthorTick);
@@ -191,7 +211,7 @@ namespace StargateNet
 
                     simulationInput.AddInputBlock(inputBlock);
                 }
-                
+
                 this._cachedInputs.Add(simulationInput);
             }
 
@@ -207,21 +227,23 @@ namespace StargateNet
 
         private void OnConnect(object sender, ServerConnectedEventArgs args)
         {
-            ClientData clientData = this.Engine.ServerSimulation.clientDatas[args.Client.Id];
-            clientData.Reset();
-            ClientConnection clientConnection = new ClientConnection(this.Engine)
-                { connected = true, connection = args.Client, clientData = clientData };
-            clientConnections.Add(clientConnection);
-            args.Client.TimeoutTime = 50 * 1000;
-            this.Engine.Monitor.connectedClients = this.clientConnections.Count - 1; // 有一个idx为0的占位
-            this.Engine.NetworkEventManager.OnPlayerConnected(this.Engine.SgNetworkGalaxy, args.Client.Id);
+            this._pendingConnectionIds.Add(args.Client.Id);
+
+            // ClientData clientData = this.Engine.ServerSimulation.clientDatas[args.Client.Id];
+            // clientData.Reset();
+            // ClientConnection clientConnection = new ClientConnection(this.Engine)
+            //     { connected = true, connection = args.Client, clientData = clientData };
+            // _clientConnections.Add(clientConnection);
+            // args.Client.TimeoutTime = 50 * 1000;
+            // this.Engine.Monitor.connectedClients = this._clientConnections.Count - 1; // 有一个idx为0的占位
+            // this.Engine.NetworkEventManager.OnPlayerConnected(this.Engine.SgNetworkGalaxy, args.Client.Id);
         }
 
         private void OnDisConnect(object sender, ServerDisconnectedEventArgs args)
         {
             Connection connection = args.Client;
             ClientData clientData = this.Engine.ServerSimulation.clientDatas[connection.Id];
-            ClientConnection clientConnection = clientConnections[connection.Id];
+            ClientConnection clientConnection = _clientConnections[connection.Id];
             clientData.Reset();
             clientConnection.Reset();
             this.Engine.Monitor.connectedClients--;
@@ -233,6 +255,57 @@ namespace StargateNet
             msg.AddBool(true);
             msg.AddInt(ackedTick.tickValue);
             this.Server.Send(msg, clientId);
+        }
+
+        private void AckClientConnectRequest(MessageReceivedEventArgs args)
+        {
+            Message msg = args.Message;
+            Connection pendingConnection = args.FromConnection;
+            int guid = msg.GetString().GetHashCode();
+            if (this._guidToIdMap.TryGetValue(guid, out int playerId))
+            {
+                ClientConnection clientConnection = this._clientConnections[playerId];
+                ClientData clientData = this.Engine.ServerSimulation.clientDatas[playerId];
+                if (clientConnection.connected && clientConnection.connection.Id != pendingConnection.Id) // 防止重复连接，直接把原来的连接踢掉
+                {
+                    this.Server.DisconnectClient(clientConnection.connection);
+                }
+
+                clientData.Reset();
+                clientConnection.connected = true;
+                clientConnection.connection = pendingConnection;
+                clientConnection.clientData = clientData;
+                pendingConnection.TimeoutTime = 10 * 1000;
+            }
+            else
+            {
+                this._guidToIdMap[guid] = this._idCounter++;
+                playerId = this._guidToIdMap[guid];
+                ClientData clientData = this.Engine.ServerSimulation.clientDatas[playerId];
+                clientData.Reset();
+                ClientConnection clientConnection = new ClientConnection(this.Engine)
+                    { connected = true, connection = pendingConnection, clientData = clientData };
+                _clientConnections.Add(clientConnection);
+                pendingConnection.TimeoutTime = 10 * 1000;
+            }
+            
+            this._clinetIdToGuidMap[pendingConnection.Id] = guid;
+            Message replyMsg = Message.Create(MessageSendMode.Reliable, Protocol.ToClient);
+            replyMsg.AddUInt((uint)ToClientProtocol.ConnectReply);
+            pendingConnection.Send(replyMsg);
+            this.Engine.NetworkEventManager.OnPlayerConnected(this.Engine.SgNetworkGalaxy, playerId);
+            CalculateClientCount();
+        }
+
+        private void CalculateClientCount()
+        {
+            int count = 0;
+            for (int i = 0; i < this._clientConnections.Count; i++)
+            {
+                if (this._clientConnections[i].connected) count++;
+            }
+
+            this.Engine.Monitor.connectedClients = count;
         }
     }
 }
