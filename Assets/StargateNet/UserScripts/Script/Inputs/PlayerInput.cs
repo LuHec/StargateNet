@@ -2,7 +2,7 @@
 
 namespace StargateNet
 {
-    public struct NetworkInput : INetworkInput
+    public struct PlayerInput : INetworkInput
     {
         public Vector2 Input;
         public Vector2 YawPitch;

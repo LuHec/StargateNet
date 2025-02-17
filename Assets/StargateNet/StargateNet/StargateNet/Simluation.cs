@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Riptide;
 using Riptide.Utils;
 using UnityEngine;
 
@@ -10,7 +11,11 @@ namespace StargateNet
         internal StargateEngine engine;
         internal Snapshot fromSnapshot;
         internal Snapshot toSnapshot;
-        internal Dictionary<short, ClientInput> clientInputs = new(256); // 存放输入，服务端存放所有InputSource的输入，客户端只存自己的输入
+        internal Dictionary<string, int> typeNameToTypeTable;
+
+        internal Dictionary<int, InputBlock> typeToInputBlockTable;
+
+        // internal Dictionary<short, ClientInput> clientInputs = new(256); // 存放输入，服务端存放所有InputSource的输入，客户端只存自己的输入
         internal Dictionary<NetworkObjectRef, Entity> entitiesTable; // 记录当前的Entities，但并不直接执行这些实例
         internal List<Entity> entities; // 用于存储此帧所有的entities，ds不需要这个信息，回放模式可以通过meta还原，延迟补偿不会用到已经删除的实体
         internal List<Entity> paddingToAddEntities = new(32); // 待加入模拟的实体，用于延迟添加到模拟列表。Entity会在这之前就被添加到table中
@@ -19,12 +24,12 @@ namespace StargateNet
         internal SimulationInput currentInput;
         protected Queue<SimulationInput> inputPool = new(256);
         protected Queue<Entity> reuseEntities = new(32);
-
         internal Snapshot previousState;
         protected HashSet<CallbackData> remoteCallbacks = new(2048);
+        private StargateAllocator _inputAllocator;
         // protected CallbackData[] callbackData = new CallbackData[2048];
 
-        internal Simulation(StargateEngine engine)
+        internal unsafe Simulation(StargateEngine engine)
         {
             this.engine = engine;
             this.entities = new List<Entity>(engine.maxEntities);
@@ -32,6 +37,26 @@ namespace StargateNet
             for (int i = 0; i < engine.maxEntities; ++i)
             {
                 this.entities.Add(null);
+            }
+
+            // 读入输入的类型，初始化查找表和内存
+            int inputTotalBytes = 0;
+            StargateConfigData configData = engine.ConfigData;
+            int inputTypeCount = configData.networkInputsTypes.Count;
+            this.typeNameToTypeTable = new Dictionary<string, int>(inputTypeCount);
+            this.typeToInputBlockTable = new Dictionary<int, InputBlock>(inputTypeCount);
+            for (int i = 0; i < inputTypeCount; i++)
+            {
+                this.typeNameToTypeTable[configData.networkInputsTypes[i]] = i;
+                inputTotalBytes += configData.networkInputsBytes[i];
+            }
+
+            inputTotalBytes *= (configData.maxPredictedTicks + 10);
+            inputTotalBytes = this.engine.IsClient ? inputTotalBytes * 2 : inputTotalBytes * (configData.maxClientCount + 1);
+            this._inputAllocator = new StargateAllocator(inputTotalBytes, engine.Monitor);
+            for (int i = 0; i < inputTypeCount; i++)
+            {
+                this.typeToInputBlockTable[i] = AllocateInputBlock(configData.networkInputsBytes[i], i);
             }
         }
 
@@ -260,37 +285,75 @@ namespace StargateNet
         }
 
         /// <summary>
-        /// 在Update期间调整NetworkInput.暂时还只有一种input type
+        /// 在Update期间调整NetworkInput.
         /// </summary>
-        internal void SetInput(int inputType, INetworkInput networkInput, bool needRefreshAlpha = false)
+        internal void SetInput<T>(T networkInput, bool needRefreshAlpha = false) where T : unmanaged, INetworkInput
         {
-            ClientInput clientInput = new ClientInput() { networkInput = networkInput, alpha = this.engine.InterpolationRemote.Alpha, remoteFromTick = this.engine.InterpolationRemote.FromTick };
-            if (this.clientInputs.ContainsKey(0))
-            {
-                var oClientInput = this.clientInputs[0];
-                // 只在需要时更新延迟补偿的参数
-                if (needRefreshAlpha)
-                {
-                    this.clientInputs[0] = clientInput;
-                }
-                else
-                {
-                    oClientInput.networkInput = networkInput;
-                    this.clientInputs[0] = oClientInput;
-                }
-            }
-            else
-            {
-                clientInputs[0] = clientInput;
-            }
+            string typeName = typeof(T).Name;
+            if (!this.typeNameToTypeTable.ContainsKey(typeName)) return;
+            int type = this.typeNameToTypeTable[typeName];
+            InputBlock inputBlock = this.typeToInputBlockTable[type];
+            inputBlock.SetInput(networkInput);
+            // for (int i = 0; i < inputBlocks.Count; i++)
+            // {
+            //     if (inputBlocks[i].type != type) continue;
+            //     inputBlocks[i].SetInput(networkInput);
+            //     if (this.engine.IsClient && needRefreshAlpha)
+            //     {
+            //         this.currentInput.clientInterpolationAlpha = this.engine.InterpolationRemote.Alpha;
+            //         this.currentInput.clientRemoteFromTick = this.engine.InterpolationRemote.FromTick;
+            //     }
+            //
+            //     break;
+            // }
+
+            // ClientInput clientInput = new ClientInput()
+            // {
+            //     networkInput = networkInput,
+            //     alpha = this.engine.InterpolationRemote.Alpha,
+            //     remoteFromTick = this.engine.InterpolationRemote.FromTick
+            // };
+            //
+            // if (this.clientInputs.ContainsKey(0))
+            // {
+            //     var oClientInput = this.clientInputs[0];
+            //     // 只在需要时更新延迟补偿的参数
+            //     if (needRefreshAlpha)
+            //     {
+            //         this.clientInputs[0] = clientInput;
+            //     }
+            //     else
+            //     {
+            //         oClientInput.networkInput = networkInput;
+            //         this.clientInputs[0] = oClientInput;
+            //     }
+            // }
+            // else
+            // {
+            //     clientInputs[0] = clientInput;
+            // }
         }
 
-        internal T GetInput<T>(int type)
+        /// <summary>
+        /// 客户端行为，服务端不能使用这个
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        internal T GetInput<T>() where T : unmanaged, INetworkInput
         {
+            string typeName = typeof(T).Name;
             T input = default(T);
-            if (this.clientInputs.TryGetValue(0, out var clientInput))
+            InputBlock inputBlock;
+            if (this.typeNameToTypeTable.TryGetValue(typeName, out int inputType))
             {
-                input = (T)clientInput.networkInput;
+                inputBlock = this.typeToInputBlockTable[inputType];
+                input = inputBlock.Get<T>();
+                // List<InputBlock> inputBlocks = this.currentInput.inputBlocks;
+                // for (int i = 0; i < inputBlocks.Count; i++)
+                // {
+                //     if (inputBlocks[i].type != inputType) continue;
+                //     input = inputBlocks[i].Get<T>();
+                // }
             }
 
             return input;
@@ -305,6 +368,12 @@ namespace StargateNet
 
             SimulationInput resInput = inputPool.Dequeue();
             resInput.Init(srvTick, targetTick, alpha, remoteFromTick);
+            foreach (InputBlock template in typeToInputBlockTable.Values)
+            {
+                InputBlock inputBlock = AllocateInputBlock(template.inputSizeBytes, template.type);
+                this.typeToInputBlockTable[template.type].CopyTo(inputBlock);
+                resInput.AddInputBlock(inputBlock);
+            }
 
             return resInput;
         }
@@ -312,8 +381,33 @@ namespace StargateNet
         internal void RecycleInput(SimulationInput input)
         {
             if (input == null) return;
+            for (int i = 0; i < input.inputBlocks.Count; i++)
+            {
+                FreeInputBlock(input.inputBlocks[i]);
+            }
+
             input.Clear();
             this.inputPool.Enqueue(input);
+        }
+
+        internal bool WriteInputBlock(SimulationInput input, int type, Message msg)
+        {
+            for (int i = 0; i < input.inputBlocks.Count; i++)
+            {
+                if (type == input.inputBlocks[i].type)
+                {
+                    InputBlock inputBlock = input.inputBlocks[i];
+                    int bytes = this.typeToInputBlockTable[type].inputSizeBytes;
+                    for (int byteIdx = 0; byteIdx < bytes; byteIdx++)
+                    {
+                        inputBlock.CopyByte(byteIdx, msg.GetByte());
+                    }
+                    
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -323,6 +417,21 @@ namespace StargateNet
         protected virtual void AddToSimulation(Entity entity)
         {
             this.engine.IM.simulationList.Add(entity);
+        }
+
+        private unsafe InputBlock AllocateInputBlock(int bytes, int type)
+        {
+            InputBlock inputBlock = new InputBlock(
+                (byte*)this._inputAllocator.Malloc(bytes),
+                bytes,
+                type);
+            inputBlock.Clear();
+            return inputBlock;
+        }
+
+        private unsafe void FreeInputBlock(InputBlock inputBlock)
+        {
+            this._inputAllocator.Free(inputBlock.inputBlockPtr);
         }
     }
 }

@@ -1,16 +1,18 @@
+using System;
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using StargateNet;
 
-public class RegisterStargateNetworkPrefabs : EditorWindow
+public class RegisterStargateNetworkPrefabsAndInputs : EditorWindow
 {
-    [MenuItem("Tools/Find NetworkObject Prefabs")]
+    [MenuItem("Tools/Find NetworkObject Prefabs And Inputs")]
     public static void ShowWindow()
     {
-        GetWindow<RegisterStargateNetworkPrefabs>("Find NetworkObject Prefabs");
+        GetWindow<RegisterStargateNetworkPrefabsAndInputs>("Find NetworkObject Prefabs And Inputs");
     }
 
     private void OnGUI()
@@ -29,7 +31,7 @@ public class RegisterStargateNetworkPrefabs : EditorWindow
         List<GameObject> networkPrefabs = new();
         int id = 0;
         long maxStateSize = 0;
-
+        (var inputTypes, var inputBytes) = FindAllTypesOfNetworkInputs();
         foreach (string prefabGUID in allPrefabs)
         {
             string prefabPath = AssetDatabase.GUIDToAssetPath(prefabGUID);
@@ -64,6 +66,8 @@ public class RegisterStargateNetworkPrefabs : EditorWindow
             {
                 config.NetworkObjects = networkPrefabs;
                 config.maxObjectStateBytes  = maxStateSize;
+                config.networkInputsTypes = inputTypes;
+                config.networkInputsBytes = inputBytes;
                 EditorUtility.SetDirty(config);
             }
         }
@@ -83,5 +87,39 @@ public class RegisterStargateNetworkPrefabs : EditorWindow
             Debug.Log("No prefabs with NetworkObject found.");
             // EditorUtility.DisplayDialog("Results", "No prefabs with NetworkObject found.", "OK");
         }
+    }
+
+    private static (List<string>, List<int>) FindAllTypesOfNetworkInputs()
+    {
+        List<string> allTypesOfNetworkInputs = new List<string>();
+        List<int> allBytesOfNetworkInputs = new List<int>();
+
+        // 获取所有程序集（默认加载的程序集）
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        
+        // 遍历程序集，查找继承自 INetworkInput 的类
+        foreach (var assembly in assemblies)
+        {
+            // 获取所有类型
+            var types = assembly.GetTypes();
+            
+            foreach (var type in types)
+            {
+                // 判断类型是否继承自 INetworkInput
+                if (typeof(StargateNet.INetworkInput).IsAssignableFrom(type) && type.IsValueType )
+                {
+                    allTypesOfNetworkInputs.Add(type.Name);
+                    allBytesOfNetworkInputs.Add(Marshal.SizeOf(type));
+                }
+            }
+        }
+
+        // 打印结果
+        foreach (var typeName in allTypesOfNetworkInputs)
+        {
+            Debug.Log(typeName);
+        }
+
+        return (allTypesOfNetworkInputs, allBytesOfNetworkInputs);
     }
 }

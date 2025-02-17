@@ -129,7 +129,7 @@ namespace StargateNet
 
 
         /// <summary>
-        /// 客户端的模拟
+        /// 客户端的模拟,由于玩家输入一般是在渲染帧获取的，所以在逻辑帧开始计算前，要将延迟补偿信息填入
         /// </summary>
         internal override void PreFixedUpdate()
         {
@@ -143,17 +143,17 @@ namespace StargateNet
 
             this.currentInput = CreateInput(this.authoritativeTick, this.currentTick, 0, Tick.InvalidTick);
             this.inputs.Add(this.currentInput);
-            //TODO:暂时先这么写，后续要改造alpha的存放方式
-            foreach (var pair in this.clientInputs)
-            {
-                this.currentInput.inputBlocks.Add(new SimulationInput.InputBlock
-                {
-                    type = pair.Key,
-                    input = pair.Value.networkInput,
-                });
-                this.currentInput.clientInterpolationAlpha = pair.Value.alpha;
-                this.currentInput.clientRemoteFromTick = pair.Value.remoteFromTick;
-            }
+            // //TODO:暂时先这么写，后续要改造alpha的存放方式
+            // foreach (var pair in this.clientInputs)
+            // {
+            //     this.currentInput.inputBlocks.Add(new InputBlock
+            //     {
+            //         type = pair.Key,
+            //         input = pair.Value.networkInput,
+            //     });
+            //     this.currentInput.clientInterpolationAlpha = pair.Value.alpha;
+            //     this.currentInput.clientRemoteFromTick = pair.Value.remoteFromTick;
+            // }
 
             // 关于新输入把旧输入冲掉导致服务端丢失操作的问题：
             // 首先模拟函数的调用时机在Send Input之后
@@ -170,7 +170,11 @@ namespace StargateNet
         {
             this.engine.Monitor.tick = this.currentTick.tickValue;
             this.currentInput = null; // 这里不回收输入！！！currentInput用的东西在列表里，要用来做Resimulation的
-            this.clientInputs.Clear();
+            // 清空写入的输入
+            foreach (var inputBlock in this.typeToInputBlockTable.Values)
+            {
+                inputBlock.Clear();
+            }
         }
 
         internal override void PreUpdate()
@@ -284,16 +288,17 @@ namespace StargateNet
             }
         }
 
-        internal bool FetchInput<T>(out T input) where T : INetworkInput
+        internal bool FetchInput<T>(out T input) where T : unmanaged, INetworkInput
         {
             input = default(T);
-            if (this.currentInput == null) return false;
-            List<SimulationInput.InputBlock> inputBlocks = this.currentInput.inputBlocks;
+            List<InputBlock> inputBlocks = this.currentInput.inputBlocks;
+            string typeName = typeof(T).Name;
+            if (!typeNameToTypeTable.TryGetValue(typeName, out var inputType)) return false;
             for (int i = 0; i < inputBlocks.Count; i++)
             {
-                if (inputBlocks[i].type == 0)
+                if (inputBlocks[i].type == inputType)
                 {
-                    input = (T)inputBlocks[i].input;
+                    input = inputBlocks[i].Get<T>();
                     return true;
                 }
             }

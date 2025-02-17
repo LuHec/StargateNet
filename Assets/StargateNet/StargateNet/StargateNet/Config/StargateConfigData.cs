@@ -11,9 +11,13 @@ namespace StargateNet
         public int maxNetworkObjects;
         public bool runAsHeadless;
         public int savedSnapshotsCount;
-        public List<GameObject> networkPrefabs;
         public int maxPredictedTicks;
-        public long maxObjectStateBytes; // 单个NetworkObject的内存大小
         public int maxSnapshotSendSize;  // 单帧能发送的最大Snapshot大小
+        
+        // Engine Data
+        public List<GameObject> networkPrefabs;
+        public long maxObjectStateBytes; // 单个NetworkObject的内存大小
+        public List<string> networkInputsTypes;
+        public List<int> networkInputsBytes;
     }
 }

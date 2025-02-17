@@ -95,7 +95,7 @@ namespace StargateNet
                 short fragmentId = 1;
                 if (fragmentCount == 1) fragmentId = -1; // -1表示单个包
                 int lastFragmentSize = 0;
-                Debug.Log($"Tick{authorTick},total:{_writeBuffer.GetUsedBytes()}，{fragmentCount} packets");
+                // Debug.Log($"Tick{authorTick},total:{_writeBuffer.GetUsedBytes()}，{fragmentCount} packets");
                 while (!this._writeBuffer.ReadEOF())
                 {
                     // ------------------ Header ------------------
@@ -170,7 +170,7 @@ namespace StargateNet
             bool clientLossPacket = msg.GetBool();
             int clientLastAuthorTick = msg.GetInt();
             int inputCount = msg.GetShort();
-            RiptideLogger.Log(LogType.Warning, $"client send input count: {inputCount}");
+            // RiptideLogger.Log(LogType.Warning, $"client send input count: {inputCount}");
             int guid = this._clinetIdToGuidMap[args.FromConnection.Id];
             int playerId = this._guidToIdMap[guid];
             ClientData clientData = this._clientConnections[playerId].clientData;
@@ -190,28 +190,30 @@ namespace StargateNet
                     this.Engine.ServerSimulation.CreateInput(new Tick(authorTick), new Tick(targetTick), alpha, new Tick(remoteFromTick));
                 while (inputBlockCount-- > 0)
                 {
-                    SimulationInput.InputBlock inputBlock = new()
-                    {
-                        type = msg.GetShort(),
-                        input = new NetworkInput
-                        {
-                            Input = new Vector2
-                            {
-                                x = msg.GetFloat(),
-                                y = msg.GetFloat(),
-                            },
-                            YawPitch = new Vector2
-                            {
-                                x = msg.GetFloat(),
-                                y = msg.GetFloat(),
-                            },
-                            IsJump = msg.GetBool(),
-                            IsFire = msg.GetBool(),
-                            IsInteract = msg.GetBool(),
-                        }
-                    };
-
-                    simulationInput.AddInputBlock(inputBlock);
+                    int inputType = msg.GetInt();
+                    this.Engine.Simulation.WriteInputBlock(simulationInput, inputType, msg);
+                    // InputBlock inputBlock = new()
+                    // {
+                    //     // type = msg.GetShort(),
+                    //     // input = new PlayerInput
+                    //     // {
+                    //     //     Input = new Vector2
+                    //     //     {
+                    //     //         x = msg.GetFloat(),
+                    //     //         y = msg.GetFloat(),
+                    //     //     },
+                    //     //     YawPitch = new Vector2
+                    //     //     {
+                    //     //         x = msg.GetFloat(),
+                    //     //         y = msg.GetFloat(),
+                    //     //     },
+                    //     //     IsJump = msg.GetBool(),
+                    //     //     IsFire = msg.GetBool(),
+                    //     //     IsInteract = msg.GetBool(),
+                    //     // }
+                    // };
+                    //
+                    // simulationInput.AddInputBlock(inputBlock);
                 }
 
                 this._cachedInputs.Add(simulationInput);
@@ -226,7 +228,7 @@ namespace StargateNet
                 }
             }
         }
-
+        
         private void OnConnect(object sender, ServerConnectedEventArgs args)
         {
             this._pendingConnectionIds.Add(args.Client.Id);

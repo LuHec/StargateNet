@@ -8,17 +8,15 @@ namespace StargateNet
     /// </summary>
     public class SimulationInput
     {
-        public struct InputBlock
-        {
-            public short type;
-            public INetworkInput input;
-        }
-
         public Tick clientAuthorTick = Tick.InvalidTick;
         public Tick clientTargetTick = Tick.InvalidTick;
         public float clientInterpolationAlpha = 0;
         public Tick clientRemoteFromTick = Tick.InvalidTick;
-        public List<InputBlock> inputBlocks = new(4);
+        internal List<InputBlock> inputBlocks = new List<InputBlock>();
+
+        public SimulationInput()
+        {
+        }
 
         public void Init(Tick authorTick, Tick targetTick, float alpha, Tick remoteFromTick)
         {
@@ -27,29 +25,19 @@ namespace StargateNet
             this.clientInterpolationAlpha = alpha;
             this.clientRemoteFromTick = remoteFromTick;
         }
-
-        public void AddInputBlock(InputBlock inputBlock)
+        
+        internal void AddInputBlock(InputBlock newInputBlock)
         {
-            inputBlocks.Add(inputBlock);
+            this.inputBlocks.Add(newInputBlock);
         }
-
-        public void AddInputBlock(short type, INetworkInput input)
-        {
-            this.inputBlocks.Add(new InputBlock { type = type, input = input });
-        }
-
-        public void Clear()
+        
+        internal void Clear()
         {
             this.clientAuthorTick = Tick.InvalidTick;
             this.clientTargetTick = Tick.InvalidTick;
             this.clientInterpolationAlpha = 0;
             this.clientRemoteFromTick = Tick.InvalidTick;
-            inputBlocks.Clear();
-        }
-
-        ~SimulationInput()
-        {
-            Debug.Log("dieeee");
+            this.inputBlocks.Clear();
         }
     }
 }

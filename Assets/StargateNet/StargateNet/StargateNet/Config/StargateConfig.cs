@@ -15,8 +15,12 @@ namespace StargateNet
         [Range(4, ushort.MaxValue)]public int maxNetworkObject = 10;
         [Range(1, 64)] public int SavedSnapshotsCount = 32;
         [Range(8, 300)]public int MaxPredictedTicks = 8;
+        [Tooltip("单帧服务器能发送给客户端最大数据量")]public int maxSnapshotSendSize;
+        
+        // Engine Data
         public List<GameObject> NetworkObjects;
         public long maxObjectStateBytes;
-        [Tooltip("单帧服务器能发送给客户端最大数据量")]public int maxSnapshotSendSize;
+        public List<string> networkInputsTypes;
+        public List<int> networkInputsBytes;
     }
 }

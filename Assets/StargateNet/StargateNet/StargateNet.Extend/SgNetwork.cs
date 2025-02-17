@@ -29,24 +29,31 @@ namespace StargateNet
             }
         }
 
+        private static StargateConfigData CreateConfigData(StargateConfig config)
+        {
+            return new StargateConfigData()
+            {
+                tickRate = config.FPS,
+                isPhysic2D = config.IsPhysic2D,
+                maxClientCount = config.MaxClientCount,
+                runAsHeadless = config.RunAsHeadless,
+                maxNetworkObjects = config.maxNetworkObject,
+                savedSnapshotsCount = config.SavedSnapshotsCount,
+                maxPredictedTicks = config.MaxPredictedTicks,
+                maxSnapshotSendSize = config.maxSnapshotSendSize,
+                networkPrefabs = config.NetworkObjects,
+                maxObjectStateBytes = config.maxObjectStateBytes,
+                networkInputsTypes = config.networkInputsTypes,
+                networkInputsBytes = config.networkInputsBytes,
+            };
+        }
+
         public static SgNetworkGalaxy StartAsServer(ushort port, ushort maxClientCount)
         {
             var config = Resources.Load<StargateConfig>("StargateConfig");
             return SgNetwork.Launch(StartMode.Server, new LaunchConfig()
             {
-                configData = new StargateConfigData()
-                {
-                    tickRate = config.FPS,
-                    isPhysic2D = config.IsPhysic2D,
-                    maxClientCount = config.MaxClientCount,
-                    runAsHeadless = config.RunAsHeadless,
-                    maxNetworkObjects = config.maxNetworkObject,
-                    savedSnapshotsCount = config.SavedSnapshotsCount,
-                    maxPredictedTicks = config.MaxPredictedTicks,
-                    networkPrefabs = config.NetworkObjects,
-                    maxObjectStateBytes = config.maxObjectStateBytes,
-                    maxSnapshotSendSize = config.maxSnapshotSendSize
-                },
+                configData = CreateConfigData(config),
                 port = port
             });
         }
@@ -56,19 +63,7 @@ namespace StargateNet
             var config = Resources.Load<StargateConfig>("StargateConfig");
             return SgNetwork.Launch(StartMode.Client, new LaunchConfig()
             {
-                configData = new StargateConfigData()
-                {
-                    tickRate = config.FPS,
-                    isPhysic2D = config.IsPhysic2D,
-                    maxClientCount = config.MaxClientCount,
-                    runAsHeadless = config.RunAsHeadless,
-                    maxNetworkObjects = config.maxNetworkObject,
-                    savedSnapshotsCount = config.SavedSnapshotsCount,
-                    maxPredictedTicks = config.MaxPredictedTicks,
-                    networkPrefabs = config.NetworkObjects,
-                    maxObjectStateBytes = config.maxObjectStateBytes,
-                    maxSnapshotSendSize = config.maxSnapshotSendSize
-                },
+                configData = CreateConfigData(config),
                 port = port
             });
         }

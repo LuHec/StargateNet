@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using StargateNet;
-using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -98,7 +97,7 @@ public class FPSController : NetworkBehavior
         //     VerticalSpeed = -1f;
         // }
 
-        if (this.FetchInput(out NetworkInput input))
+        if (this.FetchInput(out PlayerInput input))
         {
             // 客户端为权威的旋转
             Vector2 yawPitch = input.YawPitch;
@@ -187,7 +186,7 @@ public class FPSController : NetworkBehavior
             Cursor.lockState = CursorLockMode.Locked;
         }
 
-        NetworkInput networkInput = galaxy.GetInput<NetworkInput>();
+        PlayerInput playerInput = galaxy.GetInput<PlayerInput>();
 
         Camera mainCamera = Camera.main;
 
@@ -200,7 +199,7 @@ public class FPSController : NetworkBehavior
         forward.Normalize();
         right.Normalize();
         Vector3 moveDirection = forward * Input.GetAxis("Vertical") + right * Input.GetAxis("Horizontal");
-        networkInput.Input = new Vector2(moveDirection.x, moveDirection.z);
+        playerInput.Input = new Vector2(moveDirection.x, moveDirection.z);
         
         Vector2 deltaRawPitchInput = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
         float mouseX = deltaRawPitchInput.x * lookSpeedX;
@@ -209,13 +208,13 @@ public class FPSController : NetworkBehavior
         // 在Update中旋转，将结果作为Input传入
         transform.rotation = Quaternion.Euler(0, _localYawPitch.x, 0);
         cameraPoint.localRotation = Quaternion.Euler(_localYawPitch.y, 0, 0);
-        networkInput.YawPitch = new Vector2(_localYawPitch.x, _localYawPitch.y);
-        networkInput.IsJump |= Input.GetKeyDown(KeyCode.Space);
-        networkInput.IsFire |= Input.GetMouseButtonDown(0);
-        networkInput.IsInteract |= Input.GetKey(KeyCode.E);
+        playerInput.YawPitch = new Vector2(_localYawPitch.x, _localYawPitch.y);
+        playerInput.IsJump |= Input.GetKeyDown(KeyCode.Space);
+        playerInput.IsFire |= Input.GetMouseButtonDown(0);
+        playerInput.IsInteract |= Input.GetKey(KeyCode.E);
         // 处理延迟补偿
         //TODO:暂时这么写！！还在想办法解决怎么把这个狗屎延迟补偿输入给提取出用户代码
-        galaxy.SetInput(networkInput, Input.GetMouseButtonDown(0));
+        galaxy.SetInput(playerInput, Input.GetMouseButtonDown(0));
 
         return (deltaRawPitchInput, new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")));
     }

@@ -88,7 +88,7 @@ namespace StargateNet
             }
         }
 
-        internal bool FetchInput<T>(out T input) where T : INetworkInput
+        internal bool FetchInput<T>(out T input) where T : unmanaged, INetworkInput
         {
             return this.engine.FetchInput(out input, this.inputSource);
         }

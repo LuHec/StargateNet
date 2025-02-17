@@ -93,19 +93,21 @@ namespace StargateNet
             }
         }
 
-        public bool FetchInput<T>(out T input, int inputSource) where T : INetworkInput
+        public bool FetchInput<T>(out T input, int inputSource) where T : unmanaged, INetworkInput
         {
             input = default(T);
             if (inputSource == -1 || inputSource >= this.clientDatas.Length || !this.clientDatas[inputSource].Started)
                 return false;
             ClientData clientData = this.clientDatas[inputSource];
             if (clientData.CurrentInput == null) return false;
-            var inputBlocks = clientData.CurrentInput.inputBlocks;
+            List<InputBlock> inputBlocks = clientData.CurrentInput.inputBlocks;
+            string typeName = typeof(T).Name;
+            if (!typeNameToTypeTable.TryGetValue(typeName, out var inputType)) return false;
             for (int i = 0; i < inputBlocks.Count; i++)
             {
-                if (inputBlocks[i].type == 0)
+                if (inputBlocks[i].type == inputType)
                 {
-                    input = (T)inputBlocks[i].input;
+                    input = inputBlocks[i].Get<T>();
                     return true;
                 }
             }

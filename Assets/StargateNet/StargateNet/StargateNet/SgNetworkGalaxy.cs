@@ -65,17 +65,23 @@ namespace StargateNet
             this.Engine.NetworkDestroy(gameObject);
         }
 
-        public void SetInput<T>(T input, bool needRefresh = false) where T : INetworkInput
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="needRefresh">是否需要刷新延迟补偿的，默认不刷新，保留上次结果。用法一般是开火时刷新</param>
+        /// <typeparam name="T"></typeparam>
+        public void SetInput<T>(T input, bool needRefresh = false) where T : unmanaged, INetworkInput
         {
-            this.Engine.SetInput<T>(input, needRefresh);
+            this.Engine.SetInput(input, needRefresh);
         }
 
         /// <summary>
-        /// 不要用！！！
+        /// 客户端行为，服务端不能使用这个
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public T GetInput<T>() where T : INetworkInput
+        public T GetInput<T>() where T : unmanaged, INetworkInput
         {
             return this.Engine.GetInput<T>();
         }

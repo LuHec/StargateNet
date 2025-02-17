@@ -233,13 +233,13 @@ namespace StargateNet
             }
             else if (this.IsClient && this.IsConnected)
             {
-                this.Client.SendClientPak();
+                this.Client.SendClientInput();
             }
         }
 
         // ------------- Engine Func ------------- //
 
-        internal bool FetchInput<T>(out T input, int inputSource) where T : INetworkInput
+        internal bool FetchInput<T>(out T input, int inputSource) where T : unmanaged, INetworkInput
         {
             input = default(T);
             if (inputSource == -1) return false;
@@ -336,7 +336,7 @@ namespace StargateNet
             else throw new Exception($"Network Id:{networkId} is not exist");
         }
 
-        internal void SetInput<T>(T input, bool needRefresh = false) where T : INetworkInput
+        internal void SetInput<T>(T input, bool needRefresh = false) where T : unmanaged, INetworkInput
         {
             int inputSource = -1;
             if (this.IsClient && this.IsConnected)
@@ -351,13 +351,18 @@ namespace StargateNet
 
             if (inputSource != -1)
             {
-                this.Simulation.SetInput(inputSource, input, needRefresh);
+                this.Simulation.SetInput(input, needRefresh);
             }
         }
 
-        internal T GetInput<T>() where T : INetworkInput
+        /// <summary>
+        /// 客户端行为，服务端不能使用这个
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        internal T GetInput<T>() where T : unmanaged, INetworkInput
         {
-            return this.Simulation.GetInput<T>(0);
+            return this.Simulation.GetInput<T>();
         }
 
         public NetworkObject GetNetworkObject(NetworkObjectRef networkObjectRef)

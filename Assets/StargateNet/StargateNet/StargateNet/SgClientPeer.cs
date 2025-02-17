@@ -130,7 +130,7 @@ namespace StargateNet
         /// <summary>
         /// 客户端发送输入。TODO：当前的输入是暂时用来测试的，只有一个类型，后续会改成unmanaged，支持任意类型写入
         /// </summary>
-        public void SendClientPak()
+        public unsafe void SendClientInput()
         {
             Message msg = Message.Create(MessageSendMode.Unreliable, Protocol.ToServer);
             msg.AddUInt((uint)ToServerProtocol.Input);
@@ -143,28 +143,36 @@ namespace StargateNet
             List<SimulationInput> clientInputs = clientSimulation.inputs;
             int threhold = Mathf.Max(clientInputs.Count - 5, 0);
             msg.AddShort((short)(clientInputs.Count - threhold));
-            for (int index = clientInputs.Count - 1; index >= threhold; index--)
+            for (int inputIndex = clientInputs.Count - 1; inputIndex >= threhold; inputIndex--)
             {
                 //TODO:多余了
-                msg.AddInt(clientInputs[index].clientAuthorTick.tickValue);
-                msg.AddInt(clientInputs[index].clientTargetTick.tickValue);
-                msg.AddFloat(clientInputs[index].clientInterpolationAlpha);
-                msg.AddInt(clientInputs[index].clientRemoteFromTick.tickValue);
-                msg.AddShort((short)clientInputs[index].inputBlocks.Count);
+                msg.AddInt(clientInputs[inputIndex].clientAuthorTick.tickValue);
+                msg.AddInt(clientInputs[inputIndex].clientTargetTick.tickValue);
+                msg.AddFloat(clientInputs[inputIndex].clientInterpolationAlpha);
+                msg.AddInt(clientInputs[inputIndex].clientRemoteFromTick.tickValue);
+                msg.AddShort((short)clientInputs[inputIndex].inputBlocks.Count);
                 // 写入Input，暂时只有NetworkInput
-                var blocks = clientInputs[index].inputBlocks;
-                for (int j = 0; j < blocks.Count; j++)
+                var blocks = clientInputs[inputIndex].inputBlocks;
+                for (int blockIdx = 0; blockIdx < blocks.Count; blockIdx++)
                 {
-                    SimulationInput.InputBlock inputBlock = blocks[j];
-                    NetworkInput networkInput = (NetworkInput)inputBlock.input;
-                    msg.AddShort(inputBlock.type);
-                    msg.AddFloat(networkInput.Input.x);
-                    msg.AddFloat(networkInput.Input.y);
-                    msg.AddFloat(networkInput.YawPitch.x);
-                    msg.AddFloat(networkInput.YawPitch.y);
-                    msg.AddBool(networkInput.IsJump);
-                    msg.AddBool(networkInput.IsFire);
-                    msg.AddBool(networkInput.IsInteract);
+                    // 只需要传入type和数据就行，输入大小服务端也有
+                    InputBlock inputBlock = blocks[blockIdx];
+                    int inputBytes = blocks[blockIdx].inputSizeBytes;
+                    int inputType = blocks[blockIdx].type;
+                    msg.AddInt(inputType);
+                    for(int dataIdx = 0; dataIdx < inputBytes; dataIdx ++)
+                    {
+                        msg.AddByte(inputBlock.inputBlockPtr[dataIdx]);
+                    }
+                    // PlayerInput playerInput = (PlayerInput)inputBlock.input;
+                    // msg.AddShort(inputBlock.type);
+                    // msg.AddFloat(playerInput.Input.x);
+                    // msg.AddFloat(playerInput.Input.y);
+                    // msg.AddFloat(playerInput.YawPitch.x);
+                    // msg.AddFloat(playerInput.YawPitch.y);
+                    // msg.AddBool(playerInput.IsJump);
+                    // msg.AddBool(playerInput.IsFire);
+                    // msg.AddBool(playerInput.IsInteract);
                 }
             }
 
@@ -229,7 +237,7 @@ namespace StargateNet
             if (fragmentId != -1 && this._expectedFragmentCount != this._fragmentIndex.Count) return;// -1表示没有分包。在分包时，如果包数量不对就返回。
             // this._expectedFragmentCount = 1;
             // this._fragmentIndex.Clear();
-            Debug.LogWarning($"Tick:{srvTick},total:{_totalPacketBytes}");
+            // Debug.LogWarning($"Tick:{srvTick},total:{_totalPacketBytes}");
             Tick srvRcvedClientTick = new Tick(this._readBuffer.GetInt());
             Tick srvRcvedClientInputTick = new Tick(this._readBuffer.GetInt());
             this.Engine.ClientSimulation.serverInputRcvTimeAvg = this._readBuffer.GetDouble();
