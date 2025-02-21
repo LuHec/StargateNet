@@ -10,16 +10,17 @@ namespace StargateNet
         internal Dictionary<InterestBlock, List<NetworkObjectRef>> interestBlockMap = new(128); // 每个InterestBlock对应的Entity列表,每帧都会重新构造
         private Queue<List<NetworkObjectRef>> areaPool = new(128);
 
-        private int boundX = 100;
-        private int boundY = 100;
-        private int boundZ = 100;
-        Vector3 worldPoint = new Vector3(0, 0, 0);
-
+        internal const int boundX = 10;
+        internal const int boundY = 10;
+        internal const int boundZ = 10;
+        internal const int VIEW_RANGE = 500; // 可视范围
+        internal const float DRAW_DURATION = 200000000f; // 绘制持续时间
 
         public InterestManager(int maxEntities, StargateEngine engine)
         {
             this.engine = engine;
             simulationList = new List<Entity>(maxEntities);
+            DrawInterestGrid();
         }
         
         public unsafe void ExecuteNetworkUpdate()
@@ -116,6 +117,48 @@ namespace StargateNet
                 }
                 
                 entityList.Add(entity.networkId);
+            }
+        }
+
+        private void DrawInterestGrid()
+        {
+            Color gridColor = new Color(0.5f, 0.5f, 0.5f, 0.3f); // 半透明灰色
+            int halfRange = VIEW_RANGE / 2;
+            int blocksX = halfRange / boundX;
+            int blocksY = halfRange / boundY;
+            int blocksZ = halfRange / boundZ;
+
+            // 绘制X方向的线
+            for (int z = -blocksZ; z <= blocksZ; z++)
+            {
+                for (int y = -blocksY; y <= blocksY; y++)
+                {
+                    Vector3 start = new Vector3(-halfRange, y * boundY, z * boundZ);
+                    Vector3 end = new Vector3(halfRange, y * boundY, z * boundZ);
+                    GizmoTimerDrawer.Instance.DrawLineWithTimer(start, end, DRAW_DURATION, gridColor);
+                }
+            }
+
+            // 绘制Y方向的线
+            for (int x = -blocksX; x <= blocksX; x++)
+            {
+                for (int z = -blocksZ; z <= blocksZ; z++)
+                {
+                    Vector3 start = new Vector3(x * boundX, -halfRange, z * boundZ);
+                    Vector3 end = new Vector3(x * boundX, halfRange, z * boundZ);
+                    GizmoTimerDrawer.Instance.DrawLineWithTimer(start, end, DRAW_DURATION, gridColor);
+                }
+            }
+
+            // 绘制Z方向的线
+            for (int x = -blocksX; x <= blocksX; x++)
+            {
+                for (int y = -blocksY; y <= blocksY; y++)
+                {
+                    Vector3 start = new Vector3(x * boundX, y * boundY, -halfRange);
+                    Vector3 end = new Vector3(x * boundX, y * boundY, halfRange);
+                    GizmoTimerDrawer.Instance.DrawLineWithTimer(start, end, DRAW_DURATION, gridColor);
+                }
             }
         }
 

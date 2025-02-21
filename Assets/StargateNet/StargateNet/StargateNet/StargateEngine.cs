@@ -205,10 +205,11 @@ namespace StargateNet
                 if (this.IsServer)
                     this.Simulation.SerializeToNetcode();
                 this.SimTick++; // 当前是10帧模拟完，11帧的初始状态发往客户端的帧数应该是11帧
-                if (this.SimulationClock.IsLastCall) // 此时toSnapshot已经是完整的信息了，清理前先发送
-                    this.Send();
+                
                 this.Simulation.DrainPaddingAddedEntity(); // 发送后再添加到模拟中
                 this.Simulation.DrainPaddingRemovedEntity(); // 发送后再清除Entity占用的内存和id
+                if (this.SimulationClock.IsLastCall) // 此时toSnapshot已经是完整的信息了，清理前先发送
+                    this.Send();
                 if (this.IsServer) // 更新FromTick，11帧作为FromTick，12帧作为ToTick
                 {
                     this.WorldState.ServerUpdateState(this.SimTick);

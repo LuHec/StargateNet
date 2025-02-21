@@ -109,7 +109,10 @@ namespace StargateNet
                 destroyed = false
             };
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
-
+            if(this.engine.IsServer && inputSource!=-1)
+            {
+                this.engine.Server.clientConnections[inputSource].controlEntityRef = networkObjectRef;
+            }
             currentSnapshot.SetWorldObjectMeta(worldIdx, meta);
             currentSnapshot.MarkMetaDirty(worldIdx);
         }

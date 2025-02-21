@@ -79,6 +79,14 @@ namespace StargateNet
                 if (!clientConnection.connected) continue;
                 clientConnection.PrepareToWrite();
                 this._writeBuffer.Clear();
+                // 找到该客户端控制的玩家实体
+                if (this.Engine.Simulation.entitiesTable.TryGetValue(
+                        clientConnection.controlEntityRef, 
+                        out Entity playerEntity))
+                {
+                    // 计算该客户端的可见对象
+                    clientConnection.CalculateVisibleObjects(this.Engine.IM, playerEntity);
+                }
                 // 判断是否发送多帧包。现在是只要客户端不回话，服务端就会一直发多帧包
                 bool isMultiPak = clientConnection.clientData.isFirstPak || clientConnection.clientData.pakLoss;
                 Tick authorTick = this.Engine.SimTick;
