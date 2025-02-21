@@ -229,6 +229,7 @@ namespace StargateNet
         {
             if (this.IsServer)
             {
+                this.IM.CalculateAOI();
                 this.Server.SendServerPak();
             }
             else if (this.IsClient && this.IsConnected)

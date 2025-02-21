@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace StargateNet
 {
@@ -6,6 +7,14 @@ namespace StargateNet
     {
         internal StargateEngine engine;
         internal List<Entity> simulationList; // 实际会被执行的单元
+        internal Dictionary<InterestBlock, List<NetworkObjectRef>> interestBlockMap = new(128); // 每个InterestBlock对应的Entity列表,每帧都会重新构造
+        private Queue<List<NetworkObjectRef>> areaPool = new(128);
+
+        private int boundX = 100;
+        private int boundY = 100;
+        private int boundZ = 100;
+        Vector3 worldPoint = new Vector3(0, 0, 0);
+
 
         public InterestManager(int maxEntities, StargateEngine engine)
         {
@@ -76,6 +85,50 @@ namespace StargateNet
                     netScript.DeserializeToGameCode();
                 }
             }
+        }
+
+        internal void CalculateAOI()
+        {
+            foreach (var list in interestBlockMap.Values)
+            {
+                list.Clear();
+                areaPool.Enqueue(list);
+            }
+            interestBlockMap.Clear();
+
+            foreach (var entity in simulationList)
+            {
+                Transform transform = entity.entityObject.transform;
+                // 使用向下取整的方式处理负数坐标
+                InterestBlock block = new InterestBlock
+                {
+                    xIndex = (int)Mathf.Floor(transform.position.x / (float)boundX),
+                    yIndex = (int)Mathf.Floor(transform.position.y / (float)boundY),
+                    zIndex = (int)Mathf.Floor(transform.position.z / (float)boundZ)
+                };
+
+                if (!interestBlockMap.TryGetValue(block, out var entityList))
+                {
+                    entityList = areaPool.Count > 0 
+                        ? areaPool.Dequeue() 
+                        : new List<NetworkObjectRef>(16);
+                    interestBlockMap[block] = entityList;
+                }
+                
+                entityList.Add(entity.networkId);
+            }
+        }
+
+        // 建议添加清理方法
+        public void Clear()
+        {
+            foreach (var list in interestBlockMap.Values)
+            {
+                list.Clear();
+                areaPool.Enqueue(list);
+            }
+            interestBlockMap.Clear();
+            simulationList.Clear();
         }
     }
 }

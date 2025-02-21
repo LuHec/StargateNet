@@ -15,11 +15,11 @@ namespace StargateNet
         internal ushort Port { private set; get; }
         internal ushort MaxClientCount { private set; get; }
         internal Server Server { private set; get; }
+        internal List<ClientConnection> clientConnections;
         private int _idCounter = 1;
         private Dictionary<int, int> _guidToIdMap = new Dictionary<int, int>(512);
         private Dictionary<int, int> _clinetIdToGuidMap = new Dictionary<int, int>(512);
         private HashSet<int> _pendingConnectionIds = new HashSet<int>(512);
-        private List<ClientConnection> _clientConnections;
         private Queue<int> _connectionId2Reuse = new(16);
         private List<int> _cachedMetaIds;
         private List<SimulationInput> _cachedInputs = new List<SimulationInput>(128);
@@ -39,8 +39,8 @@ namespace StargateNet
             this.Port = port;
             this.MaxClientCount = maxClientCount;
             this.Server.Start(port, maxClientCount, useMessageHandlers: false);
-            this._clientConnections = new List<ClientConnection>(maxClientCount);
-            this._clientConnections.Add(new ClientConnection(this.Engine)); // 用来占位的，connection从1开始
+            this.clientConnections = new List<ClientConnection>(maxClientCount);
+            this.clientConnections.Add(new ClientConnection(this.Engine)); // 用来占位的，connection从1开始
             this._cachedMetaIds = new(this.Engine.maxEntities);
             RiptideLogger.Log(LogType.Debug, "Server Start");
         }
@@ -59,8 +59,8 @@ namespace StargateNet
         /// <param name="msg">数据</param> 
         public void SendMessageUnreliable(ushort clientId, Message msg)
         {
-            if (_clientConnections[clientId].connected)
-                this.Server.Send(msg, _clientConnections[clientId].connection);
+            if (clientConnections[clientId].connected)
+                this.Server.Send(msg, clientConnections[clientId].connection);
         }
 
         public unsafe void SendServerPak()
@@ -73,9 +73,9 @@ namespace StargateNet
                     this._cachedMetaIds.Add(idx);
             }
 
-            for (int i = 1; i < this._clientConnections.Count; i++)
+            for (int i = 1; i < this.clientConnections.Count; i++)
             {
-                ClientConnection clientConnection = this._clientConnections[i];
+                ClientConnection clientConnection = this.clientConnections[i];
                 if (!clientConnection.connected) continue;
                 clientConnection.PrepareToWrite();
                 this._writeBuffer.Clear();
@@ -173,7 +173,7 @@ namespace StargateNet
             // RiptideLogger.Log(LogType.Warning, $"client send input count: {inputCount}");
             int guid = this._clinetIdToGuidMap[args.FromConnection.Id];
             int playerId = this._guidToIdMap[guid];
-            ClientData clientData = this._clientConnections[playerId].clientData;
+            ClientData clientData = this.clientConnections[playerId].clientData;
             clientData.deltaPakTime = this.Engine.SimulationClock.Time - clientData.lastPakTime;
             clientData.lastPakTime = this.Engine.SimulationClock.Time;
             clientData.clientLastAuthorTick = new Tick(clientLastAuthorTick);
@@ -192,28 +192,6 @@ namespace StargateNet
                 {
                     int inputType = msg.GetInt();
                     this.Engine.Simulation.WriteInputBlock(simulationInput, inputType, msg);
-                    // InputBlock inputBlock = new()
-                    // {
-                    //     // type = msg.GetShort(),
-                    //     // input = new PlayerInput
-                    //     // {
-                    //     //     Input = new Vector2
-                    //     //     {
-                    //     //         x = msg.GetFloat(),
-                    //     //         y = msg.GetFloat(),
-                    //     //     },
-                    //     //     YawPitch = new Vector2
-                    //     //     {
-                    //     //         x = msg.GetFloat(),
-                    //     //         y = msg.GetFloat(),
-                    //     //     },
-                    //     //     IsJump = msg.GetBool(),
-                    //     //     IsFire = msg.GetBool(),
-                    //     //     IsInteract = msg.GetBool(),
-                    //     // }
-                    // };
-                    //
-                    // simulationInput.AddInputBlock(inputBlock);
                 }
 
                 this._cachedInputs.Add(simulationInput);
@@ -247,7 +225,7 @@ namespace StargateNet
         {
             Connection connection = args.Client;
             ClientData clientData = this.Engine.ServerSimulation.clientDatas[connection.Id];
-            ClientConnection clientConnection = _clientConnections[connection.Id];
+            ClientConnection clientConnection = clientConnections[connection.Id];
             clientData.Reset();
             clientConnection.Reset();
             this.Engine.Monitor.connectedClients--;
@@ -268,7 +246,7 @@ namespace StargateNet
             int guid = msg.GetString().GetHashCode();
             if (this._guidToIdMap.TryGetValue(guid, out int playerId))
             {
-                ClientConnection clientConnection = this._clientConnections[playerId];
+                ClientConnection clientConnection = this.clientConnections[playerId];
                 ClientData clientData = this.Engine.ServerSimulation.clientDatas[playerId];
                 if (clientConnection.connected && clientConnection.connection.Id != pendingConnection.Id) // 防止重复连接，直接把原来的连接踢掉
                 {
@@ -289,7 +267,7 @@ namespace StargateNet
                 clientData.Reset();
                 ClientConnection clientConnection = new ClientConnection(this.Engine)
                     { connected = true, connection = pendingConnection, clientData = clientData };
-                _clientConnections.Add(clientConnection);
+                clientConnections.Add(clientConnection);
                 pendingConnection.TimeoutTime = 10 * 1000;
             }
             
@@ -304,9 +282,9 @@ namespace StargateNet
         private void CalculateClientCount()
         {
             int count = 0;
-            for (int i = 0; i < this._clientConnections.Count; i++)
+            for (int i = 0; i < this.clientConnections.Count; i++)
             {
-                if (this._clientConnections[i].connected) count++;
+                if (this.clientConnections[i].connected) count++;
             }
 
             this.Engine.Monitor.connectedClients = count;

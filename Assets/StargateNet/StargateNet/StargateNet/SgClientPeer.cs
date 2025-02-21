@@ -164,15 +164,6 @@ namespace StargateNet
                     {
                         msg.AddByte(inputBlock.inputBlockPtr[dataIdx]);
                     }
-                    // PlayerInput playerInput = (PlayerInput)inputBlock.input;
-                    // msg.AddShort(inputBlock.type);
-                    // msg.AddFloat(playerInput.Input.x);
-                    // msg.AddFloat(playerInput.Input.y);
-                    // msg.AddFloat(playerInput.YawPitch.x);
-                    // msg.AddFloat(playerInput.YawPitch.y);
-                    // msg.AddBool(playerInput.IsJump);
-                    // msg.AddBool(playerInput.IsFire);
-                    // msg.AddBool(playerInput.IsInteract);
                 }
             }
 

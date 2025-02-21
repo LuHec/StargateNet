@@ -10,7 +10,7 @@ namespace StargateNet
         public NetworkObjectRef NetworkId => this.Entity.networkId;
         public IStargateNetworkScript[] NetworkScripts { get; private set; }
         public StargateEngine engine;
-
+        
         /// <summary>
         /// 由编辑器生成的id
         /// </summary>
@@ -19,7 +19,7 @@ namespace StargateNet
             get => _prefabId;
             set => this._prefabId = value;
         }
-
+        
         [SerializeField] private int _prefabId = -1;
 
         public void Initialize(StargateEngine engine, Entity networkEntity, IStargateNetworkScript[] scripts)

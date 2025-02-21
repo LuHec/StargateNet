@@ -2344,7 +2344,7 @@ MonoBehaviour:
   serverPort: 58835
   maxClientCount: 20
   toServerIp: 101.70.156.105
-  test: {fileID: 7095134503880436856, guid: 8d3dc2fde6a162047a445be0dff25124, type: 3}
+  test: {fileID: 7729773817608672209, guid: 9a0ff6a11c5092a40843d0dc8739a233, type: 3}
 --- !u!1 &1723073775
 GameObject:
   m_ObjectHideFlags: 0

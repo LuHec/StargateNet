@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace StargateNet
 {
     /// <summary>
-    /// 用于存储每一帧特定客户端的同步对象。暂时先不管分包同步的问题
+    /// 用于存储每一帧客户端所在的区块
     /// </summary>   
     public class InterestGroup
     {

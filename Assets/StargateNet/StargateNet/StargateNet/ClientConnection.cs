@@ -9,11 +9,12 @@ namespace StargateNet
         internal ClientData clientData;
         internal Connection connection;
         internal Tick lastAckTick = Tick.InvalidTick;
-        internal List<InterestGroup> interestGroup = new(1);
         internal StargateEngine engine;
+        internal HashSet<NetworkObjectRef> lastVisibleObjects = new(256);
         private List<Snapshot> _cachedSnapshots = new(32); // 用于存放过去的Snapshot，辅助MultiPak
         private List<bool> _cachedDirtyMetaIds; // 用于存放dirty的metaId，辅助MultiPak
         private HashSet<int> _cachedDirtyStateIds = new(128); // 用于存放Entity过去dirty的stateId，辅助MultiPak
+        
 
         public ClientConnection(StargateEngine engine)
         {

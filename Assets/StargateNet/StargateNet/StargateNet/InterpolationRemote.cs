@@ -12,16 +12,20 @@ namespace StargateNet
     /// </summary>
     public class InterpolationRemote : Interpolation
     {
+        private const float Scaler = 0.2f;
+        private const float MaxDelay = 200f;
         internal override Tick FromTick => this._fromTick;
         internal override Tick ToTick => this._toTick;
         public override bool HasSnapshot => this.FromSnapshot != null && this.ToSnapshot != null;
         public override float Alpha => _alpha;
         internal override float InterpolationTime { get; }
+
         /// <summary>
         /// 帧时间+距离上次收包过了多久-积攒插值时间，这个值会被用于判断插值时间是否已经超时。||含义是还差多少时间才能把包全部消耗完,即interploate的延迟||
         /// 延迟和丢包与bufferTime成正比
         /// </summary>
         internal float CurrentBufferTime => this._bufferAsTime + (float)(this.Engine.SimulationClock.Time - this._lastTimeAddSnapshot) - this._currentLerpTime;
+
         private Queue<Snapshot> _snapshotsPool;
         private readonly int _maxSnapshots;
         private float _maxInterpolateRatio;
@@ -57,7 +61,8 @@ namespace StargateNet
         internal override void Update()
         {
             float fixedDeltaTime = this.Engine.SimulationClock.FixedDeltaTime;
-            double threshold = Math.Max(fixedDeltaTime, this._packetTime.Average) + fixedDeltaTime * 0.4 + this._packetTime.StdDeviation * 4.0;
+            // double threshold = Math.Max(fixedDeltaTime, this._packetTime.Average) + fixedDeltaTime * 0.4 + this._packetTime.StdDeviation * 4.0;
+            double threshold = Math.Max(fixedDeltaTime, 0) + fixedDeltaTime * 0.4 + this._packetTime.StdDeviation * 4.0;
             if (this._snapshotBuffer.Count < 2)
             {
                 this._useAbleTicks = 0;
@@ -71,7 +76,7 @@ namespace StargateNet
 
             this._fromTick = this._snapshotBuffer[0].snapshotTick;
             this._toTick = this._snapshotBuffer[1].snapshotTick;
-            float time = (this._toTick - this._fromTick) * fixedDeltaTime; 
+            float time = (this._toTick - this._fromTick) * fixedDeltaTime;
             double delta = this.CurrentBufferTime - threshold;
             double maxThreshold = this._maxInterpolateRatio * fixedDeltaTime;
             // 对deltaTime进行缩放，应对网络波动.延迟丢包越大scale越大，延迟大的时候_currentLerpTime增加的就少，这样帧数消耗的就慢
@@ -84,14 +89,16 @@ namespace StargateNet
             {
                 scale = delta < -fixedDeltaTime * 3.0f ? 0.89f : 0.99f;
             }
-
+            
             if (this._currentLerpTime < time)
             {
                 this._currentLerpTime += Time.deltaTime * scale;
                 this._alpha = this._currentLerpTime / time;
             }
-
-            if (this._currentLerpTime > time) 
+            
+            
+            
+            if (this._currentLerpTime > time)
             {
                 while (this._alpha > 1) // 消耗插值时间，如果上一帧来得太慢，为了追赶进度就要退出以前的帧
                 {
@@ -100,7 +107,7 @@ namespace StargateNet
                         this._currentLerpTime = 0;
                         break;
                     }
-                    
+
                     // 退出缓存，并减去对应的插值时间
                     this.Dequeue();
                     this._currentLerpTime -= time;
@@ -148,7 +155,7 @@ namespace StargateNet
             if (this._snapshotBuffer.IsFull)
                 this.Reset();
         }
-        
+
         internal void Dequeue()
         {
             this._snapshotsPool.Enqueue(this._snapshotBuffer[0]);
