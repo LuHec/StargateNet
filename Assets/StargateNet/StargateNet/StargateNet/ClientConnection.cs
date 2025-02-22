@@ -14,7 +14,8 @@ namespace StargateNet
         internal NetworkObjectRef controlEntityRef;
         internal HashSet<NetworkObjectRef> lastVisibleObjects = new(256); // 上一帧可见的对象
         internal HashSet<NetworkObjectRef> currentVisibleObjects = new(256); // 当前视野内的对象
-        private const int INTEREST_RADIUS = 2; // AOI半径，以区块为单位
+        private readonly int INTEREST_RADIUS; // AOI半径，以区块为单位
+        private readonly int UNLOAD_EXTRA_RADIUS;  // 额外的卸载缓冲区大小
         private List<Snapshot> _cachedSnapshots = new(32); // 用于存放过去的Snapshot，辅助MultiPak
         private List<bool> _cachedDirtyMetaIds; // 用于存放dirty的metaId，辅助MultiPak
         private HashSet<int> _cachedDirtyStateIds = new(128); // 用于存放Entity过去dirty的stateId，辅助MultiPak
@@ -28,6 +29,9 @@ namespace StargateNet
             {
                 this._cachedDirtyMetaIds.Add(false);
             }
+
+            this.INTEREST_RADIUS = engine.ConfigData.AoIRange;
+            this.UNLOAD_EXTRA_RADIUS = engine.ConfigData.AoIUnloadRange;
         }
 
         public void Reset()
@@ -166,10 +170,11 @@ namespace StargateNet
                 NetworkObjectMeta meta = curSnapshot.GetWorldObjectMeta(id);
                 NetworkObjectRef netRef = new NetworkObjectRef(meta.networkId);
 
-                // 合并所有需要发送的条件：
-                // 1. 在缓存列表中 或
-                // 2. 在AOI范围内（新进入、当前在内、刚离开）
-                if (cachedMeta.Contains(id) || ShouldSendObject(netRef, meta.destroyed))
+                // 分别处理两种情况：
+                // 1. 在缓存列表中的meta
+                // 2. 新进入视野的物体需要发送meta
+                if (cachedMeta.Contains(id) || 
+                    (currentVisibleObjects.Contains(netRef) && !lastVisibleObjects.Contains(netRef)))
                 {
                     AddNetworkObjectMeta(writeBuffer, id, meta);
                 }
@@ -390,12 +395,36 @@ namespace StargateNet
             Transform transform = playerEntity.entityObject.transform;
             InterestBlock playerBlock = new InterestBlock
             {
-                xIndex = (int)Mathf.Floor(transform.position.x / InterestManager.boundX),
-                yIndex = (int)Mathf.Floor(transform.position.y / InterestManager.boundY),
-                zIndex = (int)Mathf.Floor(transform.position.z / InterestManager.boundZ)
+                xIndex = (int)Mathf.Floor(transform.position.x / im.boundX),
+                yIndex = (int)Mathf.Floor(transform.position.y / im.boundY),
+                zIndex = (int)Mathf.Floor(transform.position.z / im.boundZ)
             };
 
-            // 遍历周围区块
+            // 判断是否需要卸载当前视野中的对象
+            int unloadRadius = INTEREST_RADIUS + UNLOAD_EXTRA_RADIUS;
+            foreach (var netId in lastVisibleObjects)
+            {
+                Entity entity = this.engine.Simulation.entitiesTable[netId];
+                if (entity == null) continue;
+
+                Transform entityTransform = entity.entityObject.transform;
+                InterestBlock entityBlock = new InterestBlock
+                {
+                    xIndex = (int)Mathf.Floor(entityTransform.position.x / im.boundX),
+                    yIndex = (int)Mathf.Floor(entityTransform.position.y / im.boundY),
+                    zIndex = (int)Mathf.Floor(entityTransform.position.z / im.boundZ)
+                };
+
+                // 如果在扩大的范围内，保持可见
+                if (Mathf.Abs(entityBlock.xIndex - playerBlock.xIndex) <= unloadRadius &&
+                    Mathf.Abs(entityBlock.yIndex - playerBlock.yIndex) <= unloadRadius &&
+                    Mathf.Abs(entityBlock.zIndex - playerBlock.zIndex) <= unloadRadius)
+                {
+                    currentVisibleObjects.Add(netId);
+                }
+            }
+
+            // 加载新的可见对象（使用原始的INTEREST_RADIUS）
             for (int x = -INTEREST_RADIUS; x <= INTEREST_RADIUS; x++)
             {
                 for (int y = -INTEREST_RADIUS; y <= INTEREST_RADIUS; y++)

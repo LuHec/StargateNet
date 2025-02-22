@@ -20,6 +20,10 @@ MonoBehaviour:
   SavedSnapshotsCount: 32
   MaxPredictedTicks: 32
   maxSnapshotSendSize: 102400
+  AoIBound: 50
+  AoIRange: 4
+  AoIUnloadRange: 2
+  WorldSize: 500
   NetworkObjects:
   - {fileID: 7095134503880436856, guid: 8d3dc2fde6a162047a445be0dff25124, type: 3}
   - {fileID: 7095134503880436856, guid: 69e03efa710929f47b22396aa0160455, type: 3}

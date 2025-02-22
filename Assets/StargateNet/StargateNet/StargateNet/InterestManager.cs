@@ -10,16 +10,18 @@ namespace StargateNet
         internal Dictionary<InterestBlock, List<NetworkObjectRef>> interestBlockMap = new(128); // 每个InterestBlock对应的Entity列表,每帧都会重新构造
         private Queue<List<NetworkObjectRef>> areaPool = new(128);
 
-        internal const int boundX = 10;
-        internal const int boundY = 10;
-        internal const int boundZ = 10;
-        internal const int VIEW_RANGE = 500; // 可视范围
+        internal readonly int boundX = 10;
+        internal readonly int boundY = 10;
+        internal readonly int boundZ = 10;
+        internal readonly int VIEW_RANGE = 500; // 可视范围
         internal const float DRAW_DURATION = 200000000f; // 绘制持续时间
 
         public InterestManager(int maxEntities, StargateEngine engine)
         {
             this.engine = engine;
-            simulationList = new List<Entity>(maxEntities);
+            this.simulationList = new List<Entity>(maxEntities);
+            this.boundX = this.boundY = this.boundZ = engine.ConfigData.AoIBound;
+            this.VIEW_RANGE = engine.ConfigData.WorldSize;
             DrawInterestGrid();
         }
         

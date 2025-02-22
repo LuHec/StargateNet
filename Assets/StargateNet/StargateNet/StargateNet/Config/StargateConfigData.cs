@@ -13,7 +13,11 @@ namespace StargateNet
         public int savedSnapshotsCount;
         public int maxPredictedTicks;
         public int maxSnapshotSendSize;  // 单帧能发送的最大Snapshot大小
-        
+        public int AoIBound;
+        public int AoIRange;
+        public int AoIUnloadRange;
+        public int WorldSize;
+
         // Engine Data
         public List<GameObject> networkPrefabs;
         public long maxObjectStateBytes; // 单个NetworkObject的内存大小
