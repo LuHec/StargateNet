@@ -18,7 +18,7 @@ namespace StargateNet
         private List<Snapshot> _cachedSnapshots = new(32); // 用于存放过去的Snapshot，辅助MultiPak
         private List<bool> _cachedDirtyMetaIds; // 用于存放dirty的metaId，辅助MultiPak
         private HashSet<int> _cachedDirtyStateIds = new(128); // 用于存放Entity过去dirty的stateId，辅助MultiPak
-        
+
 
         public ClientConnection(StargateEngine engine)
         {
@@ -60,7 +60,7 @@ namespace StargateNet
         /// <param name="writeBuffer"></param>
         /// <param name="cachedMeta"></param>
         /// <param name="isMultiPak"></param>
-        public unsafe void WriteMeta(ReadWriteBuffer writeBuffer, bool isMultiPak, List<int> cachedMeta)
+        public unsafe void WriteMeta(ReadWriteBuffer writeBuffer, bool isMultiPak, HashSet<int> cachedMeta)
         {
             WorldState worldState = this.engine.WorldState;
             Snapshot curSnapshot = worldState.CurrentSnapshot;
@@ -129,6 +129,7 @@ namespace StargateNet
         /// </summary>
         private void WriteDeltaMeta(ReadWriteBuffer writeBuffer, Snapshot curSnapshot)
         {
+            // 先处理历史帧的dirty标记
             foreach (var hisSnapshot in this._cachedSnapshots)
             {
                 for (int id = 0; id < this.engine.ConfigData.maxNetworkObjects; id++)
@@ -139,10 +140,13 @@ namespace StargateNet
 
             for (int id = 0; id < this.engine.ConfigData.maxNetworkObjects; id++)
             {
-                this._cachedDirtyMetaIds[id] |= curSnapshot.IsWorldMetaDirty(id);
-                if (this._cachedDirtyMetaIds[id])
+                NetworkObjectMeta meta = curSnapshot.GetWorldObjectMeta(id);
+                bool isNewlyVisible = currentVisibleObjects.Contains(new NetworkObjectRef(meta.networkId)) &&
+                                    !lastVisibleObjects.Contains(new NetworkObjectRef(meta.networkId));
+
+                // 如果是新进入视野或者meta发生变化，都需要发送
+                if (isNewlyVisible || this._cachedDirtyMetaIds[id] || curSnapshot.IsWorldMetaDirty(id))
                 {
-                    NetworkObjectMeta meta = curSnapshot.GetWorldObjectMeta(id);
                     // 只发送需要同步的对象
                     if (ShouldSendObject(new NetworkObjectRef(meta.networkId), meta.destroyed))
                     {
@@ -155,13 +159,17 @@ namespace StargateNet
         /// <summary>
         /// 写入缓存元数据
         /// </summary>
-        private void WriteCachedMeta(ReadWriteBuffer writeBuffer, Snapshot curSnapshot, List<int> cachedMeta)
+        private void WriteCachedMeta(ReadWriteBuffer writeBuffer, Snapshot curSnapshot, HashSet<int> cachedMeta)
         {
-            foreach (int id in cachedMeta)
+            for (int id = 0; id < this.engine.ConfigData.maxNetworkObjects; id++)
             {
                 NetworkObjectMeta meta = curSnapshot.GetWorldObjectMeta(id);
-                // 只发送需要同步的对象
-                if (ShouldSendObject(new NetworkObjectRef(meta.networkId), meta.destroyed))
+                NetworkObjectRef netRef = new NetworkObjectRef(meta.networkId);
+
+                // 合并所有需要发送的条件：
+                // 1. 在缓存列表中 或
+                // 2. 在AOI范围内（新进入、当前在内、刚离开）
+                if (cachedMeta.Contains(id) || ShouldSendObject(netRef, meta.destroyed))
                 {
                     AddNetworkObjectMeta(writeBuffer, id, meta);
                 }
@@ -202,21 +210,35 @@ namespace StargateNet
                 for (int worldIdx = 0; worldIdx < simulation.entities.Count; worldIdx++)
                 {
                     Entity entity = simulation.entities[worldIdx];
-                    if (entity != null && entity.dirty && !worldState.CurrentSnapshot.IsObjectDestroyed(worldIdx))
+                    if (entity == null || worldState.CurrentSnapshot.IsObjectDestroyed(worldIdx))
+                        continue;
+
+                    bool isNewlyVisible = currentVisibleObjects.Contains(entity.networkId) && !lastVisibleObjects.Contains(entity.networkId);
+                    if ((isNewlyVisible || entity.dirty) && ShouldSendObject(entity.networkId, false))
                     {
-                        // 只发送在AOI范围内的对象状态
-                        if (ShouldSendObject(entity.networkId, false))
+                        writeBuffer.AddInt(worldIdx);
+
+                        // 新进入视野的实体发送所有状态
+                        if (isNewlyVisible)
                         {
-                            writeBuffer.AddInt(worldIdx);
+                            for (int idx = 0; idx < entity.entityBlockWordSize; idx++)
+                            {
+                                writeBuffer.AddInt(idx);
+                                writeBuffer.AddInt(entity.GetState(idx));
+                            }
+                        }
+                        // 已在视野中的实体只发送dirty状态
+                        else
+                        {
                             for (int idx = 0; idx < entity.entityBlockWordSize; idx++)
                             {
                                 if (!entity.IsStateDirty(idx)) continue;
                                 writeBuffer.AddInt(idx);
                                 writeBuffer.AddInt(entity.GetState(idx));
                             }
-
-                            writeBuffer.AddInt(-1); // 单个Entity终止符号
                         }
+
+                        writeBuffer.AddInt(-1); // 单个Entity终止符号
                     }
                 }
             }
@@ -253,15 +275,17 @@ namespace StargateNet
             for (int worldIdx = 0; worldIdx < simulation.entities.Count; worldIdx++)
             {
                 Entity entity = simulation.entities[worldIdx];
-                if (entity != null && !worldState.CurrentSnapshot.IsObjectDestroyed(worldIdx))
+                bool isDestroyed = entity == null || worldState.CurrentSnapshot.IsObjectDestroyed(worldIdx);
+
+                if (entity != null && ShouldSendObject(entity.networkId, isDestroyed))
                 {
                     writeBuffer.AddInt(worldIdx);
+                    // 发送所有状态
                     for (int idx = 0; idx < entity.entityBlockWordSize; idx++)
                     {
                         writeBuffer.AddInt(idx);
                         writeBuffer.AddInt(entity.GetState(idx));
                     }
-
                     writeBuffer.AddInt(-1); // 单个Entity终止符号
                 }
             }
@@ -279,12 +303,36 @@ namespace StargateNet
             for (int worldIdx = 0; worldIdx < simulation.entities.Count; worldIdx++)
             {
                 Entity entity = simulation.entities[worldIdx];
-                if (entity != null && !worldState.CurrentSnapshot.IsObjectDestroyed(worldIdx))
+                bool isDestroyed = entity == null || worldState.CurrentSnapshot.IsObjectDestroyed(worldIdx);
+
+                // 先检查是否需要发送任何信息
+                if (entity != null && ShouldSendObject(entity.networkId, isDestroyed))
                 {
                     writeBuffer.AddInt(worldIdx);
-                    this.WriteEntityDeltaState(writeBuffer, entity, worldIdx);
+
+                    // 再检查是否需要发送全量状态（新进入视野）
+                    bool isNewlyVisible = currentVisibleObjects.Contains(entity.networkId) && !lastVisibleObjects.Contains(entity.networkId);
+
+                    if (isNewlyVisible)
+                    {
+                        WriteFullEntityState(writeBuffer, entity);
+                    }
+                    else
+                    {
+                        WriteEntityDeltaState(writeBuffer, entity, worldIdx);
+                    }
+
                     writeBuffer.AddInt(-1); // 单个Entity终止符号
                 }
+            }
+        }
+
+        private void WriteFullEntityState(ReadWriteBuffer writeBuffer, Entity entity)
+        {
+            for (int idx = 0; idx < entity.entityBlockWordSize; idx++)
+            {
+                writeBuffer.AddInt(idx);
+                writeBuffer.AddInt(entity.GetState(idx));
             }
         }
 
@@ -336,14 +384,6 @@ namespace StargateNet
         /// </summary>
         internal void CalculateVisibleObjects(InterestManager im, Entity playerEntity)
         {
-            // 保存上一帧的可见对象列表
-            lastVisibleObjects.Clear();
-            foreach (var obj in currentVisibleObjects)
-            {
-                lastVisibleObjects.Add(obj);
-            }
-            currentVisibleObjects.Clear();
-
             if (playerEntity == null) return;
 
             // 计算玩家所在的区块

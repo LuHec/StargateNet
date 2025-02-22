@@ -1158,8 +1158,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b8c829169586ab48aa128e380751c72, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  renderTransform: {fileID: 6530700093778204227}
-  needCorrect: 0
+  renderTransform: {fileID: 0}
+  needCorrect: 1
   errorMagnitude: 1.8
   correctionMultiplier: 1.28
 --- !u!114 &8415101746974425420
@@ -1174,8 +1174,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6038015bd9f64a83a46aa25eeab5de3b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  weaponModel: {fileID: 7729773817608672209, guid: 79b02dee71e0e8f43b2018ce7536f482,
-    type: 3}
+  weaponModel: {fileID: 0}
   maxAmmo: 31
   fireRate: 0.1
 --- !u!54 &8544034581204158230

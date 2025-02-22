@@ -21,7 +21,7 @@ namespace StargateNet
         private Dictionary<int, int> _clinetIdToGuidMap = new Dictionary<int, int>(512);
         private HashSet<int> _pendingConnectionIds = new HashSet<int>(512);
         private Queue<int> _connectionId2Reuse = new(16);
-        private List<int> _cachedMetaIds;
+        private HashSet<int> _cachedMetaIds = new(128); // 改用HashSet
         private List<SimulationInput> _cachedInputs = new List<SimulationInput>(128);
         private ReadWriteBuffer _writeBuffer;
 
@@ -67,6 +67,8 @@ namespace StargateNet
         {
             PrepareToSend();
             Snapshot curSnapshot = this.Engine.WorldState.CurrentSnapshot;
+            
+            // 收集dirty的meta
             for (int idx = 0; idx < this.Engine.maxEntities; idx++)
             {
                 if (curSnapshot.IsWorldMetaDirty(idx))

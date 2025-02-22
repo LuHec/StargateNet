@@ -122,7 +122,7 @@ namespace StargateNet
 
         private void DrawInterestGrid()
         {
-            Color gridColor = new Color(0.5f, 0.5f, 0.5f, 0.3f); // 半透明灰色
+            Color gridColor = Color.green; 
             int halfRange = VIEW_RANGE / 2;
             int blocksX = halfRange / boundX;
             int blocksY = halfRange / boundY;
