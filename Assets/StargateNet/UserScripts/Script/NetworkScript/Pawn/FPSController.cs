@@ -111,7 +111,7 @@ public class FPSController : NetworkBehavior
                 VerticalSpeed = jumpSpeed;
             }
 
-            if (input.IsFire && attributeComponent.WeaponRef != -1)
+            if (input.IsFire)
             {
                 GizmoTimerDrawer.Instance.DrawRayWithTimer(cameraPoint.position, cameraPoint.forward * 50f, 5f,
                     Color.green);

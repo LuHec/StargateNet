@@ -40,7 +40,7 @@ public class AttributeComponent : NetworkBehavior
     [NetworkCallBack(nameof(WeaponRef), true)]
     public void OnWeaponRefChanged(CallbackData callbackData)
     {
-        Debug.LogError("ChangeWeapon");
+        Debug.LogWarning($"ChangeWeapon To {WeaponRef}");
         if (callbackData.GetPreviousData<int>() != WeaponRef)
         {
             if (_weaponModel != null)

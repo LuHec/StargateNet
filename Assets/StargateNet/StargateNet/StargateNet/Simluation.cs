@@ -24,7 +24,7 @@ namespace StargateNet
         internal Snapshot previousState;
         protected HashSet<CallbackData> remoteCallbacks = new(2048);
         private StargateAllocator _inputAllocator;
-        // protected CallbackData[] callbackData = new CallbackData[2048];
+        
 
         internal unsafe Simulation(StargateEngine engine)
         {
@@ -287,7 +287,7 @@ namespace StargateNet
         /// <summary>
         /// 在Update期间调整NetworkInput.
         /// </summary>
-        internal void SetInput<T>(T networkInput, bool needRefreshAlpha = false) where T : unmanaged, INetworkInput
+        internal virtual void SetInput<T>(T networkInput, bool needRefreshAlpha = false) where T : unmanaged, INetworkInput
         {
             string typeName = typeof(T).Name;
             if (!this.typeNameToTypeTable.ContainsKey(typeName)) return;
@@ -348,12 +348,6 @@ namespace StargateNet
             {
                 inputBlock = this.typeToInputBlockTable[inputType];
                 input = inputBlock.Get<T>();
-                // List<InputBlock> inputBlocks = this.currentInput.inputBlocks;
-                // for (int i = 0; i < inputBlocks.Count; i++)
-                // {
-                //     if (inputBlocks[i].type != inputType) continue;
-                //     input = inputBlocks[i].Get<T>();
-                // }
             }
 
             return input;

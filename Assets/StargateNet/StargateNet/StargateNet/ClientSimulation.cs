@@ -20,6 +20,8 @@ namespace StargateNet
         private readonly int _maxPredictedTicks;
         private List<Entity> _predictedEntities = new(32);
         private List<IClientSimulationCallbacks> _clientSimulationCallbacksList = new(128);
+        private Tick clientInterpolationRemoteFromTick;
+        private float clientInterpolationAlpha;
 
 
         internal ClientSimulation(StargateEngine engine) : base(engine)
@@ -109,7 +111,7 @@ namespace StargateNet
         {
             return isMultiPacket && srvTick >= this.authoritativeTick + 1 && srvClientAuthorTick <= this.authoritativeTick;
         }
-        
+
         private void InvokeClientOnPreRollBack()
         {
             foreach (var callbacks in this._clientSimulationCallbacksList)
@@ -141,19 +143,10 @@ namespace StargateNet
             if (this.engine.SimulationClock.IsFirstCall)
                 this.Reconcile();
 
-            this.currentInput = CreateInput(this.authoritativeTick, this.currentTick, 0, Tick.InvalidTick);
+            this.currentInput = CreateInput(this.authoritativeTick, this.currentTick, this.clientInterpolationAlpha, this.clientInterpolationRemoteFromTick);
             this.inputs.Add(this.currentInput);
-            // //TODO:暂时先这么写，后续要改造alpha的存放方式
-            // foreach (var pair in this.clientInputs)
-            // {
-            //     this.currentInput.inputBlocks.Add(new InputBlock
-            //     {
-            //         type = pair.Key,
-            //         input = pair.Value.networkInput,
-            //     });
-            //     this.currentInput.clientInterpolationAlpha = pair.Value.alpha;
-            //     this.currentInput.clientRemoteFromTick = pair.Value.remoteFromTick;
-            // }
+            this.clientInterpolationAlpha = 0f;
+            this.clientInterpolationRemoteFromTick = Tick.InvalidTick;
 
             // 关于新输入把旧输入冲掉导致服务端丢失操作的问题：
             // 首先模拟函数的调用时机在Send Input之后
@@ -304,6 +297,16 @@ namespace StargateNet
             }
 
             return false;
+        }
+
+        internal override void SetInput<T>(T networkInput, bool needRefreshAlpha = false)
+        {
+            base.SetInput(networkInput, needRefreshAlpha);
+            if (needRefreshAlpha)
+            {
+                this.clientInterpolationAlpha = this.engine.InterpolationRemote.Alpha;
+                this.clientInterpolationRemoteFromTick = this.engine.InterpolationRemote.FromTick;
+            }
         }
     }
 }

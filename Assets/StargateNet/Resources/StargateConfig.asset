@@ -20,7 +20,7 @@ MonoBehaviour:
   SavedSnapshotsCount: 32
   MaxPredictedTicks: 32
   maxSnapshotSendSize: 102400
-  AoIBound: 50
+  AoIBound: 20
   AoIRange: 4
   AoIUnloadRange: 2
   WorldSize: 500
@@ -31,4 +31,4 @@ MonoBehaviour:
   maxObjectStateBytes: 40
   networkInputsTypes:
   - PlayerInput
-  networkInputsBytes: 24000000
+  networkInputsBytes: 1c000000
