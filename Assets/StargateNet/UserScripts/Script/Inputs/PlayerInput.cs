@@ -9,5 +9,6 @@ namespace StargateNet
         public bool IsJump;
         public bool IsFire;
         public bool IsInteract;
+        public bool IsThrowing;
     }
 }

@@ -1270,7 +1270,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5404179526034224806}
   m_Layer: 0
-  m_Name: Vector
+  m_Name: VectorModel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

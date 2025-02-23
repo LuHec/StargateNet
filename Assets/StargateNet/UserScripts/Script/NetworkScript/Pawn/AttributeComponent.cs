@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using StargateNet;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class AttributeComponent : NetworkBehavior
@@ -39,19 +40,31 @@ public class AttributeComponent : NetworkBehavior
 
     public void ThrowWeapon()
     {
+        WeaponRef = -1;
     }
 
     [NetworkCallBack(nameof(WeaponRef), true)]
     public void OnWeaponRefChanged(CallbackData callbackData)
     {
         Debug.LogWarning($"ChangeWeapon To {WeaponRef}");
-        if (callbackData.GetPreviousData<int>() != WeaponRef)
+        // 先丢弃之前的武器
+        if (callbackData.GetPreviousData<int>() != -1)
         {
             if (_weaponModel != null)
+            {
                 Destroy(_weaponModel);
-            this._networkWeapon = null;
+                _weaponModel = null;
+            }
+
+            if (_networkWeapon != null)
+            {
+                _networkWeapon.gameObject.SetActive(true);
+                _networkWeapon.transform.GetComponent<Rigidbody>().AddForce(owner.transform.forward * 5, ForceMode.Impulse);
+                _networkWeapon = null;
+            }
         }
 
+        // 再生成新的武器
         if (WeaponRef == -1) return;
         NetworkObject networkObject = Entity.engine.GetNetworkObject(new NetworkObjectRef(WeaponRef));
         _networkWeapon = networkObject.GetComponent<NetworkWeapon>();

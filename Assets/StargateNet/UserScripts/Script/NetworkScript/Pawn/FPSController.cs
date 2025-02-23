@@ -138,6 +138,11 @@ public class FPSController : NetworkBehavior
                     attributeComponent.SetNetworkWeapon(hit.collider.GetComponent<NetworkObject>());
                 }
             }
+
+            if(input.IsThrowing && IsServer)
+            {
+                attributeComponent.ThrowWeapon();
+            }
         }
 
         // 重力
@@ -216,7 +221,8 @@ public class FPSController : NetworkBehavior
         playerInput.YawPitch = new Vector2(_localYawPitch.x, _localYawPitch.y);
         playerInput.IsJump |= Input.GetKeyDown(KeyCode.Space);
         playerInput.IsFire |= Input.GetMouseButtonDown(0);
-        playerInput.IsInteract |= Input.GetKey(KeyCode.E);
+        playerInput.IsInteract |= Input.GetKeyDown(KeyCode.E);
+        playerInput.IsThrowing |= Input.GetKeyDown(KeyCode.G);
         // 处理延迟补偿
         //TODO:暂时这么写！！还在想办法解决怎么把这个狗屎延迟补偿输入给提取出用户代码
         galaxy.SetInput(playerInput, Input.GetMouseButtonDown(0));

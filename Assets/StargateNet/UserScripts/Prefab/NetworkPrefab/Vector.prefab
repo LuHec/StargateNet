@@ -1110,7 +1110,7 @@ GameObject:
   - component: {fileID: 8544034581204158230}
   - component: {fileID: 5421382638982640578}
   m_Layer: 9
-  m_Name: Vector_Placed
+  m_Name: Vector
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1174,7 +1174,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6038015bd9f64a83a46aa25eeab5de3b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  weaponModel: {fileID: 0}
+  weaponModel: {fileID: 7729773817608672209, guid: 79b02dee71e0e8f43b2018ce7536f482,
+    type: 3}
   maxAmmo: 31
   fireRate: 0.1
 --- !u!54 &8544034581204158230
