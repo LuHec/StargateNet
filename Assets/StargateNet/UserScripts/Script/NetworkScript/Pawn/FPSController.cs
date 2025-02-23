@@ -120,6 +120,11 @@ public class FPSController : NetworkBehavior
                 if (hit.collider != null)
                 {
                     GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hit.point, .5f, 5f, Color.red);
+                    Debug.LogWarning(hit.collider.gameObject.name);
+                    if(this.IsServer && hit.collider.gameObject.TryGetComponent(out AttributeComponent attribute))
+                    {
+                        attribute.HPoint -= 10;
+                    }
                 }
             }
 

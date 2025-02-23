@@ -22,7 +22,7 @@ namespace StargateNet
             this.simulationList = new List<Entity>(maxEntities);
             this.boundX = this.boundY = this.boundZ = engine.ConfigData.AoIBound;
             this.VIEW_RANGE = engine.ConfigData.WorldSize;
-            DrawInterestGrid();
+            // DrawInterestGrid();
         }
         
         public unsafe void ExecuteNetworkUpdate()

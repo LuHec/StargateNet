@@ -22,7 +22,11 @@ public class AttributeComponent : NetworkBehavior
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
         if (IsServer)
+        {
+            HPoint = 100;
+            Armor = 100;
             WeaponRef = -1;
+        }
     }
 
     public void SetNetworkWeapon(NetworkObject networkObject)
@@ -55,5 +59,11 @@ public class AttributeComponent : NetworkBehavior
 
         _weaponModel = Instantiate(_networkWeapon.weaponModel, owner.handPoint);
         networkObject.gameObject.SetActive(false);
+    }
+
+    [NetworkCallBack(nameof(HPoint), true)]
+    public void OnHpointChanged(CallbackData callbackData)
+    {
+        Debug.LogWarning($"Hp from {callbackData.GetPreviousData<int>()} To {HPoint}");
     }
 }

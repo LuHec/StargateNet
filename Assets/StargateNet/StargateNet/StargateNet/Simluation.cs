@@ -261,6 +261,7 @@ namespace StargateNet
             if (entity.networkId.refValue != this.previousState.GetWorldObjectMeta(entity.worldMetaId).networkId)
                 return;
 
+            if(this.engine.IsClient && !this.engine.ClientSimulation.currentTick.IsValid ) return;
             int* previousData = (int*)this.previousState.NetworkStates.pools[entity.poolId].dataPtr + entity.entityBlockWordSize + dataIdx;
             CallbackData callbackData = new CallbackData()
             {
