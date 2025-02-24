@@ -22,6 +22,7 @@ namespace StargateNet
         private List<IClientSimulationCallbacks> _clientSimulationCallbacksList = new(128);
         private Tick clientInterpolationRemoteFromTick;
         private float clientInterpolationAlpha;
+        private bool needRollback = false;
 
 
         internal ClientSimulation(StargateEngine engine) : base(engine)
@@ -61,10 +62,12 @@ namespace StargateNet
         internal bool OnRcvPak(Tick srvTick, Tick srvClientAuthorTick, Tick srvInputTick, bool isMultiPacket, bool isFullPacket)
         {
             this.serverRcvedClientTick = srvInputTick;
+            this.needRollback = false;
             // 优先处理全量包
             if (isFullPacket && this.IsValidFullPacket(srvTick))
             {
                 this.HandleFullPacket(srvTick);
+                this.needRollback = true;
                 return true;
             }
 
@@ -73,6 +76,7 @@ namespace StargateNet
                 this.IsValidMultiPacket(srvTick, srvClientAuthorTick, isMultiPacket))
             {
                 this.authoritativeTick = srvTick;
+                this.needRollback = true;
                 return true;
             }
 
@@ -186,7 +190,7 @@ namespace StargateNet
 
             // 拷贝上一帧的结果用于local插值。只会发生在FirstCall，即插值只会插正常的两帧(非一帧内多次的帧)
             this.engine.WorldState.CurrentSnapshot.CopyTo(this.fromSnapshot);
-            if ( delayTickCount < this._maxPredictedTicks)
+            if (delayTickCount < this._maxPredictedTicks)
             {
                 // 客户端收到的11帧Snapshot，在服务端指的是10帧最终的状态，11帧的初始状态。所以客户端这里第11帧是应该早就被上传了的，这里需要被丢弃。
                 this.RemoveAckedInput(this.authoritativeTick - 1); // 移除服务器接收到的输入(即使丢包了也不管，服务器不会重新模拟)
@@ -216,7 +220,10 @@ namespace StargateNet
 
                 this.IsResimulation = false;
                 this.InvokeClientOnPostResimulation();
+                this.remoteCallbacks.Clear();
+                this.needRollback = false;
             }
+            else {this.needRollback = true;}
 
             this.engine.Monitor.resims = this.currentTick - this.authoritativeTick;
             this.engine.Monitor.inputCount = this.inputs.Count;
@@ -273,8 +280,9 @@ namespace StargateNet
                 if (predictedData[dataIdx] != authorData[dataIdx])
                 {
                     this.OnEntityStateRemoteChanged(entity, dataIdx, false);
+                    predictedData[dataIdx] = authorData[dataIdx];
                 }
-                predictedData[dataIdx] = authorData[dataIdx];
+            
             }
         }
 

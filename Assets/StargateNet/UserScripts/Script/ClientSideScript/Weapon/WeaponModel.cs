@@ -13,7 +13,6 @@ public class WeaponModel : MonoBehaviour
 
     public void FireVFX()
     {
-        Debug.LogError("FireVFX");  
         if(_muzzleFlashVfx == null)
         {
             _muzzleFlashVfx = Instantiate(muzzleFlashVfx, firePoint.position, firePoint.rotation);

@@ -81,6 +81,7 @@ public class WorldState
 
     /// <summary>
     /// 对于客户端，真正的权威是WorldState::Snapshots，客户端预测时可以修改CurrentSnapshot
+    /// 客户端如果发生了丢包，那过去的帧数就不一定是连续的。但是这个不会影响客户端
     /// </summary>
     /// <param name="tick"></param>
     /// <param name="buffer"></param>

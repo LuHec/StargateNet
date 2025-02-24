@@ -295,44 +295,6 @@ namespace StargateNet
             int type = this.typeNameToTypeTable[typeName];
             InputBlock inputBlock = this.typeToInputBlockTable[type];
             inputBlock.SetInput(networkInput);
-            // for (int i = 0; i < inputBlocks.Count; i++)
-            // {
-            //     if (inputBlocks[i].type != type) continue;
-            //     inputBlocks[i].SetInput(networkInput);
-            //     if (this.engine.IsClient && needRefreshAlpha)
-            //     {
-            //         this.currentInput.clientInterpolationAlpha = this.engine.InterpolationRemote.Alpha;
-            //         this.currentInput.clientRemoteFromTick = this.engine.InterpolationRemote.FromTick;
-            //     }
-            //
-            //     break;
-            // }
-
-            // ClientInput clientInput = new ClientInput()
-            // {
-            //     networkInput = networkInput,
-            //     alpha = this.engine.InterpolationRemote.Alpha,
-            //     remoteFromTick = this.engine.InterpolationRemote.FromTick
-            // };
-            //
-            // if (this.clientInputs.ContainsKey(0))
-            // {
-            //     var oClientInput = this.clientInputs[0];
-            //     // 只在需要时更新延迟补偿的参数
-            //     if (needRefreshAlpha)
-            //     {
-            //         this.clientInputs[0] = clientInput;
-            //     }
-            //     else
-            //     {
-            //         oClientInput.networkInput = networkInput;
-            //         this.clientInputs[0] = oClientInput;
-            //     }
-            // }
-            // else
-            // {
-            //     clientInputs[0] = clientInput;
-            // }
         }
 
         /// <summary>

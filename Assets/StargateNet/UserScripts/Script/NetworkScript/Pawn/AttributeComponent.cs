@@ -22,12 +22,9 @@ public class AttributeComponent : NetworkBehavior
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
-        if (IsServer)
-        {
-            HPoint = 100;
-            Armor = 100;
-            WeaponRef = -1;
-        }
+        HPoint = 100;
+        Armor = 100;
+        WeaponRef = -1;
     }
 
     public void SetNetworkWeapon(NetworkObject networkObject)

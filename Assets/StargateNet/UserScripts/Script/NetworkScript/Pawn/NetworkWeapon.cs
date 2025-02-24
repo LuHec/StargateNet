@@ -1,4 +1,5 @@
 ﻿using System;
+using Riptide;
 using StargateNet;
 using UnityEngine;
 
@@ -20,10 +21,12 @@ public class NetworkWeapon : NetworkBehavior
     /// </summary>
     [Replicated]
     public int BurstCount { get; set; }
+    [Replicated]
+    public Tick LastFireTick;   // 上次射击的Tick
+    [Replicated]
+    public Tick LastReloadTick;  // 上次装弹的Tick
 
     private float _secondsPerShot;  // 每次射击间隔
-    private Tick _lastFireTick;   // 上次射击的Tick
-    private Tick _lastReloadTick;  // 上次装弹的Tick
     private AttributeComponent _owner;
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
@@ -35,7 +38,7 @@ public class NetworkWeapon : NetworkBehavior
     {
         if (IsReloading)
         {
-            if ((galaxy.tick - _lastReloadTick) * galaxy.FixedDeltaTime >= loadTime)
+            if ((galaxy.tick - LastReloadTick) * galaxy.FixedDeltaTime >= loadTime)
             {
                 AmmoCount = maxAmmo;
                 IsReloading = false;
@@ -60,14 +63,14 @@ public class NetworkWeapon : NetworkBehavior
             Reload(galaxy);
             return false;
         }
-        if(!isRifile && !isFire) return false;
+        if (!isRifile && !isFire) return false;
         if (IsReloading) IsReloading = false;
 
         Tick currentTick = galaxy.tick;
-        double pastTime = (currentTick - _lastFireTick) * galaxy.FixedDeltaTime;
+        double pastTime = (currentTick - LastFireTick) * galaxy.FixedDeltaTime;
         if (pastTime > _secondsPerShot)
         {
-            _lastFireTick = currentTick;
+            LastFireTick = currentTick;
             AmmoCount--;
             this.BurstCount++;
             return true;
@@ -79,22 +82,25 @@ public class NetworkWeapon : NetworkBehavior
     public void Reload(SgNetworkGalaxy galaxy)
     {
         IsReloading = true;
-        _lastReloadTick = galaxy.tick;
+        LastReloadTick = galaxy.tick;
     }
 
     public void Init(SgNetworkGalaxy galaxy)
     {
         _secondsPerShot = 60f / rpm;
-        _lastFireTick = galaxy.tick;
+        LastFireTick = galaxy.tick;
         AmmoCount = maxAmmo;
     }
 
+    int t = 0;
     [NetworkCallBack(nameof(BurstCount), false)]
     public void OnBurstCountChanged(CallbackData callbackData)
     {
-        if (IsServer) return;
+        if (IsServer || _owner == null) return;
         if (BurstCount > callbackData.GetPreviousData<int>())
         {
+            t = t + 1;
+            Debug.LogError($"BurstCount:{BurstCount}, Pre:{callbackData.GetPreviousData<int>()}");
             _owner.weaponModel.FireVFX();
         }
     }

@@ -20,6 +20,7 @@ namespace StargateNet
         public bool IsClient => this.Engine.IsClient;
         public int PlayerId => this.Engine.IsServer ? -1 : this.Engine.Client.Client.Id;
         public Tick tick => this.Engine.Tick;
+        public bool IsResimulation => this.Engine.IsResimulation;
 
         public SgNetworkGalaxy()
         {
