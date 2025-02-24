@@ -16,9 +16,9 @@ public class AttributeComponent : NetworkBehavior
     public int WeaponRef { get; set; }
 
     public FPSController owner;
-
+    public NetworkWeapon networkWeapon;
     private GameObject _weaponModel;
-    private NetworkWeapon _networkWeapon;
+
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
@@ -56,21 +56,30 @@ public class AttributeComponent : NetworkBehavior
                 _weaponModel = null;
             }
 
-            if (_networkWeapon != null)
+            if (networkWeapon != null)
             {
-                _networkWeapon.gameObject.SetActive(true);
-                _networkWeapon.transform.GetComponent<Rigidbody>().AddForce(owner.transform.forward * 5, ForceMode.Impulse);
-                _networkWeapon = null;
+                networkWeapon.gameObject.SetActive(true);
+                var rigidBody = networkWeapon.transform.GetComponent<Rigidbody>();
+
+                // 设置武器的初始位置和旋转
+                networkWeapon.transform.position = transform.position + transform.forward * 0.5f; // 向前偏移一点
+                networkWeapon.transform.rotation = transform.rotation;
+
+                rigidBody.velocity = Vector3.zero; // 清除可能存在的速度
+                rigidBody.angularVelocity = Vector3.zero; // 清除可能存在的角速度
+                rigidBody.AddForce(transform.forward * 5, ForceMode.Impulse);
+
+                networkWeapon = null;
             }
         }
 
         // 再生成新的武器
         if (WeaponRef == -1) return;
         NetworkObject networkObject = Entity.engine.GetNetworkObject(new NetworkObjectRef(WeaponRef));
-        _networkWeapon = networkObject.GetComponent<NetworkWeapon>();
-        if (_networkWeapon == null) return;
+        networkWeapon = networkObject.GetComponent<NetworkWeapon>();
+        if (networkWeapon == null) return;
 
-        _weaponModel = Instantiate(_networkWeapon.weaponModel, owner.handPoint);
+        _weaponModel = Instantiate(networkWeapon.weaponModel, owner.handPoint);
         networkObject.gameObject.SetActive(false);
     }
 

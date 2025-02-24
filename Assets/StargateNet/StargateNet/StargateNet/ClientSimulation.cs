@@ -73,12 +73,9 @@ namespace StargateNet
                 this.IsValidMultiPacket(srvTick, srvClientAuthorTick, isMultiPacket))
             {
                 this.authoritativeTick = srvTick;
-                // RiptideLogger.Log(LogType.Debug, $"Packet accepted. Updated Tick to {srvTick.tickValue}.");
                 return true;
             }
 
-            // 非法包
-            // RiptideLogger.Log(LogType.Warning, $"Rejected packet with invalid Tick: {srvTick.tickValue}.");
             return false;
         }
 
@@ -189,7 +186,7 @@ namespace StargateNet
 
             // 拷贝上一帧的结果用于local插值。只会发生在FirstCall，即插值只会插正常的两帧(非一帧内多次的帧)
             this.engine.WorldState.CurrentSnapshot.CopyTo(this.fromSnapshot);
-            if (delayTickCount < this._maxPredictedTicks)
+            if ( delayTickCount < this._maxPredictedTicks)
             {
                 // 客户端收到的11帧Snapshot，在服务端指的是10帧最终的状态，11帧的初始状态。所以客户端这里第11帧是应该早就被上传了的，这里需要被丢弃。
                 this.RemoveAckedInput(this.authoritativeTick - 1); // 移除服务器接收到的输入(即使丢包了也不管，服务器不会重新模拟)
@@ -212,12 +209,12 @@ namespace StargateNet
                 for (int i = 0; i < this.inputs.Count; i++)
                 {
                     this.currentInput = this.inputs[i];
-                    this.ExecuteNetworkFixedUpdate();
+                    this.ExecuteNetworkFixedUpdate(); 
                     this.SerializeToNetcode();
                     this.currentTick++;
                 }
 
-                this.IsResimulation = true;
+                this.IsResimulation = false;
                 this.InvokeClientOnPostResimulation();
             }
 

@@ -57,13 +57,13 @@ public class FPSController : NetworkBehavior
 
     private Vector2 _localYawPitch;
     bool IsGrounded() => Physics.Raycast(foot.position, Vector3.down, groundDis);
-    
+
     /// <summary>
     /// 跳跃和重力的速度
     /// </summary>
     [Replicated]
     public float VerticalSpeed { get; set; }
-    
+
     // ---------------------------------- Component ---------------------------------- //
     protected AttributeComponent attributeComponent;
     // ---------------------------------- Component ---------------------------------- //
@@ -72,7 +72,7 @@ public class FPSController : NetworkBehavior
     {
         attributeComponent = GetComponent<AttributeComponent>();
         attributeComponent.owner = this;
-        
+
         cameraPoint.forward = transform.forward;
         if (this.IsLocalPlayer())
         {
@@ -92,10 +92,6 @@ public class FPSController : NetworkBehavior
     {
         Vector3 movement = Vector3.zero;
         bool isGrounded = IsGrounded();
-        // if (isGrounded && VerticalSpeed <= 0f)
-        // {
-        //     VerticalSpeed = -1f;
-        // }
 
         if (this.FetchInput(out PlayerInput input))
         {
@@ -111,7 +107,7 @@ public class FPSController : NetworkBehavior
                 VerticalSpeed = jumpSpeed;
             }
 
-            if (input.IsFire)
+            if (input.IsFire && attributeComponent.networkWeapon != null && attributeComponent.networkWeapon.TryFire(galaxy))
             {
                 GizmoTimerDrawer.Instance.DrawRayWithTimer(cameraPoint.position, cameraPoint.forward * 50f, 5f,
                     Color.green);
@@ -121,7 +117,7 @@ public class FPSController : NetworkBehavior
                 {
                     GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hit.point, .5f, 5f, Color.red);
                     Debug.LogWarning(hit.collider.gameObject.name);
-                    if(this.IsServer && hit.collider.gameObject.TryGetComponent(out AttributeComponent attribute))
+                    if (this.IsServer && hit.collider.gameObject.TryGetComponent(out AttributeComponent attribute))
                     {
                         attribute.HPoint -= 10;
                     }
@@ -139,7 +135,7 @@ public class FPSController : NetworkBehavior
                 }
             }
 
-            if(input.IsThrowing && IsServer)
+            if (input.IsThrowing && IsServer)
             {
                 attributeComponent.ThrowWeapon();
             }
@@ -210,7 +206,7 @@ public class FPSController : NetworkBehavior
         right.Normalize();
         Vector3 moveDirection = forward * Input.GetAxis("Vertical") + right * Input.GetAxis("Horizontal");
         playerInput.Input = new Vector2(moveDirection.x, moveDirection.z);
-        
+
         Vector2 deltaRawPitchInput = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
         float mouseX = deltaRawPitchInput.x * lookSpeedX;
         float mouseY = deltaRawPitchInput.y * lookSpeedY;
@@ -220,7 +216,7 @@ public class FPSController : NetworkBehavior
         cameraPoint.localRotation = Quaternion.Euler(_localYawPitch.y, 0, 0);
         playerInput.YawPitch = new Vector2(_localYawPitch.x, _localYawPitch.y);
         playerInput.IsJump |= Input.GetKeyDown(KeyCode.Space);
-        playerInput.IsFire |= Input.GetMouseButtonDown(0);
+        playerInput.IsFire |= Input.GetMouseButton(0);
         playerInput.IsInteract |= Input.GetKeyDown(KeyCode.E);
         playerInput.IsThrowing |= Input.GetKeyDown(KeyCode.G);
         // 处理延迟补偿

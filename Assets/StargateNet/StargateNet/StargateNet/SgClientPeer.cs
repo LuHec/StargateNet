@@ -226,9 +226,6 @@ namespace StargateNet
             // ------------------------------------ ReadBuffer Data ------------------------------------
             this._readBuffer.ResetRead();
             if (fragmentId != -1 && this._expectedFragmentCount != this._fragmentIndex.Count) return;// -1表示没有分包。在分包时，如果包数量不对就返回。
-            // this._expectedFragmentCount = 1;
-            // this._fragmentIndex.Clear();
-            // Debug.LogWarning($"Tick:{srvTick},total:{_totalPacketBytes}");
             Tick srvRcvedClientTick = new Tick(this._readBuffer.GetInt());
             Tick srvRcvedClientInputTick = new Tick(this._readBuffer.GetInt());
             this.Engine.ClientSimulation.serverInputRcvTimeAvg = this._readBuffer.GetDouble();
@@ -335,21 +332,6 @@ namespace StargateNet
         private unsafe void ReceiveStateToBuffer(ReadWriteBuffer readBuffer)
         {
             Snapshot buffer = this.Engine.ClientSimulation.rcvBuffer;
-            // 外层是找meta，内层找object state
-            // while (true)
-            // {
-            //     int worldMetaIdx = msg.GetInt();
-            //     if (worldMetaIdx < 0) break;
-            //     int networkId = this.Engine.WorldState.CurrentSnapshot.GetWorldObjectMeta(worldMetaIdx).networkId;
-            //     Entity entity = this.Engine.Simulation.entitiesTable[new NetworkObjectRef(networkId)];
-            //     while (true)
-            //     {
-            //         int dirtyStateId = msg.GetInt();
-            //         if (dirtyStateId < 0) break;
-            //         int data = msg.GetInt();
-            //         entity.SetState(dirtyStateId, data); // 客户端直接设置即可，dirty没什么用
-            //     }
-            // }
             while (true)
             {
                 int worldMetaIdx = readBuffer.GetInt();
