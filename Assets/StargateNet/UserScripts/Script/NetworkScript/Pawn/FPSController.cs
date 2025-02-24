@@ -107,12 +107,12 @@ public class FPSController : NetworkBehavior
                 VerticalSpeed = jumpSpeed;
             }
 
-            if (input.IsFire && attributeComponent.networkWeapon != null && attributeComponent.networkWeapon.TryFire(galaxy))
+            if ((input.IsFire || input.IsHoldFire) && attributeComponent.networkWeapon != null && attributeComponent.networkWeapon.TryFire(galaxy,input.IsFire, input.IsHoldFire))
             {
-                GizmoTimerDrawer.Instance.DrawRayWithTimer(cameraPoint.position, cameraPoint.forward * 50f, 5f,
-                    Color.green);
+                GizmoTimerDrawer.Instance.DrawRayWithTimer(cameraPoint.position, cameraPoint.forward * 50f, 5f, Color.green);
                 galaxy.NetworkRaycast(cameraPoint.position, cameraPoint.forward, this.InputSource, out RaycastHit hit,
                     50f, ~0);
+
                 if (hit.collider != null)
                 {
                     GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hit.point, .5f, 5f, Color.red);
@@ -216,7 +216,8 @@ public class FPSController : NetworkBehavior
         cameraPoint.localRotation = Quaternion.Euler(_localYawPitch.y, 0, 0);
         playerInput.YawPitch = new Vector2(_localYawPitch.x, _localYawPitch.y);
         playerInput.IsJump |= Input.GetKeyDown(KeyCode.Space);
-        playerInput.IsFire |= Input.GetMouseButton(0);
+        playerInput.IsFire |= Input.GetMouseButtonDown(0);
+        playerInput.IsHoldFire |= Input.GetMouseButton(0);
         playerInput.IsInteract |= Input.GetKeyDown(KeyCode.E);
         playerInput.IsThrowing |= Input.GetKeyDown(KeyCode.G);
         // 处理延迟补偿

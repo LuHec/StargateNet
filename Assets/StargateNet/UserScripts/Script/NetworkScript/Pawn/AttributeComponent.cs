@@ -17,7 +17,7 @@ public class AttributeComponent : NetworkBehavior
 
     public FPSController owner;
     public NetworkWeapon networkWeapon;
-    private GameObject _weaponModel;
+    public WeaponModel weaponModel;
 
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
@@ -50,10 +50,10 @@ public class AttributeComponent : NetworkBehavior
         // 先丢弃之前的武器
         if (callbackData.GetPreviousData<int>() != -1)
         {
-            if (_weaponModel != null)
+            if (weaponModel != null)
             {
-                Destroy(_weaponModel);
-                _weaponModel = null;
+                Destroy(weaponModel);
+                weaponModel = null;
             }
 
             if (networkWeapon != null)
@@ -69,6 +69,7 @@ public class AttributeComponent : NetworkBehavior
                 rigidBody.angularVelocity = Vector3.zero; // 清除可能存在的角速度
                 rigidBody.AddForce(transform.forward * 5, ForceMode.Impulse);
 
+                networkWeapon.OnThrow();
                 networkWeapon = null;
             }
         }
@@ -79,7 +80,8 @@ public class AttributeComponent : NetworkBehavior
         networkWeapon = networkObject.GetComponent<NetworkWeapon>();
         if (networkWeapon == null) return;
 
-        _weaponModel = Instantiate(networkWeapon.weaponModel, owner.handPoint);
+        weaponModel = Instantiate(networkWeapon.weaponModel, owner.handPoint).GetComponent<WeaponModel>();
+        networkWeapon.OnEquip(this);
         networkObject.gameObject.SetActive(false);
     }
 

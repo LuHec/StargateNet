@@ -1179,6 +1179,7 @@ MonoBehaviour:
   maxAmmo: 31
   rpm: 850
   loadTime: 2
+  isRifile: 0
 --- !u!54 &8544034581204158230
 Rigidbody:
   m_ObjectHideFlags: 0

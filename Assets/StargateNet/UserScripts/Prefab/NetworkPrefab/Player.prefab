@@ -405,6 +405,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   owner: {fileID: 0}
   networkWeapon: {fileID: 0}
+  weaponModel: {fileID: 0}
 --- !u!143 &5574289517947133850
 CharacterController:
   m_ObjectHideFlags: 0

@@ -181,7 +181,7 @@ namespace StargateNet
             int clientLastAuthorTick = msg.GetInt();
             int inputCount = msg.GetShort();
             // RiptideLogger.Log(LogType.Warning, $"client send input count: {inputCount}");
-            int guid = this._clinetIdToGuidMap[args.FromConnection.Id];
+            if(!this._clinetIdToGuidMap.TryGetValue(args.FromConnection.Id, out int guid)) return;
             int playerId = this._guidToIdMap[guid];
             ClientData clientData = this.clientConnections[playerId].clientData;
             clientData.deltaPakTime = this.Engine.SimulationClock.Time - clientData.lastPakTime;

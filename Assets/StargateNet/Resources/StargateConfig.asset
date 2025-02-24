@@ -31,4 +31,4 @@ MonoBehaviour:
   maxObjectStateBytes: 40
   networkInputsTypes:
   - PlayerInput
-  networkInputsBytes: 20000000
+  networkInputsBytes: 24000000

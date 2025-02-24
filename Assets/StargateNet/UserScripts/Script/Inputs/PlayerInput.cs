@@ -8,6 +8,7 @@ namespace StargateNet
         public Vector2 YawPitch;
         public bool IsJump;
         public bool IsFire;
+        public bool IsHoldFire;
         public bool IsInteract;
         public bool IsThrowing;
     }
