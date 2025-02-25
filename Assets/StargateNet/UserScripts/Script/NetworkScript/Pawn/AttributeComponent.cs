@@ -49,7 +49,7 @@ public class AttributeComponent : NetworkBehavior
         {
             if (weaponModel != null)
             {
-                Destroy(weaponModel);
+                Destroy(weaponModel.gameObject);
                 weaponModel = null;
             }
 

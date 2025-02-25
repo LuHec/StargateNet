@@ -1160,7 +1160,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   renderTransform: {fileID: 0}
   needCorrect: 1
-  errorMagnitude: 1.8
+  errorMagnitude: 8
   correctionMultiplier: 1.28
 --- !u!114 &8415101746974425420
 MonoBehaviour:
@@ -1180,10 +1180,6 @@ MonoBehaviour:
   rpm: 850
   loadTime: 2
   isRifile: 0
-  LastFireTick:
-    tickValue: 0
-  LastReloadTick:
-    tickValue: 0
 --- !u!54 &8544034581204158230
 Rigidbody:
   m_ObjectHideFlags: 0
