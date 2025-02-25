@@ -22,10 +22,6 @@ namespace StargateNet
         public Tick tick => this.Engine.Tick;
         public bool IsResimulation => this.Engine.IsResimulation;
 
-        public SgNetworkGalaxy()
-        {
-        }
-
         public void Init(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor,ILagCompensateComponent lagCompensateComponent,
             IMemoryAllocator allocator, IObjectSpawner spawner, NetworkEventManager networkEventManager)
         {

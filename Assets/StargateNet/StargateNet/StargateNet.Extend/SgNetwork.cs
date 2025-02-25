@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace StargateNet
@@ -13,6 +14,8 @@ namespace StargateNet
         private static SgNetwork _instance;
         private bool _started;
 
+        internal List<SgNetworkGalaxy> galaxies = new List<SgNetworkGalaxy>(4);
+
         internal SgNetwork()
         {
         }
@@ -27,6 +30,11 @@ namespace StargateNet
             {
                 SgNetwork._instance = this;
             }
+        }
+
+        private void AddGalaxy(SgNetworkGalaxy galaxy)
+        {
+            this.galaxies.Add(galaxy);
         }
 
         private static StargateConfigData CreateConfigData(StargateConfig config)
@@ -75,7 +83,7 @@ namespace StargateNet
         private void OnApplicationQuit()
         {
         }
-
+        
         public static SgNetworkGalaxy Launch(StartMode startMode, LaunchConfig launchConfig, IMemoryAllocator allocator = null, IObjectSpawner spawner = null)
         {
             if (SgNetwork.Instance == null)
@@ -83,6 +91,7 @@ namespace StargateNet
                 SgNetwork.Init(launchConfig);
             }
 
+            GameObject sgNet = new GameObject("abc");
             SgNetwork.Instance.sgNetworkGalaxy = new SgNetworkGalaxy();
             SgNetwork.Instance.monitor = new Monitor();
             NetworkEventManager[] networkEventManagers = FindObjectsOfType<NetworkEventManager>();

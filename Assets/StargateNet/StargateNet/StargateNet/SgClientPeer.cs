@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Riptide;
+using Riptide.Transports.Udp;
 using Riptide.Utils;
 using UnityEngine;
 using LogType = Riptide.Utils.LogType;
@@ -46,7 +47,9 @@ namespace StargateNet
             this.ServerIP = serverIP;
             this.Port = port;
             this.Client.Connect($"{ServerIP}:{Port}", useMessageHandlers: false);
-            RiptideLogger.Log(LogType.Info, "Client Connecting");
+            UdpConnection udpConnection = (UdpConnection)this.Client.Connection;
+            RiptideLogger.Log(LogType.Info, 
+            $"Client Connecting,Local Address:{udpConnection.RemoteEndPoint.Address}:{udpConnection.RemoteEndPoint.Port}");
         }
 
         internal override void NetworkUpdate()
