@@ -116,4 +116,11 @@ public class NetworkWeapon : NetworkBehavior
             _owner.weaponModel.FireVFX();
         }
     }
+
+    [NetworkCallBack(nameof(AmmoCount), true)]
+    public void OnAmmoCountChanged(CallbackData callbackData)
+    {
+        if (IsServer || _owner == null || !_owner.IsLocalPlayer()) return;
+        UIManager.Instance.GetUIPanel<UIPlayerInterface>().UpdateMag(AmmoCount);
+    }
 }

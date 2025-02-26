@@ -82,9 +82,35 @@ public class AttributeComponent : NetworkBehavior
         networkObject.gameObject.SetActive(false);
     }
 
+    /// <summary>
+    /// HP不会去做预测
+    /// </summary>
+    /// <param name="callbackData"></param>
     [NetworkCallBack(nameof(HPoint), true)]
     public void OnHpointChanged(CallbackData callbackData)
     {
         Debug.LogWarning($"Hp from {callbackData.GetPreviousData<int>()} To {HPoint}");
+        if (IsClient)
+        {
+            int lastValue = callbackData.GetPreviousData<int>();
+            if (lastValue > HPoint)
+            {
+                PlayClientDamageVFX();
+            }
+
+        }
+    }
+
+    private void PlayClientDamageVFX()
+    {
+        if (owner.IsLocalPlayer())
+        {
+            UIManager.Instance.GetUIPanel<UIPostProcessing>().OpenWithDuration(0.5f);
+            UIManager.Instance.GetUIPanel<UIPlayerInterface>().UpdateHP(HPoint);
+        }
+        else
+        {
+
+        }
     }
 }

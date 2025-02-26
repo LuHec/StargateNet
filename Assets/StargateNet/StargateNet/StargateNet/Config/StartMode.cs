@@ -3,6 +3,8 @@ namespace StargateNet
     public enum StartMode
     {
         Server,
-        Client
+        Client,
+        ServerAndBot,
+        Bot
     }
 }

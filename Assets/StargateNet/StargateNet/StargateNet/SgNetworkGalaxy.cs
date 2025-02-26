@@ -1,13 +1,14 @@
 using System;
-using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace StargateNet
 {
     /// <summary>
     ///  Network Engine, client and server run in same way
     /// </summary>
-    public class SgNetworkGalaxy
+    public class SgNetworkGalaxy : MonoBehaviour
     {
         public StargateEngine Engine { private set; get; }
         public StargateConfigData ConfigData { private set; get; }
@@ -21,10 +22,15 @@ namespace StargateNet
         public int PlayerId => this.Engine.IsServer ? -1 : this.Engine.Client.Client.Id;
         public Tick tick => this.Engine.Tick;
         public bool IsResimulation => this.Engine.IsResimulation;
-
-        public void Init(StartMode startMode, StargateConfigData configData, ushort port, Monitor monitor,ILagCompensateComponent lagCompensateComponent,
+        public Scene Scene {get; internal set;}
+        public PhysicsScene Physics {get; internal set;}
+        public void Init(StartMode startMode, Scene scene, StargateConfigData configData, ushort port, Monitor monitor,ILagCompensateComponent lagCompensateComponent,
             IMemoryAllocator allocator, IObjectSpawner spawner, NetworkEventManager networkEventManager)
         {
+            spawner.Galaxy = this;
+            this.Scene = scene;
+            this.Physics = scene.GetPhysicsScene();
+            Debug.LogError($"Physics Scene: {this.Physics.GetHashCode()}");
             this.Engine = new StargateEngine();
             this.Engine.Start(this, startMode, configData, port, monitor, lagCompensateComponent, allocator, spawner, networkEventManager);
         }
@@ -102,6 +108,41 @@ namespace StargateNet
             int layerMask)
         {
             return this.Engine.NetworkRaycast(origin, direction, inputSource, out hitInfo, maxDistance, layerMask);
+        }
+
+        /// <summary>
+        /// 在当前场景中查找指定类型的组件
+        /// </summary>
+        /// <typeparam name="T">要查找的组件类型</typeparam>
+        /// <returns>找到的第一个组件，如果没找到则返回null</returns>
+        public T FindSceneComponent<T>() where T : Component
+        {
+            var rootObjects = Scene.GetRootGameObjects();
+            foreach (var obj in rootObjects)
+            {
+                var component = obj.GetComponentInChildren<T>(true);
+                if (component != null)
+                {
+                    return component;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 在当前场景中查找所有指定类型的组件
+        /// </summary>
+        /// <typeparam name="T">要查找的组件类型</typeparam>
+        /// <returns>找到的所有组件列表</returns>
+        public T[] FindSceneComponents<T>() where T : Component
+        {
+            var components = new List<T>();
+            var rootObjects = Scene.GetRootGameObjects();
+            foreach (var obj in rootObjects)
+            {
+                components.AddRange(obj.GetComponentsInChildren<T>(true));
+            }
+            return components.ToArray();
         }
     }
 }

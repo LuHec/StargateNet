@@ -10,6 +10,7 @@ namespace StargateNet
         public SgNetworkGalaxy SgNetworkGalaxy { get; private set; }
         public WorldState WorldState { get; private set; }
         internal SimulationClock SimulationClock { get; private set; }
+        internal PhysicsScene Physics;
         internal Monitor Monitor { get; private set; }
         public Tick Tick => this.IsServer ? this.SimTick : this.ClientSimulation.currentTick;
         internal Tick SimTick { get; private set; } // 是客户端/服务端已经模拟的本地帧数。客户端的simTick仅代表EnginTick，服务端的SimTick就是AuthorTick
@@ -54,7 +55,7 @@ namespace StargateNet
             if (configData.isPhysic2D)
                 Physics2D.simulationMode = SimulationMode2D.Script;
             else
-                Physics.simulationMode = SimulationMode.Script;
+                UnityEngine.Physics.simulationMode = SimulationMode.Script;
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
             MemoryAllocation.Allocator = allocator;
             this.SgNetworkGalaxy = galaxy;
@@ -72,7 +73,7 @@ namespace StargateNet
                 PrefabsTable.Add(i, configData.networkPrefabs[i].GetComponent<NetworkObject>());
             }
 
-            this.PhysicSimulationUpdate = new StargatePhysic(this, configData.isPhysic2D);
+            this.PhysicSimulationUpdate = new StargatePhysic(this, configData.isPhysic2D, galaxy.Scene.GetPhysicsScene());
             this.LagCompensateComponent = lagCompensateComponent;
             this.LagCompensateComponent.Init(this, configData.maxNetworkObjects);
             this.IM = new InterestManager(configData.maxNetworkObjects, this);
@@ -201,7 +202,7 @@ namespace StargateNet
                 if (this.IsClient)
                     this.Simulation.DeserializeToGamecode();
                 this.Simulation.PreFixedUpdate(); // 对于客户端，先在这里处理回滚，然后再模拟下一帧
-                this.Simulation.FixedUpdate();
+                this.Simulation.FixedUpdate(); // 这里会更新物理
                 if (this.IsServer)
                     this.Simulation.SerializeToNetcode();
                 this.SimTick++; // 当前是10帧模拟完，11帧的初始状态发往客户端的帧数应该是11帧
@@ -291,7 +292,7 @@ namespace StargateNet
                 int id = component.PrefabId;
                 if (!this.PrefabsTable.ContainsKey(id))
                     throw new Exception($"GameObject {gameObject.name} has not been registered");
-                NetworkObject networkObject = this.ObjectSpawner.Spawn(component, position, rotation);
+                NetworkObject networkObject = this.ObjectSpawner.Spawn(gameObject, position, rotation).GetComponent<NetworkObject>();
                 // TODO: 把子节点如果是NetworkObject的也加入进去
                 this.Simulation.AddEntity(networkObject, ++this._networkIdCounter,
                     this.EntityMetaManager.RequestWorldIdx(), inputSource);
@@ -319,7 +320,7 @@ namespace StargateNet
         {
             if (prefabId == -1 || !this.PrefabsTable.TryGetValue(prefabId, out var value))
                 throw new Exception($"Prefab Id:{prefabId} is not exist");
-            NetworkObject networkObject = this.ObjectSpawner.Spawn(value, position, rotation);
+            NetworkObject networkObject = this.ObjectSpawner.Spawn(value.gameObject, position, rotation).GetComponent<NetworkObject>();
             this.Simulation.AddEntity(networkObject, networkId, worldIdx, inputSource);
             this.Simulation.DrainPaddingAddedEntity();
         }

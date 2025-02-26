@@ -14,11 +14,6 @@ public class BotSceneLoader : MonoBehaviour
     private List<StargateNet.GameStarter> _botStarters = new List<StargateNet.GameStarter>();
 
 
-    void Start()
-    {
-        StartLoadBotScenes();
-    }
-
     public void StartLoadBotScenes()
     {
         StartCoroutine(LoadBotScenes());

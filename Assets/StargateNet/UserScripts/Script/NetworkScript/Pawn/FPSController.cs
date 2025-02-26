@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using StargateNet;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class FPSController : NetworkBehavior
 {
@@ -76,15 +75,18 @@ public class FPSController : NetworkBehavior
         cameraPoint.forward = transform.forward;
         if (this.IsLocalPlayer())
         {
-            Camera mainCamera = Camera.main;
+            // 使用 galaxy.FindSceneComponent 获取相机
+            Camera mainCamera = galaxy.FindSceneComponent<Camera>();
             if (cameraPoint != null && mainCamera != null)
             {
-                mainCamera.GetComponent<Camera>().fieldOfView = 105f;
+                mainCamera.fieldOfView = 105f;
                 Transform cameraTransform = mainCamera.transform;
                 cameraTransform.forward = transform.forward;
                 cameraTransform.SetParent(cameraPoint);
                 cameraTransform.localPosition = Vector3.zero;
             }
+
+            UIManager.Instance.GetUIPanel<UIPlayerInterface>().Open();
         }
     }
 
@@ -194,7 +196,8 @@ public class FPSController : NetworkBehavior
 
         PlayerInput playerInput = galaxy.GetInput<PlayerInput>();
 
-        Camera mainCamera = Camera.main;
+        // 使用 galaxy.FindSceneComponent 获取相机
+        Camera mainCamera = galaxy.FindSceneComponent<Camera>();
 
         // 获取前向方向和右向方向
         var transform1 = mainCamera.transform;

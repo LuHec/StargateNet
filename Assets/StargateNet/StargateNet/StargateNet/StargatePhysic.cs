@@ -6,9 +6,11 @@ namespace StargateNet
     {
         internal bool IsPhysic2D { private set; get; }
         internal StargateEngine Engine { private set; get; }
+        internal PhysicsScene Physics { private set; get; }
 
-        public StargatePhysic(StargateEngine engine, bool isPhysic2D)
+        public StargatePhysic(StargateEngine engine, bool isPhysic2D, PhysicsScene physics)
         {
+            this.Physics = physics;
             this.Engine = engine;
             this.IsPhysic2D = isPhysic2D;
         }
