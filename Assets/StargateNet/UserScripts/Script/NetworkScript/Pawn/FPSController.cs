@@ -55,13 +55,14 @@ public class FPSController : NetworkBehavior
     private Vector3 _bobRotation;
 
     private Vector2 _localYawPitch;
-    bool IsGrounded() => Physics.Raycast(foot.position, Vector3.down, groundDis);
 
     /// <summary>
     /// 跳跃和重力的速度
     /// </summary>
     [Replicated]
     public float VerticalSpeed { get; set; }
+    [Replicated]
+    NetworkBool IsGrounded { get; set; }
 
     // ---------------------------------- Component ---------------------------------- //
     protected AttributeComponent attributeComponent;
@@ -93,7 +94,9 @@ public class FPSController : NetworkBehavior
     public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
         Vector3 movement = Vector3.zero;
-        bool isGrounded = IsGrounded();
+
+        // 地面检测
+        IsGrounded = Physics.Raycast(foot.position, Vector3.down, groundDis);
 
         if (this.FetchInput(out PlayerInput input))
         {
@@ -104,12 +107,13 @@ public class FPSController : NetworkBehavior
 
             movement = new Vector3(input.Input.x, 0, input.Input.y) * moveSpeed;
 
-            if (input.IsJump && isGrounded)
+            if (input.IsJump && IsGrounded && VerticalSpeed <= 0)
             {
                 VerticalSpeed = jumpSpeed;
+                IsGrounded = false;
             }
 
-            if ((input.IsFire || input.IsHoldFire) && attributeComponent.networkWeapon != null && attributeComponent.networkWeapon.TryFire(galaxy,input.IsFire, input.IsHoldFire))
+            if ((input.IsFire || input.IsHoldFire) && attributeComponent.networkWeapon != null && attributeComponent.networkWeapon.TryFire(galaxy, input.IsFire, input.IsHoldFire))
             {
                 GizmoTimerDrawer.Instance.DrawRayWithTimer(cameraPoint.position, cameraPoint.forward * 50f, 5f, Color.green);
                 galaxy.NetworkRaycast(cameraPoint.position, cameraPoint.forward, this.InputSource, out RaycastHit hit,
@@ -143,9 +147,20 @@ public class FPSController : NetworkBehavior
             }
         }
 
-        // 重力
-        VerticalSpeed -= gravity * galaxy.FixedDeltaTime * (isGrounded ? 0 : 1);
-        cc.Move((movement + new Vector3(0f, VerticalSpeed, 0)) * galaxy.FixedDeltaTime);
+        if (!IsGrounded)
+        {
+            // 在空中时应用重力
+            VerticalSpeed -= gravity * galaxy.FixedDeltaTime;
+        }
+        else if (VerticalSpeed < 0)
+        {
+            // 着地时重置垂直速度
+            VerticalSpeed = 0;
+        }
+
+        // 移动处理 1/gt^2
+        Vector3 finalMovement = movement + new Vector3(0f, VerticalSpeed * 0.5f, 0);
+        cc.Move(finalMovement * galaxy.FixedDeltaTime);
     }
 
     public override void NetworkUpdate(SgNetworkGalaxy galaxy)
@@ -199,7 +214,6 @@ public class FPSController : NetworkBehavior
         // 使用 galaxy.FindSceneComponent 获取相机
         Camera mainCamera = galaxy.FindSceneComponent<Camera>();
 
-        // 获取前向方向和右向方向
         var transform1 = mainCamera.transform;
         Vector3 forward = transform1.forward;
         Vector3 right = transform1.right;
@@ -214,7 +228,7 @@ public class FPSController : NetworkBehavior
         float mouseX = deltaRawPitchInput.x * lookSpeedX;
         float mouseY = deltaRawPitchInput.y * lookSpeedY;
         _localYawPitch = ClampAngles(_localYawPitch.x + mouseX, _localYawPitch.y - mouseY);
-        // 在Update中旋转，将结果作为Input传入
+        // 在Update中旋转，将结果作为Input传入,避免丢包导致视角抽搐
         transform.rotation = Quaternion.Euler(0, _localYawPitch.x, 0);
         cameraPoint.localRotation = Quaternion.Euler(_localYawPitch.y, 0, 0);
         playerInput.YawPitch = new Vector2(_localYawPitch.x, _localYawPitch.y);
@@ -252,7 +266,7 @@ public class FPSController : NetworkBehavior
 
     void BobOffset(Vector2 input)
     {
-        bool isGrounded = IsGrounded();
+        bool isGrounded = IsGrounded;
         speedCurve += Time.deltaTime * (isGrounded ? cc.velocity.magnitude * speedCurveMultiplier : 1f) + .01f;
         if (!bobOffset)
         {

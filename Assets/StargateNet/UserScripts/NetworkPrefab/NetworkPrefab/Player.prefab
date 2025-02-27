@@ -348,7 +348,7 @@ MonoBehaviour:
   cameraPoint: {fileID: 2942176371875200917}
   foot: {fileID: 5762399165700279374}
   handPoint: {fileID: 9166682964219372946}
-  groundDis: 1
+  groundDis: 0.2
   moveSpeed: 10
   lookSpeedX: 2
   lookSpeedY: 2
