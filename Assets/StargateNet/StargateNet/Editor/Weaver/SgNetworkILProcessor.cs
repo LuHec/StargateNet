@@ -77,6 +77,9 @@ namespace StargateNet
             // 获取SyncVar大小，不需要创建函数，直接传targetAssembly就行
             diagnostics.AddRange(new NetworkBehaviorProcessor().ProcessAssembly(targetAssembly));
 
+            // 处理RPC
+            diagnostics.AddRange(new NetworkRPCProcessor().ProcessAssembly(targetAssembly, stargateNetAssembly));
+
             // 重新写回
             byte[] peData;
             byte[] pdbData;

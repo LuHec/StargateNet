@@ -1,6 +1,8 @@
-﻿namespace StargateNet
+﻿using System;
+
+namespace StargateNet
 {
-    public class NetworkRPCAttribute
+    public class NetworkRPCAttribute : Attribute
     {
         public NetworkRPCFrom From { get; set; }
 

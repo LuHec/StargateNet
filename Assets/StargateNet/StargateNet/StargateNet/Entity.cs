@@ -77,6 +77,7 @@ namespace StargateNet
             foreach (var beh in networkBehaviors)
             {
                 beh.InternalInit();
+                beh.InternalRegisterRPC();
             }
         }
 

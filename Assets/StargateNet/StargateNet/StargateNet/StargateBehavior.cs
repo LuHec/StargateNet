@@ -64,5 +64,9 @@ namespace StargateNet
         {
         }
 
+        public virtual void InternalRegisterRPC()
+        {
+            
+        }
     }
 }

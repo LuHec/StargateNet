@@ -11,5 +11,6 @@ namespace StargateNet
         void Initialize(Entity entity);
         void InternalInit();
         void InternalReset();
+        void InternalRegisterRPC();
     }
 }

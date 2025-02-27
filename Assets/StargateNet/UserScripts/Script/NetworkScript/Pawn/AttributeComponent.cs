@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using StargateNet;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class AttributeComponent : NetworkBehavior
@@ -112,5 +111,11 @@ public class AttributeComponent : NetworkBehavior
         {
 
         }
+    }
+
+    [NetworkRPC(NetworkRPCFrom.ServerCall)]
+    public void TestServerRpc1(int a, int b, float c, double d, Vector3 e)
+    {
+
     }
 }

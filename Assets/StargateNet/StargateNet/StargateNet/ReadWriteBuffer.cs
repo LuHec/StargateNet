@@ -25,7 +25,7 @@ namespace StargateNet
             this._bitPositionRead = 0; 
         }
 
-        public unsafe void* Get()
+        public unsafe byte* Get()
         {
             return this._buffer;
         }

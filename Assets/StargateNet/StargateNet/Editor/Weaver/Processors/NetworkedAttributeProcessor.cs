@@ -389,40 +389,6 @@ namespace StargateNet
             typeDefinition.Methods.Add(methodDefinition);
             return methodDefinition;
         }
-        // private MethodDefinition CreateCallBackMethod(TypeDefinition typeDefinition, TypeReference behaviourType, string callbackName, MethodReference callbackMethod)
-        // {
-        //     MethodDefinition methodDefinition = new MethodDefinition(callbackName + "__handler",
-        //         Mono.Cecil.MethodAttributes.Private | Mono.Cecil.MethodAttributes.Static | Mono.Cecil.MethodAttributes.HideBySig, typeDefinition.Module.TypeSystem.Void);
-        //     methodDefinition.Parameters.Add(new ParameterDefinition("beh", Mono.Cecil.ParameterAttributes.None, _networkBehaviorType));
-        //     methodDefinition.Parameters.Add(new ParameterDefinition("callbk", Mono.Cecil.ParameterAttributes.None, _callbackDataType));
-        //     
-        //     var ilProcessor = methodDefinition.Body.GetILProcessor();
-        //     var instructions = methodDefinition.Body.Instructions;
-        //     
-        //     // 打印 callbackData
-        //     var callbkVariable = new VariableDefinition(_callbackDataType);
-        //     methodDefinition.Body.Variables.Add(callbkVariable);
-        //     var debugLogMethod = typeDefinition.Module.ImportReference(typeof(UnityEngine.Debug).GetMethod("Log", new[] { typeof(object) }));
-        //     // instructions.Add(ilProcessor.Create(OpCodes.Ldloc, callbkVariable)); // 加载 callbackData
-        //     instructions.Add(ilProcessor.Create(OpCodes.Ldarg_1)); 
-        //     instructions.Add(ilProcessor.Create(OpCodes.Box, _callbackDataType)); // 将结构体装箱为 object
-        //     instructions.Add(ilProcessor.Create(OpCodes.Call, debugLogMethod)); // 调用 Debug.Log
-        //     
-        //     // instructions.Add(ilProcessor.Create(OpCodes.Ldarg_0));
-        //     // instructions.Add(ilProcessor.Create(OpCodes.Castclass, behaviourType));
-        //     //
-        //     // instructions.Add(ilProcessor.Create(OpCodes.Ldloca_S, callbkVariable));
-        //     // instructions.Add(ilProcessor.Create(OpCodes.Initobj, _callbackDataType));
-        //     // instructions.Add(ilProcessor.Create(OpCodes.Ldloc, callbkVariable));
-        //     // // instructions.Add(ilProcessor.Create(OpCodes.Ldarg_1));
-        //     // instructions.Add(ilProcessor.Create(OpCodes.Callvirt, callbackMethod));
-        //     instructions.Add(ilProcessor.Create(OpCodes.Ret));
-        //
-        //     // 将方法添加到类型定义中
-        //     typeDefinition.Methods.Add(methodDefinition);
-        //
-        //     return methodDefinition;
-        // }
 
         private void StartInternalInitModify(MethodDefinition initMethod)
         {

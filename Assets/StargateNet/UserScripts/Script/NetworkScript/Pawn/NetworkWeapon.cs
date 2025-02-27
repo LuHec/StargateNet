@@ -25,9 +25,9 @@ public class NetworkWeapon : NetworkBehavior
     public int BurstCount { get; set; }
 
     [Replicated]
-    public int LastFireTick{ get; set; }   // 上次射击的Tick
+    public int LastFireTick { get; set; }   // 上次射击的Tick
     [Replicated]
-    public int LastReloadTick{ get; set; }  // 上次装弹的Tick
+    public int LastReloadTick { get; set; }  // 上次装弹的Tick
 
     private float _secondsPerShot;  // 每次射击间隔
     private AttributeComponent _owner;
@@ -123,4 +123,16 @@ public class NetworkWeapon : NetworkBehavior
         if (IsServer || _owner == null || !_owner.IsLocalPlayer()) return;
         UIManager.Instance.GetUIPanel<UIPlayerInterface>().UpdateMag(AmmoCount);
     }
-}
+
+    [NetworkRPC(NetworkRPCFrom.ServerCall)]
+    public void TestServerRpc(int a, int b, float c, double d, Vector3 e)
+    {
+        Debug.LogError($"TestServerRpc:{a},{b},{c},{d},{e}");
+    }
+
+    [NetworkRPC(NetworkRPCFrom.ClientCall)]
+    public void TestClientRpc(int a, int b, float c, Vector3 e, double d)
+    {
+        Debug.LogError($"TestClientRpc:{a},{b},{c},{d},{e}");
+    }
+}    

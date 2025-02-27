@@ -12,5 +12,6 @@ namespace StargateNet
         }
 
         public bool IsLocalPlayer() => this.Entity.engine.IsClient && this.Entity.inputSource == this.Entity.engine.Client.Client.Id;
+
     }
 }
