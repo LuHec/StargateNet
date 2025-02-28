@@ -22,6 +22,7 @@ namespace StargateNet
         internal bool dirty = false;
         internal unsafe int* stateBlock; // 所有脚本属性的基存储地址，不包含bitmap
         internal unsafe int* dirtyMap; // bitmap基地址
+        internal NetworkBehavior[] networkBehaviors;
 
         /// <summary>
         /// 初始化脚本等.获取大小等等
@@ -55,6 +56,7 @@ namespace StargateNet
             }
 
             BehaviorToHash(networkBehaviors);
+            this.networkBehaviors = networkBehaviors;
         }
 
         private void BehaviorToHash(NetworkBehavior[] networkBehaviors)

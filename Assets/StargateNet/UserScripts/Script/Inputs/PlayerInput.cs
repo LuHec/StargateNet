@@ -11,5 +11,6 @@ namespace StargateNet
         public bool IsHoldFire;
         public bool IsInteract;
         public bool IsThrowing;
+        public bool Reload;
     }
 }

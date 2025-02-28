@@ -48,7 +48,7 @@ namespace StargateNet
             this.Port = port;
             this.Client.Connect($"{ServerIP}:{Port}", useMessageHandlers: false);
             UdpConnection udpConnection = (UdpConnection)this.Client.Connection;
-            RiptideLogger.Log(LogType.Info, 
+            RiptideLogger.Log(LogType.Info,
             $"Client Connecting,Local Address:{udpConnection.RemoteEndPoint.Address}:{udpConnection.RemoteEndPoint.Port}");
         }
 
@@ -121,13 +121,11 @@ namespace StargateNet
             this.HeavyPakLoss = false;
             this.PakLoss = false;
             if (protocol == ToClientProtocol.ConnectReply)
-            {
                 OnReceiveConnectReply();
-            }
-            else
-            {
+            else if (protocol == ToClientProtocol.Snapshot)
                 OnReceiveSnapshot(msg);
-            }
+            else if (protocol == ToClientProtocol.Rpc)
+                OnReceiveRpc(msg);
         }
 
         /// <summary>
@@ -163,7 +161,7 @@ namespace StargateNet
                     int inputBytes = blocks[blockIdx].inputSizeBytes;
                     int inputType = blocks[blockIdx].type;
                     msg.AddInt(inputType);
-                    for(int dataIdx = 0; dataIdx < inputBytes; dataIdx ++)
+                    for (int dataIdx = 0; dataIdx < inputBytes; dataIdx++)
                     {
                         msg.AddByte(inputBlock.inputBlockPtr[dataIdx]);
                     }
@@ -172,6 +170,53 @@ namespace StargateNet
 
             this.Client.Send(msg);
             this.bytesOut.Add(msg.BytesInUse);
+        }
+
+        public unsafe void SendRpcMessage()
+        {
+            if (!this.Engine.NetworkRPCManager.NeedSendRpc) return;
+            Message msg = Message.Create(MessageSendMode.Reliable, Protocol.ToServer);
+            msg.AddUInt((uint)ToServerProtocol.Rpc);
+            msg.AddShort((short)this.Engine.NetworkRPCManager.pramsToSend.Count);
+            for (int i = 0; i < this.Engine.NetworkRPCManager.pramsToSend.Count; i++)
+            {
+                NetworkRPCPram pram = this.Engine.NetworkRPCManager.pramsToSend[i];
+                msg.AddInt(pram.entityId);
+                msg.AddInt(pram.scriptId);
+                msg.AddInt(pram.rpcId);
+                msg.AddInt(pram.pramsBytes);
+                int t = 0;
+                while (t < pram.pramsBytes)
+                {
+                    msg.AddByte(pram.prams[t]);
+                    t++;
+                }
+            }
+
+            this.Client.Send(msg);
+            this.bytesOut.Add(msg.BytesInUse);
+            // 清除发送的RPC
+            this.Engine.NetworkRPCManager.ClearSendedRpc();
+        }
+
+        private unsafe void OnReceiveRpc(Message msg)
+        {
+            NetworkRPCManager networkRPCManager = this.Engine.NetworkRPCManager;
+            int rpcCount = msg.GetInt();
+            while (rpcCount-- > 0)
+            {
+                int entityId = msg.GetInt();
+                int scriptId = msg.GetInt();
+                int rpcId = msg.GetInt();
+                int pramBytes = msg.GetInt();
+                NetworkRPCPram networkRPCPram = networkRPCManager.RequireRpcPramToReceive(pramBytes);
+                int t = 0;
+                while (t++ < pramBytes)
+                {
+                    networkRPCPram.prams[t] = msg.GetByte();
+                }
+                networkRPCManager.AddRpcPramToReceive(networkRPCPram);
+            }
         }
 
         private void SendRequestMessage()
@@ -206,7 +251,7 @@ namespace StargateNet
             int lastFragmentBytes = msg.GetInt();
             short fragmentId = msg.GetShort();
             bool isLastFragment = msg.GetBool();
-            if (!isLastFragment) 
+            if (!isLastFragment)
             {
                 //不是最后一个分片，那么期望的分片数量就是id+1
                 _expectedFragmentCount = Mathf.Max(fragmentId + 1, _expectedFragmentCount);

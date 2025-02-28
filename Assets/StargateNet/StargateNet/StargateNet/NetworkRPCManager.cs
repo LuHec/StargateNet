@@ -5,6 +5,8 @@ namespace StargateNet
 {
     public class NetworkRPCManager
     {
+        internal bool NeedSendRpc => this.pramsToSend.Count > 0;
+        internal bool NeedCallRpc => this.pramsToReceive.Count > 0;
         private Dictionary<int, NetworkStaticRpcEvent> staticRPCs = new(32);
         private StargateEngine _engine;
         private StargateAllocator rpcAllocator;
@@ -15,11 +17,6 @@ namespace StargateNet
         private ReadWriteBuffer rpcSenderBuffer;
 
         /// <summary>
-        /// 用于接收的buffer
-        /// </summary>
-        private ReadWriteBuffer rpcReceiveBuffer;
-
-        /// <summary>
         /// 在发起调用RPC时，用来写入参数
         /// </summary>
         private ReadWriteBuffer rpcPramWriter;
@@ -27,7 +24,66 @@ namespace StargateNet
         /// <summary>
         /// 暂存写入的信息
         /// </summary>
-        private List<NetworkRPCPram> pramsToSend = new(16);
+        internal List<NetworkRPCPram> pramsToSend = new(16);
+        internal List<NetworkRPCPram> pramsToReceive = new(16);
+
+        public NetworkRPCManager(StargateEngine engine, StargateAllocator rpcAllocator)
+        {
+            this._engine = engine;
+            this.rpcAllocator = rpcAllocator;
+            this.rpcSenderBuffer = new ReadWriteBuffer(1024);
+            this.rpcPramWriter = new ReadWriteBuffer(1024);
+        }
+
+        internal unsafe void ClearSendedRpc()
+        {
+            for (int i = 0; i < this.pramsToSend.Count; i++)
+            {
+                NetworkRPCPram pram = this.pramsToSend[i];
+                this.rpcAllocator.Free(pram.prams);
+            }
+            this.pramsToSend.Clear();
+        }
+
+        internal unsafe void ClearReceivedRpc()
+        {
+            for (int i = 0; i < this.pramsToReceive.Count; i++)
+            {
+                NetworkRPCPram pram = this.pramsToReceive[i];
+                this.rpcAllocator.Free(pram.prams);
+            }
+            this.pramsToReceive.Clear();
+        }
+
+        internal unsafe NetworkRPCPram RequireRpcPramToReceive(int byteSize)
+        {
+            NetworkRPCPram pram = new NetworkRPCPram()
+            {
+                prams = (byte*)this.rpcAllocator.Malloc(byteSize),
+                pramsBytes = byteSize
+            };
+            return pram;
+        }
+
+        internal void AddRpcPramToReceive(NetworkRPCPram pram)
+        {
+            this.pramsToReceive.Add(pram);
+        }
+
+        public void CallStaticRpc()
+        {
+            for(int i = 0; i < this.pramsToReceive.Count; i++)
+            {
+                NetworkRPCPram pram = this.pramsToReceive[i];
+                if (this.staticRPCs.TryGetValue(pram.rpcId, out NetworkStaticRpcEvent rpcEvent))
+                {
+                    Entity entity = this._engine.Simulation.entitiesTable[new NetworkObjectRef(pram.entityId)];
+                    if(entity == null) continue;
+                    NetworkBehavior behavior = entity.networkBehaviors[pram.scriptId];
+                    rpcEvent.Invoke(behavior, pram);
+                }
+            }
+        }
 
         private bool CanCallRpc(NetworkRPCFrom networkRPCFrom)
         {

@@ -85,7 +85,7 @@ namespace StargateNet
             this.maxEntities = StargateNetUtil.AlignTo(this.maxEntities, 32); // 对齐一个int,申请足够大小的内存给id map
             this.EntityMetaManager = new EntityMetaManager(this.maxEntities, this);
             this.ReflectionData = new StargateReflectionData();
-            this.NetworkRPCManager = new NetworkRPCManager();
+            this.NetworkRPCManager = new NetworkRPCManager(this, new StargateAllocator(4096, monitor));
             //用于物体Sync var的内存大小
             long totalObjectStateByteSize = configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
             this.WorldState = new WorldState(this, configData.savedSnapshotsCount, new Snapshot(totalObjectStateByteSize, this.maxEntities, monitor)); //专门用于物体Sync var的分配器
@@ -94,7 +94,7 @@ namespace StargateNet
             {
                 this.WorldState.snapshots.Add(new Snapshot(totalObjectStateByteSize, this.maxEntities, monitor));
             }
-            
+
             this.InterpolationLocal = new InterpolationLocal(this);
             if (startMode == StartMode.Server)
             {
@@ -154,7 +154,7 @@ namespace StargateNet
             this.WorldState.CurrentSnapshot.NetworkStates.HandledRelease();
             this.Simulation.HandledRelease();
         }
-        
+
         /// <summary>
         /// Called every frame.
         /// </summary>
@@ -203,12 +203,17 @@ namespace StargateNet
             {
                 if (this.IsClient)
                     this.Simulation.DeserializeToGamecode();
+                if (this.NetworkRPCManager.NeedCallRpc)
+                {
+                    this.NetworkRPCManager.CallStaticRpc();
+                    this.NetworkRPCManager.ClearReceivedRpc();
+                }
                 this.Simulation.PreFixedUpdate(); // 对于客户端，先在这里处理回滚，然后再模拟下一帧
                 this.Simulation.FixedUpdate(); // 这里会更新物理
                 if (this.IsServer)
                     this.Simulation.SerializeToNetcode();
                 this.SimTick++; // 当前是10帧模拟完，11帧的初始状态发往客户端的帧数应该是11帧
-                
+
                 this.Simulation.DrainPaddingAddedEntity(); // 发送后再添加到模拟中
                 this.Simulation.DrainPaddingRemovedEntity(); // 发送后再清除Entity占用的内存和id
                 if (this.SimulationClock.IsLastCall) // 此时toSnapshot已经是完整的信息了，清理前先发送
@@ -233,11 +238,13 @@ namespace StargateNet
         {
             if (this.IsServer)
             {
+                this.Server.SendRpc();
                 this.IM.CalculateAOI();
                 this.Server.SendServerPak();
             }
             else if (this.IsClient && this.IsConnected)
             {
+                this.Client.SendRpcMessage();
                 this.Client.SendClientInput();
             }
         }

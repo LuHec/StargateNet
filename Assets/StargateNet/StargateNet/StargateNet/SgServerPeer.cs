@@ -63,11 +63,41 @@ namespace StargateNet
                 this.Server.Send(msg, clientConnections[clientId].connection);
         }
 
+        public unsafe void SendRpc()
+        {
+            if (!this.Engine.NetworkRPCManager.NeedSendRpc) return;
+            for (int id = 0; id < clientConnections.Count; id++)
+            {
+                Message msg = Message.Create(MessageSendMode.Reliable, Protocol.ToServer);
+                msg.AddUInt((uint)ToServerProtocol.Rpc);
+                msg.AddShort((short)this.Engine.NetworkRPCManager.pramsToSend.Count);
+                for (int i = 0; i < this.Engine.NetworkRPCManager.pramsToSend.Count; i++)
+                {
+                    NetworkRPCPram pram = this.Engine.NetworkRPCManager.pramsToSend[i];
+                    msg.AddInt(pram.entityId);
+                    msg.AddInt(pram.scriptId);
+                    msg.AddInt(pram.rpcId);
+                    msg.AddInt(pram.pramsBytes);
+                    int t = 0;
+                    while (t < pram.pramsBytes)
+                    {
+                        msg.AddByte(pram.prams[t]);
+                        t++;
+                    }
+                }
+
+                this.Server.Send(msg, (ushort)id);
+                this.bytesOut.Add(msg.BytesInUse);
+            }
+            // 清除发送的RPC
+            this.Engine.NetworkRPCManager.ClearSendedRpc();
+        }
+
         public unsafe void SendServerPak()
         {
             PrepareToSend();
             Snapshot curSnapshot = this.Engine.WorldState.CurrentSnapshot;
-            
+
             // 收集dirty的meta
             for (int idx = 0; idx < this.Engine.maxEntities; idx++)
             {
@@ -83,7 +113,7 @@ namespace StargateNet
                 this._writeBuffer.Clear();
                 // 找到该客户端控制的玩家实体
                 if (this.Engine.Simulation.entitiesTable.TryGetValue(
-                        clientConnection.controlEntityRef, 
+                        clientConnection.controlEntityRef,
                         out Entity playerEntity))
                 {
                     // 计算该客户端的可见对象
@@ -167,21 +197,45 @@ namespace StargateNet
             }
             else if (protocol == ToServerProtocol.Input)
             {
-                ReceiveInput(args);
+                OnReceiveInput(args);
+            }
+            else if (protocol == ToServerProtocol.Rpc)
+            {
+                OnReceiveRpc(msg);
+            }
+            this.bytesIn.Add(msg.BytesInUse);
+        }
+
+        private unsafe void OnReceiveRpc(Message msg)
+        {
+            NetworkRPCManager networkRPCManager = this.Engine.NetworkRPCManager;
+            int rpcCount = msg.GetInt();
+            while (rpcCount-- > 0)
+            {
+                int entityId = msg.GetInt();
+                int scriptId = msg.GetInt();
+                int rpcId = msg.GetInt();
+                int pramBytes = msg.GetInt();
+                NetworkRPCPram networkRPCPram = networkRPCManager.RequireRpcPramToReceive(pramBytes);
+                int t = 0;
+                while (t++ < pramBytes)
+                {
+                    networkRPCPram.prams[t] = msg.GetByte();
+                }
+                networkRPCManager.AddRpcPramToReceive(networkRPCPram);
             }
         }
 
-        private void ReceiveInput(MessageReceivedEventArgs args)
+        private void OnReceiveInput(MessageReceivedEventArgs args)
         {
             PrepareToReceive();
             var msg = args.Message;
-            this.bytesIn.Add(msg.BytesInUse);
             // header ------------------------
             bool clientLossPacket = msg.GetBool();
             int clientLastAuthorTick = msg.GetInt();
             int inputCount = msg.GetShort();
             // RiptideLogger.Log(LogType.Warning, $"client send input count: {inputCount}");
-            if(!this._clinetIdToGuidMap.TryGetValue(args.FromConnection.Id, out int guid)) return;
+            if (!this._clinetIdToGuidMap.TryGetValue(args.FromConnection.Id, out int guid)) return;
             int playerId = this._guidToIdMap[guid];
             ClientData clientData = this.clientConnections[playerId].clientData;
             clientData.deltaPakTime = this.Engine.SimulationClock.Time - clientData.lastPakTime;
@@ -216,7 +270,7 @@ namespace StargateNet
                 }
             }
         }
-        
+
         private void OnConnect(object sender, ServerConnectedEventArgs args)
         {
             this._pendingConnectionIds.Add(args.Client.Id);
@@ -276,11 +330,11 @@ namespace StargateNet
                 ClientData clientData = this.Engine.ServerSimulation.clientDatas[playerId];
                 clientData.Reset();
                 ClientConnection clientConnection = new ClientConnection(this.Engine)
-                    { connected = true, connection = pendingConnection, clientData = clientData };
+                { connected = true, connection = pendingConnection, clientData = clientData };
                 clientConnections.Add(clientConnection);
                 pendingConnection.TimeoutTime = 10 * 1000;
             }
-            
+
             this._clinetIdToGuidMap[pendingConnection.Id] = guid;
             Message replyMsg = Message.Create(MessageSendMode.Reliable, Protocol.ToClient);
             replyMsg.AddUInt((uint)ToClientProtocol.ConnectReply);

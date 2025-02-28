@@ -10,11 +10,13 @@ namespace StargateNet
     {
         ConnectRequest = 0,
         Input,
+        Rpc,
     }
 
     public enum ToClientProtocol : uint
     {
         ConnectReply = 0,
         Snapshot,
+        Rpc,
     }
 }

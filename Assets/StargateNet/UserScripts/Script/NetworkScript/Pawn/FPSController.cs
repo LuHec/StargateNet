@@ -91,6 +91,19 @@ public class FPSController : NetworkBehavior
         }
     }
 
+    [Replicated]
+    public int TestNum { get; set; }
+    [NetworkRPC(NetworkRPCFrom.ClientCall)]
+    public void Test(int num)
+    {
+        TestNum = num;
+    }
+    [NetworkCallBack(nameof(TestNum), false)]
+    public void TestCallBack(CallbackData callbackData)
+    {
+        Debug.LogWarning("TestNum:" + TestNum);
+    }
+
     public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
         Vector3 movement = Vector3.zero;
@@ -111,6 +124,11 @@ public class FPSController : NetworkBehavior
             {
                 VerticalSpeed = jumpSpeed;
                 IsGrounded = false;
+            }
+
+            if (input.Reload && IsClient)
+            {
+                Test(100);
             }
 
             if ((input.IsFire || input.IsHoldFire) && attributeComponent.networkWeapon != null && attributeComponent.networkWeapon.TryFire(galaxy, input.IsFire, input.IsHoldFire))
@@ -237,6 +255,7 @@ public class FPSController : NetworkBehavior
         playerInput.IsHoldFire |= Input.GetMouseButton(0);
         playerInput.IsInteract |= Input.GetKeyDown(KeyCode.E);
         playerInput.IsThrowing |= Input.GetKeyDown(KeyCode.G);
+        playerInput.Reload |= Input.GetKeyDown(KeyCode.R);
         // 处理延迟补偿
         //TODO:暂时这么写！！还在想办法解决怎么把这个狗屎延迟补偿输入给提取出用户代码
         galaxy.SetInput(playerInput, Input.GetMouseButtonDown(0));
