@@ -75,12 +75,6 @@ namespace StargateNet
                     if (!IsNetworkBehavior(type)) continue;
 
                     var rpcMethods = ProcessTypeRPCMethods(type, diagnostics);
-                    diagnostics.Add(new DiagnosticMessage
-                    {
-                        DiagnosticType = DiagnosticType.Warning,
-                        MessageData = $"Found {rpcMethods.Count} RPC methods in {type.FullName}"
-
-                    });
                     RegisterRPCMethods(module, type, rpcMethods);
                 }
             }
@@ -273,7 +267,7 @@ namespace StargateNet
             // 1. 重命名原方法为实现方法
             methodDefinition.Name = $"{originalName}_Implementation";
 
-            // 2. 创建新的RPC入口方法
+            // 2. 创建新的RPC方法用于真正的调用
             var rpcMethod = new MethodDefinition(originalName, Mono.Cecil.MethodAttributes.Public | Mono.Cecil.MethodAttributes.HideBySig, typeDefinition.Module.TypeSystem.Void);
 
             // 3. 复制参数
@@ -282,10 +276,14 @@ namespace StargateNet
                 rpcMethod.Parameters.Add(new ParameterDefinition(
                     param.Name, param.Attributes, param.ParameterType));
             }
-
-            // 4. 生成RPC调用代码
-            var newMethodIL = rpcMethod.Body.GetILProcessor();
-            var instructions = rpcMethod.Body.Instructions;
+            // 复制原来的IL到新的函数里
+            foreach (var instr in methodDefinition.Body.Instructions)
+            {
+                rpcMethod.Body.Instructions.Add(instr);
+            }
+            // 4. 生成RPC调用代码,重写原函数
+            var newMethodIL = methodDefinition.Body.GetILProcessor();
+            var instructions = methodDefinition.Body.Instructions;
             instructions.Clear();
 
             // 计算参数总大小
@@ -332,8 +330,9 @@ namespace StargateNet
             newMethodIL.Emit(OpCodes.Ret);
 
             // 5. 创建RPC处理方法
-            var staticHandler = CreateStaticRpcHandler(module, methodDefinition, typeDefinition);
+            var staticHandler = CreateStaticRpcHandler(module, rpcMethod, typeDefinition);
 
+            // 返回创建的函数，原函数只需要修改名称
             return (rpcMethod, staticHandler, rpcId);
         }
 
@@ -427,22 +426,25 @@ namespace StargateNet
         {
             var handler = new MethodDefinition($"{implementation.Name}_Handler",
                 MethodAttributes.Static | MethodAttributes.Public,
-                type.Module.TypeSystem.Void);
+                module.TypeSystem.Void);
 
             handler.Parameters.Add(new ParameterDefinition("instance",
                 ParameterAttributes.None,
-                type.Module.ImportReference(typeof(NetworkBehavior))));
+                module.ImportReference(typeof(NetworkBehavior))));
 
             handler.Parameters.Add(new ParameterDefinition("parameters",
                 ParameterAttributes.None,
-                type.Module.ImportReference(typeof(NetworkRPCPram))));
+                module.ImportReference(typeof(NetworkRPCPram))));
 
             var il = handler.Body.GetILProcessor();
 
             // 类型转换和参数反序列化
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Castclass, type);
-            DeserializeParameters(module, handler, il, implementation.Parameters);
+            if (implementation.Parameters.Count > 0)
+            {
+                DeserializeParameters(module, handler, il, implementation.Parameters);
+            }
 
             // 调用实现方法
             il.Emit(OpCodes.Call, implementation);

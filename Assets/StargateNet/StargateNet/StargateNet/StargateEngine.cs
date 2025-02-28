@@ -85,7 +85,7 @@ namespace StargateNet
             this.maxEntities = StargateNetUtil.AlignTo(this.maxEntities, 32); // 对齐一个int,申请足够大小的内存给id map
             this.EntityMetaManager = new EntityMetaManager(this.maxEntities, this);
             this.ReflectionData = new StargateReflectionData();
-            this.NetworkRPCManager = new NetworkRPCManager(this, new StargateAllocator(4096, monitor));
+            this.NetworkRPCManager = new NetworkRPCManager(this, new StargateAllocator(4096 * 5, monitor));
             //用于物体Sync var的内存大小
             long totalObjectStateByteSize = configData.maxNetworkObjects * configData.maxObjectStateBytes * 2 * 2; // 2是因为还有dirtymap的占用
             this.WorldState = new WorldState(this, configData.savedSnapshotsCount, new Snapshot(totalObjectStateByteSize, this.maxEntities, monitor)); //专门用于物体Sync var的分配器

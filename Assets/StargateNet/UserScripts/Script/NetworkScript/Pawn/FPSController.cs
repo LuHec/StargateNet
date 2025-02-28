@@ -68,6 +68,8 @@ public class FPSController : NetworkBehavior
     protected AttributeComponent attributeComponent;
     // ---------------------------------- Component ---------------------------------- //
 
+    private WeaponPresenter _weaponPresenter;
+
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
         attributeComponent = GetComponent<AttributeComponent>();
@@ -89,19 +91,24 @@ public class FPSController : NetworkBehavior
 
             UIManager.Instance.GetUIPanel<UIPlayerInterface>().Open();
         }
-    }
 
-    [Replicated]
-    public int TestNum { get; set; }
-    [NetworkRPC(NetworkRPCFrom.ClientCall)]
-    public void Test(int num)
-    {
-        TestNum = num;
-    }
-    [NetworkCallBack(nameof(TestNum), false)]
-    public void TestCallBack(CallbackData callbackData)
-    {
-        Debug.LogWarning("TestNum:" + TestNum);
+        _weaponPresenter = new WeaponPresenter(handPoint)
+        {
+            sway = sway,
+            smooth = smooth,
+            step = step,
+            maxStepDistance = maxStepDistance,
+            swayRotation = swayRotation,
+            smoothRot = smoothRot,
+            rotationStep = rotationStep,
+            maxRotationStep = maxRotationStep,
+            bobOffset = bobOffset,
+            speedCurveMultiplier = speedCurveMultiplier,
+            travelLimit = travelLimit,
+            bobLimit = bobLimit,
+            bobSway = bobSway,
+            multiplier = multiplier
+        };
     }
 
     public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
@@ -128,7 +135,7 @@ public class FPSController : NetworkBehavior
 
             if (input.Reload && IsClient)
             {
-                Test(100);
+
             }
 
             if ((input.IsFire || input.IsHoldFire) && attributeComponent.networkWeapon != null && attributeComponent.networkWeapon.TryFire(galaxy, input.IsFire, input.IsHoldFire))
@@ -184,12 +191,10 @@ public class FPSController : NetworkBehavior
     public override void NetworkUpdate(SgNetworkGalaxy galaxy)
     {
         if (!this.IsLocalPlayer()) return;
-        var (deltaYawPitchInput, deltaMove) = GetInput(galaxy);
-        Sway(deltaYawPitchInput);
-        SwayRotation(deltaYawPitchInput);
-        BobOffset(deltaMove);
-        BobRotation(deltaMove);
-        CompositePositionRotation();
+        Inputs inputs = GetInput(galaxy);
+        Vector2 deltaYawPitchInput = inputs.a;
+        Vector2 deltaMove = inputs.b;
+        _weaponPresenter.UpdatePresentation(deltaYawPitchInput, deltaMove, cc.velocity.magnitude, IsGrounded);
     }
 
     public override void NetworkRender(SgNetworkGalaxy galaxy)
@@ -211,12 +216,17 @@ public class FPSController : NetworkBehavior
         return Mathf.Clamp(angle, min, max);
     }
 
+    struct Inputs
+    {
+        public Vector2 a;
+        public Vector2 b;
+    }
     /// <summary>
     /// 返回delta
     /// </summary>
     /// <param name="galaxy"></param>
     /// <returns></returns>
-    private (Vector2, Vector2) GetInput(SgNetworkGalaxy galaxy)
+    private Inputs GetInput(SgNetworkGalaxy galaxy)
     {
         if (Input.GetKey(KeyCode.LeftAlt))
         {
@@ -260,65 +270,6 @@ public class FPSController : NetworkBehavior
         //TODO:暂时这么写！！还在想办法解决怎么把这个狗屎延迟补偿输入给提取出用户代码
         galaxy.SetInput(playerInput, Input.GetMouseButtonDown(0));
 
-        return (deltaRawPitchInput, new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")));
-    }
-
-    void Sway(Vector3 input)
-    {
-        if (!sway) return;
-        Vector3 invertLook = input * -step;
-        invertLook.x = Mathf.Clamp(invertLook.x, -maxStepDistance, maxStepDistance);
-        invertLook.y = Mathf.Clamp(invertLook.y, -maxStepDistance, maxStepDistance);
-
-        _swayPos = invertLook;
-    }
-
-    void SwayRotation(Vector3 input)
-    {
-        if (!swayRotation) return;
-        Vector2 invertLook = input * -rotationStep;
-        invertLook.x = Mathf.Clamp(invertLook.x, -maxRotationStep, maxRotationStep);
-        invertLook.y = Mathf.Clamp(invertLook.y, -maxRotationStep, maxRotationStep);
-
-        _swayEulerRot = new Vector3(invertLook.y, invertLook.x, invertLook.x);
-    }
-
-    void BobOffset(Vector2 input)
-    {
-        bool isGrounded = IsGrounded;
-        speedCurve += Time.deltaTime * (isGrounded ? cc.velocity.magnitude * speedCurveMultiplier : 1f) + .01f;
-        if (!bobOffset)
-        {
-            _bobPosition = Vector3.zero;
-            return;
-        }
-
-        _bobPosition.x = CurveCos * bobLimit.x * (isGrounded ? 1 : 0) - input.x * travelLimit.x;
-        _bobPosition.y = CurveSin * bobLimit.y * (isGrounded ? 1 : 0) - input.y * travelLimit.y;
-        _bobPosition.z = -(input.y * travelLimit.z);
-    }
-
-    void BobRotation(Vector2 input)
-    {
-        if (!bobSway)
-        {
-            _bobRotation = Vector3.zero;
-            return;
-        }
-
-        _bobRotation.x = input != Vector2.zero
-            ? multiplier.x * (Mathf.Sin(2 * speedCurve))
-            : multiplier.x * (Mathf.Sin(2 * speedCurve) / 2);
-        _bobRotation.y = input != Vector2.zero ? multiplier.y * CurveCos : 0;
-        _bobRotation.z = input != Vector2.zero ? multiplier.z * CurveCos * input.x : 0;
-    }
-
-    void CompositePositionRotation()
-    {
-        handPoint.localPosition =
-            Vector3.Lerp(handPoint.localPosition, _swayPos + _bobPosition, Time.deltaTime * smooth);
-        handPoint.localRotation = Quaternion.Slerp(handPoint.localRotation,
-            Quaternion.Euler(_swayEulerRot) * Quaternion.Euler(_bobRotation),
-            Time.deltaTime * smoothRot);
+        return new Inputs{a = deltaRawPitchInput, b = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"))};
     }
 }

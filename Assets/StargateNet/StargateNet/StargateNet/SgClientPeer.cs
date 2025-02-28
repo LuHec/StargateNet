@@ -202,7 +202,7 @@ namespace StargateNet
         private unsafe void OnReceiveRpc(Message msg)
         {
             NetworkRPCManager networkRPCManager = this.Engine.NetworkRPCManager;
-            int rpcCount = msg.GetInt();
+            int rpcCount = msg.GetUShort();
             while (rpcCount-- > 0)
             {
                 int entityId = msg.GetInt();
@@ -210,6 +210,10 @@ namespace StargateNet
                 int rpcId = msg.GetInt();
                 int pramBytes = msg.GetInt();
                 NetworkRPCPram networkRPCPram = networkRPCManager.RequireRpcPramToReceive(pramBytes);
+                networkRPCPram.entityId = entityId;
+                networkRPCPram.scriptId = scriptId;
+                networkRPCPram.rpcId = rpcId;
+                networkRPCPram.pramsBytes = pramBytes;
                 int t = 0;
                 while (t++ < pramBytes)
                 {

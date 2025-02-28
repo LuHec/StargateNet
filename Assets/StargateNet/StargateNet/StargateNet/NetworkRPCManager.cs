@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace StargateNet
 {
@@ -79,6 +80,7 @@ namespace StargateNet
                 {
                     Entity entity = this._engine.Simulation.entitiesTable[new NetworkObjectRef(pram.entityId)];
                     if(entity == null) continue;
+                    Debug.LogWarning($"CallStaticRpc,entityId{pram.entityId},scriptId{pram.scriptId},rpcId{pram.rpcId}");
                     NetworkBehavior behavior = entity.networkBehaviors[pram.scriptId];
                     rpcEvent.Invoke(behavior, pram);
                 }
@@ -140,6 +142,7 @@ namespace StargateNet
             }
 
             this.rpcPramWriter.Clear();
+            Debug.LogWarning($"EndWrite,entityId{writePram.entityId},scriptId{writePram.scriptId},rpcId{writePram.rpcId}");
         }
     }
 }
