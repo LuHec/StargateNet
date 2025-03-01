@@ -21,11 +21,16 @@ public class AttributeComponent : NetworkBehavior
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
-        HPoint = 100;
-        Armor = 100;
-        WeaponRef = -1;
+        if (IsServer)
+        {
+            OnResapwn();
+        }
     }
 
+    public void ChangeHp(int value)
+    {
+        HPoint = Mathf.Clamp(HPoint + value, 0, 100);
+    }
     public void SetNetworkWeapon(NetworkObject networkObject)
     {
         if (networkObject == null) return;
@@ -72,7 +77,7 @@ public class AttributeComponent : NetworkBehavior
 
         // 再生成新的武器
         if (WeaponRef == -1) return;
-        NetworkObject networkObject = Entity.engine.GetNetworkObject(new NetworkObjectRef(WeaponRef));
+        NetworkObject networkObject = Entity.Engine.GetNetworkObject(new NetworkObjectRef(WeaponRef));
         networkWeapon = networkObject.GetComponent<NetworkWeapon>();
         if (networkWeapon == null) return;
 
@@ -89,6 +94,12 @@ public class AttributeComponent : NetworkBehavior
     public void OnHpointChanged(CallbackData callbackData)
     {
         Debug.LogWarning($"Hp from {callbackData.GetPreviousData<int>()} To {HPoint}");
+
+        if (HPoint <= 0)
+        {
+            OnDead();
+        }
+
         if (IsClient)
         {
             int lastValue = callbackData.GetPreviousData<int>();
@@ -98,6 +109,17 @@ public class AttributeComponent : NetworkBehavior
             }
 
         }
+    }
+
+    public void OnDead()
+    {
+        owner.OnDead();
+    }
+    public void OnResapwn()
+    {
+        HPoint = 100;
+        Armor = 100;
+        ThrowWeapon();
     }
 
     private void PlayClientDamageVFX()
@@ -111,11 +133,5 @@ public class AttributeComponent : NetworkBehavior
         {
 
         }
-    }
-
-    [NetworkRPC(NetworkRPCFrom.ServerCall)]
-    public void TestServerRpc1(int a, int b, float c, double d, Vector3 e)
-    {
-
     }
 }

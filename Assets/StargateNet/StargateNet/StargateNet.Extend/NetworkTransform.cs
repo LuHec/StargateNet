@@ -87,13 +87,13 @@ public class NetworkTransform : NetworkBehavior, IClientSimulationCallbacks
 
         if (!fromSnapshot.snapshotTick.IsValid || !toSnapshot.snapshotTick.IsValid) return;
         //排除前FromSnapshot不存在的物体
-        var fromObjectMeta = fromSnapshot.GetWorldObjectMeta(this.Entity.worldMetaId);
-        if (fromObjectMeta.networkId != this.Entity.networkId.refValue) return;
+        var fromObjectMeta = fromSnapshot.GetWorldObjectMeta(this.Entity.WorldMetaId);
+        if (fromObjectMeta.networkId != this.Entity.NetworkId.refValue) return;
 
         // position lerp
         float alpha = interpolation.Alpha;
-        int* fromPositionPtr = (int*)fromSnapshot.NetworkStates.pools[this.Entity.poolId].dataPtr + this.Entity.entityBlockWordSize + stateBlockIdx;
-        int* toPositionPtr = (int*)toSnapshot.NetworkStates.pools[this.Entity.poolId].dataPtr + this.Entity.entityBlockWordSize + stateBlockIdx;
+        int* fromPositionPtr = (int*)fromSnapshot.NetworkStates.pools[this.Entity.PoolId].dataPtr + this.Entity.EntityBlockWordSize + stateBlockIdx;
+        int* toPositionPtr = (int*)toSnapshot.NetworkStates.pools[this.Entity.PoolId].dataPtr + this.Entity.EntityBlockWordSize + stateBlockIdx;
         Vector3 fromPosition = StargateNetUtil.GetVector3(fromPositionPtr);
         Vector3 toPosition = StargateNetUtil.GetVector3(toPositionPtr);
         Vector3 renderPosition = Vector3.Lerp(fromPosition, toPosition, alpha);

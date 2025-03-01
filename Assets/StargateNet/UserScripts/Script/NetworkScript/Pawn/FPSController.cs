@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using StargateNet;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class FPSController : NetworkBehavior
@@ -9,6 +10,7 @@ public class FPSController : NetworkBehavior
     public Transform cameraPoint;
     public Transform foot;
     public Transform handPoint;
+    private Camera mainCamera;
 
     [Header("Controller")]
     public float groundDis = 2f;
@@ -78,19 +80,10 @@ public class FPSController : NetworkBehavior
         cameraPoint.forward = transform.forward;
         if (this.IsLocalPlayer())
         {
-            // 使用 galaxy.FindSceneComponent 获取相机
-            Camera mainCamera = galaxy.FindSceneComponent<Camera>();
-            if (cameraPoint != null && mainCamera != null)
-            {
-                mainCamera.fieldOfView = 105f;
-                Transform cameraTransform = mainCamera.transform;
-                cameraTransform.forward = transform.forward;
-                cameraTransform.SetParent(cameraPoint);
-                cameraTransform.localPosition = Vector3.zero;
-            }
-
-            UIManager.Instance.GetUIPanel<UIPlayerInterface>().Open();
+            mainCamera = galaxy.FindSceneComponent<Camera>();
         }
+
+        OnResawn();
 
         _weaponPresenter = new WeaponPresenter(handPoint)
         {
@@ -133,9 +126,9 @@ public class FPSController : NetworkBehavior
                 IsGrounded = false;
             }
 
-            if (input.Reload && IsClient)
+            if (input.Reload)
             {
-
+                attributeComponent.networkWeapon.Reload(galaxy);
             }
 
             if ((input.IsFire || input.IsHoldFire) && attributeComponent.networkWeapon != null && attributeComponent.networkWeapon.TryFire(galaxy, input.IsFire, input.IsHoldFire))
@@ -146,9 +139,13 @@ public class FPSController : NetworkBehavior
 
                 if (hit.collider != null)
                 {
-                    GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hit.point, .5f, 5f, Color.red);
+                    // GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hit.point, .5f, 5f, Color.red);
                     Debug.LogWarning(hit.collider.gameObject.name);
-                    if (hit.collider.gameObject.TryGetComponent(out AttributeComponent targetAttribute))
+                    if (IsClient && !galaxy.IsResimulation)
+                    {
+                        UIManager.Instance.GetUIPanel<UIHitmarker>().HitToShowMarker();
+                    }
+                    if (IsServer && hit.collider.gameObject.TryGetComponent(out AttributeComponent targetAttribute))
                     {
                         targetAttribute.HPoint -= 10;
                     }
@@ -200,6 +197,7 @@ public class FPSController : NetworkBehavior
     public override void NetworkRender(SgNetworkGalaxy galaxy)
     {
     }
+
 
 
     private Vector2 ClampAngles(float yaw, float pitch)
@@ -270,6 +268,60 @@ public class FPSController : NetworkBehavior
         //TODO:暂时这么写！！还在想办法解决怎么把这个狗屎延迟补偿输入给提取出用户代码
         galaxy.SetInput(playerInput, Input.GetMouseButtonDown(0));
 
-        return new Inputs{a = deltaRawPitchInput, b = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"))};
+        return new Inputs { a = deltaRawPitchInput, b = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")) };
+    }
+
+    public void OnResawn()
+    {
+        if (IsClient)
+        {
+            SetFPSCamera();
+            UIManager.Instance.GetUIPanel<UIPlayerInterface>().Open();
+        }
+
+        if (IsServer)
+        {
+            attributeComponent.OnResapwn();
+        }
+    }
+
+    public void OnDead()
+    {
+        if (IsClient)
+        {
+            RemoveFPSCamera();
+            UIManager.Instance.GetUIPanel<UIPlayerInterface>().Close();
+        }
+        this.gameObject.SetActive(false);
+    }
+
+    private void SetFPSCamera()
+    {
+        if (cameraPoint != null && mainCamera != null)
+        {
+            mainCamera.fieldOfView = 105f;
+            Transform cameraTransform = mainCamera.transform;
+            cameraTransform.forward = transform.forward;
+            cameraTransform.SetParent(cameraPoint);
+            cameraTransform.localPosition = Vector3.zero;
+            if (mainCamera.TryGetComponent<ObsCamera>(out ObsCamera obsCamera))
+            {
+                obsCamera.enabled = false;
+            }
+        }
+
+    }
+
+    private void RemoveFPSCamera()
+    {
+        if (mainCamera != null)
+        {
+            mainCamera.transform.SetParent(null);
+            if (mainCamera.TryGetComponent<ObsCamera>(out ObsCamera obsCamera))
+            {
+                obsCamera.enabled = true;
+            }
+        }
+
     }
 }

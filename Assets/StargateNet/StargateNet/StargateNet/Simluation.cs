@@ -158,7 +158,7 @@ namespace StargateNet
             {
                 currentSnapshot.InvalidateMeta(entity.worldMetaId);
                 this.engine.WorldState.CurrentSnapshot.NetworkStates.ReleasePool(entity.poolId); // 内存归还
-                this.engine.IM.simulationList.Remove(entity);
+                this.engine.IM.RemoveEntity(entity);
                 this.entities[entity.worldMetaId] = null;
                 if (this.engine.IsServer) // worldIdx归还
                 {
@@ -200,7 +200,7 @@ namespace StargateNet
         internal void FixedUpdate()
         {
             this.ExecuteNetworkFixedUpdate();
-            this.engine.Monitor.entities = this.engine.IM.simulationList.Count;
+            this.engine.Monitor.entities = this.engine.IM.Count;
         }
 
         internal void ExecuteNetworkUpdate()
@@ -373,7 +373,7 @@ namespace StargateNet
         /// <param name="entity"></param>
         protected virtual void AddToSimulation(Entity entity)
         {
-            this.engine.IM.simulationList.Add(entity);
+            this.engine.IM.AddEntity(entity);
         }
 
         private unsafe InputBlock AllocateInputBlock(int bytes, int type)

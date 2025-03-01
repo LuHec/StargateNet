@@ -6,8 +6,10 @@ namespace StargateNet
     public class InterestManager
     {
         internal StargateEngine engine;
-        internal List<Entity> simulationList; // 实际会被执行的单元
+        private List<Entity> simulationList; // 实际会被执行的单元
+        internal int Count => simulationList.Count;
         internal Dictionary<InterestBlock, List<NetworkObjectRef>> interestBlockMap = new(128); // 每个InterestBlock对应的Entity列表,每帧都会重新构造
+        internal HashSet<NetworkObjectRef> alawaysSyncSet = new(); 
         private Queue<List<NetworkObjectRef>> areaPool = new(128);
 
         internal readonly int boundX = 10;
@@ -25,6 +27,16 @@ namespace StargateNet
             // DrawInterestGrid();
         }
         
+        internal void AddEntity(Entity entity)
+        {
+            simulationList.Add(entity);
+        }
+
+        internal void RemoveEntity(Entity entity)
+        {
+            simulationList.Remove(entity);
+        }
+
         public unsafe void ExecuteNetworkUpdate()
         {
             Snapshot currentSnapshot = this.engine.WorldState.CurrentSnapshot;
@@ -88,6 +100,15 @@ namespace StargateNet
                     netScript.DeserializeToGameCode();
                 }
             }
+        }
+
+        internal void SetAlwaysSync(Entity entity, bool alawaysSyncSet)
+        {
+            if(!entity.networkId.IsValid) return;
+            if(alawaysSyncSet)
+                this.alawaysSyncSet.Add(entity.networkId);
+            else
+                this.alawaysSyncSet.Remove(entity.networkId);
         }
 
         internal void CalculateAOI()
@@ -174,6 +195,7 @@ namespace StargateNet
             }
             interestBlockMap.Clear();
             simulationList.Clear();
+            alawaysSyncSet.Clear();
         }
     }
 }

@@ -72,20 +72,20 @@ namespace StargateNet
                 if (target.TryGetComponent(out NetworkObject networkObject) && target.TryGetComponent(out NetworkTransform networkTransform))
                 {
                     Entity compEntity = networkObject.Entity;
-                    if (compEntity.inputSource == casterInputSource) continue;
+                    if (compEntity.InputSource == casterInputSource) continue;
                     // 先将数据写入到Snapshot中,不然被回滚的物体这帧的运动就被覆盖掉了
                     networkTransform.SerializeToNetcode();
                     
-                    int metaIdx = compEntity.worldMetaId;
+                    int metaIdx = compEntity.WorldMetaId;
                     int stateBlockIdx = (int)compEntity.GetStateBlockIdx(networkTransform.StateBlock);
                     if (fromSnapshot.GetWorldObjectMeta(metaIdx).networkId == networkObject.NetworkId.refValue &&
                         toSnapshot.GetWorldObjectMeta(metaIdx).networkId == networkObject.NetworkId.refValue)
                     {
                         // position lerp
-                        int* fromPositionPtr = (int*)fromSnapshot.NetworkStates.pools[compEntity.poolId].dataPtr +
-                                               compEntity.entityBlockWordSize + stateBlockIdx;
-                        int* toPositionPtr = (int*)toSnapshot.NetworkStates.pools[compEntity.poolId].dataPtr +
-                                             compEntity.entityBlockWordSize + stateBlockIdx;
+                        int* fromPositionPtr = (int*)fromSnapshot.NetworkStates.pools[compEntity.PoolId].dataPtr +
+                                               compEntity.EntityBlockWordSize + stateBlockIdx;
+                        int* toPositionPtr = (int*)toSnapshot.NetworkStates.pools[compEntity.PoolId].dataPtr +
+                                             compEntity.EntityBlockWordSize + stateBlockIdx;
                         Vector3 fromPosition = StargateNetUtil.GetVector3(fromPositionPtr);
                         Vector3 toPosition = StargateNetUtil.GetVector3(toPositionPtr);
                         Vector3 renderPosition = Vector3.Lerp(fromPosition, toPosition, alpha);
@@ -124,13 +124,13 @@ namespace StargateNet
                 if (target.TryGetComponent(out NetworkObject networkObject) && target.TryGetComponent(out NetworkTransform networkTransform))
                 {
                     Entity compEntity = networkObject.Entity;
-                    if (compEntity.inputSource == casterInputSource) continue;
-                    int metaIdx = compEntity.worldMetaId;
+                    if (compEntity.InputSource == casterInputSource) continue;
+                    int metaIdx = compEntity.WorldMetaId;
                     int stateBlockIdx = (int)compEntity.GetStateBlockIdx(networkTransform.StateBlock);
                     if (snapshot.GetWorldObjectMeta(metaIdx).networkId == networkObject.NetworkId.refValue)
                     {
-                        int* positionPtr = (int*)snapshot.NetworkStates.pools[compEntity.poolId].dataPtr +
-                                           compEntity.entityBlockWordSize + stateBlockIdx;
+                        int* positionPtr = (int*)snapshot.NetworkStates.pools[compEntity.PoolId].dataPtr +
+                                           compEntity.EntityBlockWordSize + stateBlockIdx;
                         int* rotationPtr = positionPtr + 3;
                         Vector3 position = StargateNetUtil.GetVector3(positionPtr);
                         Vector3 rotation = StargateNetUtil.GetVector3(rotationPtr);

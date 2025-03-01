@@ -11,18 +11,25 @@ namespace StargateNet
     /// </summary>
     public sealed class Entity
     {
-        public NetworkObjectRef networkId; // 客户端服务端一定是一致的
-        public int worldMetaId = -1; // meta的idx，客户端服务端一定是一致的
-        public int poolId = -1; // 内存的idx，客户端和服务端不一定一致
-        public int inputSource = -1;
-        public StargateEngine engine;
+        internal NetworkObjectRef networkId; // 客户端服务端一定是一致的
+        internal int worldMetaId = -1; // meta的idx，客户端服务端一定是一致的
+        internal int poolId = -1; // 内存的idx，客户端和服务端不一定一致
+        internal int inputSource = -1;
+        internal StargateEngine engine;
         internal NetworkObject entityObject; // Truly Object
         internal NetworkObjectSharedMeta networkObjectSharedMeta; // 存储回调函数
-        public int entityBlockWordSize; // Networked Field Size, 不包括bitmap大小(两者大小一致)
+        internal int entityBlockWordSize; // Networked Field Size, 不包括bitmap大小(两者大小一致)
         internal bool dirty = false;
         internal unsafe int* stateBlock; // 所有脚本属性的基存储地址，不包含bitmap
         internal unsafe int* dirtyMap; // bitmap基地址
         internal NetworkBehavior[] networkBehaviors;
+        public NetworkObjectRef NetworkId => networkId;
+        public int WorldMetaId => worldMetaId;
+        public int PoolId => poolId;
+        public int InputSource => inputSource;
+        public StargateEngine Engine => engine;
+        public int EntityBlockWordSize => entityBlockWordSize;
+
 
         /// <summary>
         /// 初始化脚本等.获取大小等等
@@ -90,6 +97,12 @@ namespace StargateNet
                 script.NetworkStart(this.engine.SgNetworkGalaxy);
             }
         }
+
+        internal void SetAlwaysSync(bool alwaysSync)
+        {
+            this.engine.IM.SetAlwaysSync(this, alwaysSync);
+        }
+        
 
         internal bool FetchInput<T>(out T input) where T : unmanaged, INetworkInput
         {

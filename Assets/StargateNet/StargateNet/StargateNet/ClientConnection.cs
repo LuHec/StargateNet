@@ -448,6 +448,11 @@ namespace StargateNet
                     }
                 }
             }
+            
+            foreach(var netId in im.alawaysSyncSet)
+            {
+                currentVisibleObjects.Add(netId);
+            }
         }
 
         /// <summary>

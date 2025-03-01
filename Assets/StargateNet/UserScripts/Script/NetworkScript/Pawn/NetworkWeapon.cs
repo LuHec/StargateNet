@@ -81,7 +81,7 @@ public class NetworkWeapon : NetworkBehavior
 
         Tick currentTick = galaxy.tick;
         double pastTime = (currentTick.tickValue - LastFireTick) * galaxy.FixedDeltaTime;
-        Debug.LogError($"TryFire:CurrentTick:{currentTick}, LastFireTick:{LastFireTick}, BurstCount:{BurstCount},PastTime:{pastTime}");
+        // Debug.LogError($"TryFire:CurrentTick:{currentTick}, LastFireTick:{LastFireTick}, BurstCount:{BurstCount},PastTime:{pastTime}");
         if (pastTime > _secondsPerShot)
         {
             LastFireTick = currentTick.tickValue;

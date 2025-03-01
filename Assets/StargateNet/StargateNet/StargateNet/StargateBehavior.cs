@@ -68,5 +68,10 @@ namespace StargateNet
         {
             
         }
+
+        public void SetAlwaysSync(bool alawaysSyncSet)
+        {
+            Entity.SetAlwaysSync(alawaysSyncSet);
+        }
     }
 }

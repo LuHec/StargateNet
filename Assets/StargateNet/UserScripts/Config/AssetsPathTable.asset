@@ -13,5 +13,6 @@ MonoBehaviour:
   m_Name: AssetsPathTable
   m_EditorClassIdentifier: 
   uiPaths:
+  - UIHitMarker
   - UIPlayerInterface
   - UIPostProcessing
