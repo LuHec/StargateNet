@@ -9,7 +9,7 @@ public class BattleManager : NetworkBehavior
     {
         public float TriggerTime;
         public NetworkObjectRef entityId;
-        public FPSController Player;
+        public AttributeComponent Player;
     }
 
     private MinHeap<RespawnTimer> _respawnHeap;
@@ -23,7 +23,7 @@ public class BattleManager : NetworkBehavior
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
-        base.NetworkStart(galaxy);
+        this.SetAlwaysSync(true);
         if (this.IsServer)
         {
             SetAlwaysSync(true);
@@ -33,7 +33,7 @@ public class BattleManager : NetworkBehavior
         Seconds = 0;
     }
 
-    public void AddRespawnTimer(float delay, FPSController player)
+    public void AddRespawnTimer(float delay, AttributeComponent player)
     {
         if (!IsServer) return;
         var timer = new RespawnTimer
@@ -69,8 +69,8 @@ public class BattleManager : NetworkBehavior
         }
     }
 
-    private void RespawnPlayer(FPSController player)
+    private void RespawnPlayer(AttributeComponent player)
     {
-        player.OnResawn();
+        player.OnResapwn();
     }
 }

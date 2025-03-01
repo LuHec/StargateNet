@@ -410,6 +410,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 39afcd06b164d134b813b62fc6cb84ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  battleManager: {fileID: 7397322393238279019, guid: d2176fbc0d7557c43a78f54ba3967d01,
+    type: 3}
   playerPawn: {fileID: 7095134503880436856, guid: 69e03efa710929f47b22396aa0160455,
     type: 3}
 --- !u!1 &150335512

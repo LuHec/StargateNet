@@ -5,13 +5,16 @@ using UnityEngine;
 
 public class MyNetworkEventManager : NetworkEventManager
 {
+    [SerializeField] private BattleManager battleManager;
     [SerializeField] private GameObject playerPawn;
     private HashSet<int> _playerIds = new HashSet<int>(128);
 
     public override void OnNetworkEngineStart(SgNetworkGalaxy galaxy)
     {
         Camera.main.gameObject.AddComponent<ObsCamera>();
-    }
+        if(galaxy.IsServer)
+            galaxy.NetworkSpawn(battleManager.gameObject, Vector3.zero, Quaternion.identity);
+    }   
 
     public override void OnPlayerConnected(SgNetworkGalaxy galaxy, int playerId)
     {

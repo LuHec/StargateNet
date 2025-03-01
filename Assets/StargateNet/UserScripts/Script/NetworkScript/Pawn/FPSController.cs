@@ -1,7 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
 using StargateNet;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class FPSController : NetworkBehavior
@@ -65,6 +62,8 @@ public class FPSController : NetworkBehavior
     public float VerticalSpeed { get; set; }
     [Replicated]
     NetworkBool IsGrounded { get; set; }
+    [Replicated]
+    public NetworkBool IsDead { get; set; }
 
     // ---------------------------------- Component ---------------------------------- //
     protected AttributeComponent attributeComponent;
@@ -83,7 +82,7 @@ public class FPSController : NetworkBehavior
             mainCamera = galaxy.FindSceneComponent<Camera>();
         }
 
-        OnResawn();
+        HandleRespawn();
 
         _weaponPresenter = new WeaponPresenter(handPoint)
         {
@@ -102,10 +101,14 @@ public class FPSController : NetworkBehavior
             bobSway = bobSway,
             multiplier = multiplier
         };
+
+        IsDead = false;
     }
 
     public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
+        if (IsDead) return;
+
         Vector3 movement = Vector3.zero;
 
         // 地面检测
@@ -187,7 +190,7 @@ public class FPSController : NetworkBehavior
 
     public override void NetworkUpdate(SgNetworkGalaxy galaxy)
     {
-        if (!this.IsLocalPlayer()) return;
+        if (!this.IsLocalPlayer() || IsDead) return;
         Inputs inputs = GetInput(galaxy);
         Vector2 deltaYawPitchInput = inputs.a;
         Vector2 deltaMove = inputs.b;
@@ -271,20 +274,6 @@ public class FPSController : NetworkBehavior
         return new Inputs { a = deltaRawPitchInput, b = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")) };
     }
 
-    public void OnResawn()
-    {
-        if (IsClient)
-        {
-            SetFPSCamera();
-            UIManager.Instance.GetUIPanel<UIPlayerInterface>().Open();
-        }
-
-        if (IsServer)
-        {
-            attributeComponent.OnResapwn();
-        }
-    }
-
     public void OnDead()
     {
         if (IsClient)
@@ -323,5 +312,43 @@ public class FPSController : NetworkBehavior
             }
         }
 
+    }
+
+    public void SetDead(bool isDead)
+    {
+        IsDead = isDead;
+    }
+
+    [NetworkCallBack(nameof(IsDead), false)]
+    private void OnDeadStateChanged(CallbackData data)
+    {
+        if (IsDead)
+        {
+            HandleDeath();
+        }
+        else
+        {
+            HandleRespawn();
+        }
+    }
+
+    private void HandleDeath()
+    {
+        if (IsClient)
+        {
+            RemoveFPSCamera();
+            UIManager.Instance.GetUIPanel<UIPlayerInterface>().Close();
+        }
+        gameObject.SetActive(false);
+    }
+
+    private void HandleRespawn()
+    {
+        gameObject.SetActive(true);
+        if (IsClient)
+        {
+            SetFPSCamera();
+            UIManager.Instance.GetUIPanel<UIPlayerInterface>().Open();
+        }
     }
 }

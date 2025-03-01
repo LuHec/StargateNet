@@ -17,12 +17,14 @@ public class AttributeComponent : NetworkBehavior
     public FPSController owner;
     public NetworkWeapon networkWeapon;
     public WeaponModel weaponModel;
-
+    
+    private BattleManager battleManager;
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
         if (IsServer)
         {
+            battleManager = galaxy.FindSceneComponent<BattleManager>();
             OnResapwn();
         }
     }
@@ -113,13 +115,23 @@ public class AttributeComponent : NetworkBehavior
 
     public void OnDead()
     {
-        owner.OnDead();
+        if (IsServer)
+        {
+            ThrowWeapon();
+            owner.SetDead(true);
+            battleManager.AddRespawnTimer(7.0f, this);
+        }
     }
+
     public void OnResapwn()
     {
         HPoint = 100;
         Armor = 100;
         ThrowWeapon();
+        if (IsServer)
+        {
+            owner.SetDead(false);
+        }
     }
 
     private void PlayClientDamageVFX()
