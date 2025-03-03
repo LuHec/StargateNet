@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class FPSController : NetworkBehavior
 {
+    public GameObject deadVfx;
     public GameObject hitVfx;
     public CharacterController cc;
     public Transform cameraPoint;
@@ -348,6 +349,10 @@ public class FPSController : NetworkBehavior
             UIManager.Instance.GetUIPanel<UIPlayerInterface>().Close();
             UIManager.Instance.GetUIPanel<UIBattleInterface>().Close();
         }
+        else if(IsClient)
+        {
+            Instantiate(deadVfx, transform.position, Quaternion.identity);
+        }
         gameObject.SetActive(false);
     }
 
@@ -366,10 +371,6 @@ public class FPSController : NetworkBehavior
     public void AddHitVfx(Vector3 position, Vector3 normal)
     {
         var rot = Quaternion.LookRotation(normal);
-        Debug.LogWarning($"AddHitVfx {position}, {rot}");
-        // if (hitVfx != null)
-        // {
         Instantiate(hitVfx, position, rot);
-        // }
     }
 }
