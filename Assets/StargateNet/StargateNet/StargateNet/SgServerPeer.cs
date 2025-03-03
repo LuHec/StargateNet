@@ -66,7 +66,7 @@ namespace StargateNet
         public unsafe void SendRpc()
         {
             if (!this.Engine.NetworkRPCManager.NeedSendRpc) return;
-            for (int id = 0; id < clientConnections.Count; id++)
+            for (int id = 1; id < clientConnections.Count; id++)
             {
                 Message msg = Message.Create(MessageSendMode.Reliable, Protocol.ToServer);
                 msg.AddUInt((uint)ToServerProtocol.Rpc);
@@ -222,9 +222,10 @@ namespace StargateNet
                 networkRPCPram.rpcId = rpcId;
                 networkRPCPram.pramsBytes = pramBytes;
                 int t = 0;
-                while (t++ < pramBytes)
+                while (t < pramBytes)
                 {
                     networkRPCPram.prams[t] = msg.GetByte();
+                    t++;
                 }
                 networkRPCManager.AddRpcPramToReceive(networkRPCPram);
             }

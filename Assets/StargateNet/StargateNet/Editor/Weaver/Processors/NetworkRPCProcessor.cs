@@ -218,7 +218,7 @@ namespace StargateNet
             return false;
         }
 
-        private (MethodDefinition, MethodDefinition, int) ProcessRPCMethod(TypeDefinition typeDefinition, MethodDefinition methodDefinition, List<DiagnosticMessage> diagnostics)
+        private (MethodDefinition, MethodDefinition, int) ProcessRPCMethod(TypeDefinition typeDefinition, MethodDefinition originalMethod, List<DiagnosticMessage> diagnostics)
         {
             var module = typeDefinition.Module;
 
@@ -260,80 +260,150 @@ namespace StargateNet
                 .Methods
                 .FirstOrDefault(m => m.Name == "EndWrite");
 
-            var originalName = methodDefinition.Name;
+            var originalName = originalMethod.Name;
             string methodKey = $"{typeDefinition.FullName}.{originalName}";
             int rpcId = _rpcMethodIds[methodKey];
 
-            // 1. 重命名原方法为实现方法
-            methodDefinition.Name = $"{originalName}_Implementation";
+            // // 1. 重命名原方法为实现方法
+            // originalMethod.Name = $"{originalName}_Implementation";
 
             // 2. 创建新的RPC方法用于真正的调用
-            var rpcMethod = new MethodDefinition(originalName, Mono.Cecil.MethodAttributes.Public | Mono.Cecil.MethodAttributes.HideBySig, typeDefinition.Module.TypeSystem.Void);
+            var newRpcMethod = new MethodDefinition($"{originalName}_Implementation", 
+                MethodAttributes.Public | MethodAttributes.HideBySig, 
+                typeDefinition.Module.TypeSystem.Void);
 
             // 3. 复制参数
-            foreach (var param in methodDefinition.Parameters)
+            foreach (var param in originalMethod.Parameters)
             {
-                rpcMethod.Parameters.Add(new ParameterDefinition(
+                newRpcMethod.Parameters.Add(new ParameterDefinition(
                     param.Name, param.Attributes, param.ParameterType));
             }
-            // 复制原来的IL到新的函数里
-            foreach (var instr in methodDefinition.Body.Instructions)
+
+            // 3.1 复制局部变量定义
+            foreach (var variable in originalMethod.Body.Variables)
             {
-                rpcMethod.Body.Instructions.Add(instr);
+                newRpcMethod.Body.Variables.Add(new VariableDefinition(variable.VariableType));
             }
+
+            // 3.2 复制方法体的其他属性
+            newRpcMethod.Body.InitLocals = originalMethod.Body.InitLocals;
+            newRpcMethod.Body.MaxStackSize = originalMethod.Body.MaxStackSize;
+
+            // 创建变量映射表
+            Dictionary<VariableDefinition, VariableDefinition> variableMap = new Dictionary<VariableDefinition, VariableDefinition>();
+
+            // 复制局部变量并建立映射关系
+            foreach (var originalVar in originalMethod.Body.Variables)
+            {
+                var newVar = new VariableDefinition(originalVar.VariableType);
+                newRpcMethod.Body.Variables.Add(newVar);
+                variableMap[originalVar] = newVar;
+            }
+
+            // 复制IL指令时使用映射表
+            foreach (var instruction in originalMethod.Body.Instructions)
+            {
+                var newInstruction = CloneInstruction(instruction, variableMap);
+                newRpcMethod.Body.Instructions.Add(newInstruction);
+            }
+
+            // 3.4 复制异常处理（如果有）
+            if (originalMethod.Body.HasExceptionHandlers)
+            {
+                foreach (var handler in originalMethod.Body.ExceptionHandlers)
+                {
+                    newRpcMethod.Body.ExceptionHandlers.Add(new ExceptionHandler(handler.HandlerType)
+                    {
+                        TryStart = handler.TryStart,
+                        TryEnd = handler.TryEnd,
+                        HandlerStart = handler.HandlerStart,
+                        HandlerEnd = handler.HandlerEnd,
+                        CatchType = handler.CatchType,
+                        FilterStart = handler.FilterStart
+                    });
+                }
+            }
+
             // 4. 生成RPC调用代码,重写原函数
-            var newMethodIL = methodDefinition.Body.GetILProcessor();
-            var instructions = methodDefinition.Body.Instructions;
+            var originalMethodIL = originalMethod.Body.GetILProcessor();
+            var instructions = originalMethod.Body.Instructions;
             instructions.Clear();
 
             // 计算参数总大小
-            int paramByteSize = CalculateParametersSize(methodDefinition.Parameters);
+            int paramByteSize = CalculateParametersSize(originalMethod.Parameters);
 
             // 获取From属性
-            var rpcAttribute = methodDefinition.CustomAttributes.First(a =>
+            var rpcAttribute = originalMethod.CustomAttributes.First(a =>
                 a.AttributeType.FullName == typeof(NetworkRPCAttribute).FullName);
             var from = rpcAttribute.ConstructorArguments[0].Value;
 
             // 正确生成调用链: this.Entity.engine.NetworkRPCManager.StartWrite()
-            newMethodIL.Emit(OpCodes.Ldarg_0); // this
-            newMethodIL.Emit(OpCodes.Call, module.ImportReference(entityProp.GetMethod)); // get_Entity()
-            newMethodIL.Emit(OpCodes.Ldfld, module.ImportReference(engineField)); // .engine
-            newMethodIL.Emit(OpCodes.Call, module.ImportReference(rpcManagerProp.GetMethod)); // .NetworkRPCManager
+            originalMethodIL.Emit(OpCodes.Ldarg_0); // this
+            originalMethodIL.Emit(OpCodes.Call, module.ImportReference(entityProp.GetMethod)); // get_Entity()
+            originalMethodIL.Emit(OpCodes.Ldfld, module.ImportReference(engineField)); // .engine
+            originalMethodIL.Emit(OpCodes.Call, module.ImportReference(rpcManagerProp.GetMethod)); // .NetworkRPCManager
 
             // NetworkRPCManager.StartWrite参数
-            newMethodIL.Emit(OpCodes.Ldc_I4, (int)from); // NetworkRPCFrom
-            newMethodIL.Emit(OpCodes.Ldarg_0);
-            newMethodIL.Emit(OpCodes.Call, module.ImportReference(entityProp.GetMethod)); // get_Entity()
-            newMethodIL.Emit(OpCodes.Ldfld, module.ImportReference(networkIdField)); // .networkId
-            newMethodIL.Emit(OpCodes.Ldarg_0);
-            newMethodIL.Emit(OpCodes.Call, module.ImportReference(scriptIdProp.GetMethod)); // .ScriptIdx
-            newMethodIL.Emit(OpCodes.Ldc_I4, rpcId);
-            newMethodIL.Emit(OpCodes.Ldc_I4, paramByteSize);
+            originalMethodIL.Emit(OpCodes.Ldc_I4, (int)from); // NetworkRPCFrom
+            originalMethodIL.Emit(OpCodes.Ldarg_0);
+            originalMethodIL.Emit(OpCodes.Call, module.ImportReference(entityProp.GetMethod)); // get_Entity()
+            originalMethodIL.Emit(OpCodes.Ldfld, module.ImportReference(networkIdField)); // .networkId
+            originalMethodIL.Emit(OpCodes.Ldarg_0);
+            originalMethodIL.Emit(OpCodes.Call, module.ImportReference(scriptIdProp.GetMethod)); // .ScriptIdx
+            originalMethodIL.Emit(OpCodes.Ldc_I4, rpcId);
+            originalMethodIL.Emit(OpCodes.Ldc_I4, paramByteSize);
 
             // 调用StartWrite
-            newMethodIL.Emit(OpCodes.Call, module.ImportReference(_startWriteMethodRef));
+            originalMethodIL.Emit(OpCodes.Call, module.ImportReference(_startWriteMethodRef));
 
             // 写入参数
-            foreach (var param in methodDefinition.Parameters)
+            foreach (var param in originalMethod.Parameters)
             {
-                WriteParameter(module, newMethodIL, param);
+                WriteParameter(module, originalMethodIL, param);
             }
 
             // 调用EndWrite
-            newMethodIL.Emit(OpCodes.Ldarg_0);
-            newMethodIL.Emit(OpCodes.Call, module.ImportReference(entityProp.GetMethod));
-            newMethodIL.Emit(OpCodes.Ldfld, module.ImportReference(engineField));
-            newMethodIL.Emit(OpCodes.Call, module.ImportReference(rpcManagerProp.GetMethod));
-            newMethodIL.Emit(OpCodes.Call, module.ImportReference(_endWriteMethodRef));
+            originalMethodIL.Emit(OpCodes.Ldarg_0);
+            originalMethodIL.Emit(OpCodes.Call, module.ImportReference(entityProp.GetMethod));
+            originalMethodIL.Emit(OpCodes.Ldfld, module.ImportReference(engineField));
+            originalMethodIL.Emit(OpCodes.Call, module.ImportReference(rpcManagerProp.GetMethod));
+            originalMethodIL.Emit(OpCodes.Call, module.ImportReference(_endWriteMethodRef));
 
             // 添加返回指令
-            newMethodIL.Emit(OpCodes.Ret);
+            originalMethodIL.Emit(OpCodes.Ret);
 
             // 5. 创建RPC处理方法
-            var staticHandler = CreateStaticRpcHandler(module, rpcMethod, typeDefinition);
+            var staticHandler = CreateStaticRpcHandler(module, newRpcMethod, typeDefinition);
 
             // 返回创建的函数，原函数只需要修改名称
-            return (rpcMethod, staticHandler, rpcId);
+            return (newRpcMethod, staticHandler, rpcId);
+        }
+
+        // 添加辅助方法来克隆指令
+        private Instruction CloneInstruction(Instruction original, Dictionary<VariableDefinition, VariableDefinition> variableMap)
+        {
+            var instruction = Instruction.Create(OpCodes.Nop);
+            instruction.OpCode = original.OpCode;
+            
+            // 处理操作数
+            if (original.Operand is VariableDefinition originalVar)
+            {
+                // 使用映射表获取对应的新变量
+                if (variableMap.TryGetValue(originalVar, out var newVar))
+                {
+                    instruction.Operand = newVar;
+                }
+                else
+                {
+                    throw new Exception("Variable not found in map");
+                }
+            }
+            else
+            {
+                instruction.Operand = original.Operand;
+            }
+
+            return instruction;
         }
 
         private int CalculateParametersSize(IList<ParameterDefinition> parameters)

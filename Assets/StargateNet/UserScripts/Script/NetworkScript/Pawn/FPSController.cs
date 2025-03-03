@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class FPSController : NetworkBehavior
 {
+    public GameObject hitVfx;
     public CharacterController cc;
     public Transform cameraPoint;
     public Transform foot;
@@ -66,7 +67,7 @@ public class FPSController : NetworkBehavior
     public NetworkBool IsDead { get; set; }
 
     // ---------------------------------- Component ---------------------------------- //
-    protected AttributeComponent attributeComponent;
+    public AttributeComponent attributeComponent;
     // ---------------------------------- Component ---------------------------------- //
 
     private WeaponPresenter _weaponPresenter;
@@ -148,6 +149,13 @@ public class FPSController : NetworkBehavior
                     {
                         UIManager.Instance.GetUIPanel<UIHitmarker>().HitToShowMarker();
                     }
+
+                    if (IsServer)
+                    {
+                        AddHitVfx(hit.point, hit.normal);
+                        Debug.LogWarning($"Hit {hit.point}");
+                    }
+
                     if (IsServer && hit.collider.gameObject.TryGetComponent(out AttributeComponent targetAttribute))
                     {
                         targetAttribute.HPoint -= 10;
@@ -334,10 +342,11 @@ public class FPSController : NetworkBehavior
 
     private void HandleDeath()
     {
-        if (IsClient)
+        if (IsLocalPlayer())
         {
             RemoveFPSCamera();
             UIManager.Instance.GetUIPanel<UIPlayerInterface>().Close();
+            UIManager.Instance.GetUIPanel<UIBattleInterface>().Close();
         }
         gameObject.SetActive(false);
     }
@@ -345,10 +354,22 @@ public class FPSController : NetworkBehavior
     private void HandleRespawn()
     {
         gameObject.SetActive(true);
-        if (IsClient)
+        if (IsLocalPlayer())
         {
             SetFPSCamera();
             UIManager.Instance.GetUIPanel<UIPlayerInterface>().Open();
+            UIManager.Instance.GetUIPanel<UIBattleInterface>().Open();
         }
+    }
+
+    [NetworkRPC(NetworkRPCFrom.ServerCall)]
+    public void AddHitVfx(Vector3 position, Vector3 normal)
+    {
+        var rot = Quaternion.LookRotation(normal);
+        Debug.LogWarning($"AddHitVfx {position}, {rot}");
+        // if (hitVfx != null)
+        // {
+        Instantiate(hitVfx, position, rot);
+        // }
     }
 }

@@ -14,6 +14,11 @@ public class MyNetworkEventManager : NetworkEventManager
         Camera.main.gameObject.AddComponent<ObsCamera>();
         if(galaxy.IsServer)
             galaxy.NetworkSpawn(battleManager.gameObject, Vector3.zero, Quaternion.identity);
+
+        if (galaxy.IsClient)
+        {
+            UIManager.Instance.ShowUI<UIBattleInterface>();
+        }
     }   
 
     public override void OnPlayerConnected(SgNetworkGalaxy galaxy, int playerId)

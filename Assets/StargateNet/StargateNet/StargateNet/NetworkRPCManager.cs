@@ -142,7 +142,7 @@ namespace StargateNet
             }
 
             this.rpcPramWriter.Clear();
-            Debug.LogWarning($"EndWrite,entityId{writePram.entityId},scriptId{writePram.scriptId},rpcId{writePram.rpcId}");
+            // Debug.LogWarning($"EndWrite,entityId{writePram.entityId},scriptId{writePram.scriptId},rpcId{writePram.rpcId},write{*(Vector3*)writePram.prams}");
         }
     }
 }

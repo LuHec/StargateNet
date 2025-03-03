@@ -26,10 +26,12 @@ MonoBehaviour:
   WorldSize: 500
   NetworkObjects:
   - {fileID: 994075361588383260, guid: d2176fbc0d7557c43a78f54ba3967d01, type: 3}
+  - {fileID: 3718134811364612172, guid: 43655808eb92a7c4db502fa45e216de7, type: 3}
+  - {fileID: 3718134811364612172, guid: a1e8927d92234ea42904e2da5b6ffe15, type: 3}
   - {fileID: 7095134503880436856, guid: 8d3dc2fde6a162047a445be0dff25124, type: 3}
   - {fileID: 7095134503880436856, guid: 69e03efa710929f47b22396aa0160455, type: 3}
   - {fileID: 7729773817608672209, guid: 9a0ff6a11c5092a40843d0dc8739a233, type: 3}
-  maxObjectStateBytes: 48
+  maxObjectStateBytes: 52
   networkInputsTypes:
   - PlayerInput
   networkInputsBytes: 28000000

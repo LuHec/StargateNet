@@ -16,6 +16,7 @@ namespace StargateNet
         internal Dictionary<NetworkObjectRef, Entity> entitiesTable; // 记录当前的Entities，但并不直接执行这些实例
         internal List<Entity> entities; // 用于存储此帧所有的entities，ds不需要这个信息，回放模式可以通过meta还原，延迟补偿不会用到已经删除的实体
         internal List<Entity> paddingToAddEntities = new(32); // 待加入模拟的实体，用于延迟添加到模拟列表。Entity会在这之前就被添加到table中
+        internal List<Entity> paddingToAddEntitiesTemp = new(32);
         internal List<Entity> paddingToRemoveEntities = new(32);
         internal NetworkObjectRef currentMaxNetworkObjectRef = NetworkObjectRef.InvalidNetworkObjectRef;
         internal SimulationInput currentInput;
@@ -142,10 +143,16 @@ namespace StargateNet
             {
                 this.entities[entity.worldMetaId] = entity;
                 this.AddToSimulation(entity);
+            }
+            var temp = this.paddingToAddEntities;
+            this.paddingToAddEntities = this.paddingToAddEntitiesTemp;
+            this.paddingToAddEntitiesTemp = temp;
+            foreach (var entity in this.paddingToAddEntitiesTemp)
+            {
                 entity.InitObject();
             }
 
-            this.paddingToAddEntities.Clear();
+            this.paddingToAddEntitiesTemp.Clear();
         }
 
         /// <summary>

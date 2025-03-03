@@ -6,6 +6,9 @@ using UnityEngine;
 public class AttributeComponent : NetworkBehavior
 {
     [Replicated]
+    public int Team { get; set; }
+
+    [Replicated]
     public int HPoint { get; set; }
 
     [Replicated]
@@ -17,7 +20,7 @@ public class AttributeComponent : NetworkBehavior
     public FPSController owner;
     public NetworkWeapon networkWeapon;
     public WeaponModel weaponModel;
-    
+
     private BattleManager battleManager;
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
@@ -104,12 +107,7 @@ public class AttributeComponent : NetworkBehavior
 
         if (IsClient)
         {
-            int lastValue = callbackData.GetPreviousData<int>();
-            if (lastValue > HPoint)
-            {
-                PlayClientDamageVFX();
-            }
-
+            PlayClientDamageVFX();
         }
     }
 
@@ -119,7 +117,7 @@ public class AttributeComponent : NetworkBehavior
         {
             ThrowWeapon();
             owner.SetDead(true);
-            battleManager.AddRespawnTimer(7.0f, this);
+            battleManager.AddRespawnTimer(3.0f, this);
         }
     }
 

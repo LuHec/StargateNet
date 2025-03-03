@@ -277,7 +277,6 @@ GameObject:
   - component: {fileID: 6298116642484953821}
   - component: {fileID: 175026183076793298}
   - component: {fileID: 5574289517947133850}
-  - component: {fileID: 1676953539445776265}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -315,7 +314,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0dab90c6eec3468fbf82b8406a27c7bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _prefabId: 2
+  _prefabId: 4
 --- !u!114 &-7935119376189863334
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -344,6 +343,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44dded61d4d71644fb5c11f69351e136, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  hitVfx: {fileID: 3077343761403282166, guid: 4e040dd3fc40fb54b9320acbd33f7903, type: 3}
   cc: {fileID: 5574289517947133850}
   cameraPoint: {fileID: 2942176371875200917}
   foot: {fileID: 5762399165700279374}
@@ -369,6 +369,7 @@ MonoBehaviour:
   bobLimit: {x: 0.1, y: 0.1, z: 0.1}
   bobSway: 1
   multiplier: {x: 10, y: 10, z: 10}
+  attributeComponent: {fileID: 0}
 --- !u!114 &175026183076793298
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -409,29 +410,6 @@ CharacterController:
   m_StepOffset: 0.2
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!136 &1676953539445776265
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7095134503880436856}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
-  m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &7529809457825609264
 GameObject:

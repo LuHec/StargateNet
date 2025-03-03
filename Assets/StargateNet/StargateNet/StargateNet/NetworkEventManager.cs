@@ -20,5 +20,10 @@ namespace StargateNet
         {
             
         }
+
+        public virtual void OnLocalPlayerSpawned()
+        {
+            
+        }
     }
 }
