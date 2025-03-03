@@ -29,6 +29,10 @@ namespace StargateNet
         {
         }
 
+        public virtual void NetworkLaterStart(SgNetworkGalaxy galaxy)
+        {
+        }
+
         public virtual void NetworkUpdate(SgNetworkGalaxy galaxy)
         {
         }

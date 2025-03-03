@@ -404,8 +404,8 @@ namespace StargateNet
             int unloadRadius = INTEREST_RADIUS + UNLOAD_EXTRA_RADIUS;
             foreach (var netId in lastVisibleObjects)
             {
+                if(!this.engine.Simulation.entitiesTable.ContainsKey(netId)) return;
                 Entity entity = this.engine.Simulation.entitiesTable[netId];
-                if (entity == null) continue;
 
                 Transform entityTransform = entity.entityObject.transform;
                 InterestBlock entityBlock = new InterestBlock

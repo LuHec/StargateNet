@@ -4,6 +4,8 @@ using UnityEngine;
     public class WeaponPresenter
     {
         private readonly Transform _handPoint;
+        private Transform _weaponModelTransform;  // 添加武器模型的Transform引用
+        private Vector3 _originalWeaponRotation;  // 保存武器原始旋转值
 
         [Header("Sway")]
         public bool sway = true;
@@ -32,12 +34,35 @@ using UnityEngine;
         public Vector3 multiplier;
         private Vector3 _bobRotation;
 
+        private float _reloadRotation;
+        private Vector3 _originalRotation;
+
         private float CurveSin => Mathf.Sin(_speedCurve);
         private float CurveCos => Mathf.Cos(_speedCurve);
 
         public WeaponPresenter(Transform handPoint)
         {
             _handPoint = handPoint;
+            _originalRotation = handPoint.localEulerAngles;
+        }
+
+        public void SetWeaponModel(Transform weaponModel)
+        {
+            _weaponModelTransform = weaponModel;
+            if (_weaponModelTransform != null)
+            {
+                _originalWeaponRotation = _weaponModelTransform.localEulerAngles;
+            }
+        }
+
+        public void SetReloadRotation(float angle)
+        {
+            if (_weaponModelTransform != null)
+            {
+                Vector3 rotation = _originalWeaponRotation;
+                rotation.x = angle * 3;
+                _weaponModelTransform.localEulerAngles = rotation;
+            }
         }
 
         public void UpdatePresentation(Vector2 deltaYawPitch, Vector2 moveInput, float velocity, bool isGrounded)
@@ -47,6 +72,11 @@ using UnityEngine;
             BobOffset(moveInput, velocity, isGrounded);
             BobRotation(moveInput);
             CompositePositionRotation();
+
+            // 在最后应用换弹旋转
+            Vector3 finalRotation = _handPoint.localEulerAngles;
+            finalRotation.z = _reloadRotation;
+            _handPoint.localEulerAngles = finalRotation;
         }
 
         private void Sway(Vector2 input)

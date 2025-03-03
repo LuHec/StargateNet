@@ -32,12 +32,19 @@ public class NetworkWeapon : NetworkBehavior
     private float _secondsPerShot;  // 每次射击间隔
     private AttributeComponent _owner;
     private SgNetworkGalaxy _galaxy;
+    private NetworkAutoDestroy _autoDestroy;
+
+    void Awake()
+    {
+        _autoDestroy = GetComponent<NetworkAutoDestroy>();
+    }
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
         Init(galaxy);
         this._galaxy = galaxy;
     }
+
 
     public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
@@ -54,11 +61,13 @@ public class NetworkWeapon : NetworkBehavior
     public void OnEquip(AttributeComponent onwer)
     {
         _owner = onwer;
+        _autoDestroy.StartCountDown(false);
     }
 
     public void OnThrow()
     {
         _owner = null;
+        _autoDestroy.StartCountDown(true);
     }
 
     /// <summary>
@@ -135,4 +144,4 @@ public class NetworkWeapon : NetworkBehavior
     {
         Debug.LogError($"TestClientRpc:{a},{b},{c},{d},{e}");
     }
-}    
+}

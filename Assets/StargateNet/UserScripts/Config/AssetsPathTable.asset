@@ -13,7 +13,9 @@ MonoBehaviour:
   m_Name: AssetsPathTable
   m_EditorClassIdentifier: 
   uiPaths:
+  - UIAllyPanel
   - UIBattleInterface
   - UIHitMarker
-  - UIPlayerInterface
+  - UIKillPointHint
   - UIPostProcessing
+  - UIPPlayerInterface

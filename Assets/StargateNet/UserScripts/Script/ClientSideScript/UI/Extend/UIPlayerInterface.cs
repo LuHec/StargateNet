@@ -1,54 +1,94 @@
 using TMPro;
+using UnityEngine;
+using System.Text;
 
 public class UIPlayerInterface : UIBase
 {
-    public TMP_Text HP;
-    public TMP_Text Armor;
-    public TMP_Text Mag;
-    
-    // 使用静态字符串缓存避免GC
-    private static readonly string HP_FORMAT = "{0}";
-    private static readonly string ARMOR_FORMAT = "{0}";
-    private static readonly string Mag_FORMAT = "{0}";
-    
-    // 使用 StringBuilder 来避免字符串拼接的垃圾回收
-    private readonly System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder(32);
+    [Header("Progress Bars")]
+    public ProgressBar hpBar;
+    public ProgressBar armorBar;
+    public ProgressBar magBar;
+
+    [Header("Bar Settings")]
+    [SerializeField] private Color hpColor = Color.green;
+    [SerializeField] private Color hpAlertColor = Color.red;
+    [SerializeField] private Color armorColor = Color.blue;
+    [SerializeField] private Color magColor = Color.yellow;
+
+    [Header("Alert Settings")]
+    [SerializeField] private int hpAlertThreshold = 30;
+    [SerializeField] private int armorAlertThreshold = 20;
+    [SerializeField] private AudioClip lowHpSound;
 
     protected override void OnInit()
     {
-        HP.text = string.Format(HP_FORMAT, 100);
-        Armor.text = string.Format(ARMOR_FORMAT, 100);
-        Mag.text = string.Format(Mag_FORMAT, 31);
+        // 初始化血条设置
+        InitializeBar(hpBar, "HP", hpColor, hpAlertColor, 100, hpAlertThreshold, lowHpSound);
+        
+        // 初始化护甲条设置
+        InitializeBar(armorBar, "ARMOR", armorColor, Color.grey, 100, armorAlertThreshold);
+        
+        // 初始化弹药条设置
+        InitializeBar(magBar, "MAG", magColor, Color.grey, 30, 0);
     }
 
-    protected override void OnOpen()
+    private void InitializeBar(ProgressBar bar, string title, Color normalColor, Color alertColor, 
+        int maxValue, int alertThreshold, AudioClip alertSound = null)
     {
-
-    }
-
-    protected override void OnClose()
-    {
-
+        if (bar == null) return;
+        
+        // bar.Title = title;
+        // bar.TitleColor = Color.white;
+        // bar.TitleFontSize = 14;
+        // bar.MaxValue = maxValue;
+        // bar.BarColor = normalColor;
+        // bar.BarAlertColor = alertColor;
+        // bar.Alert = alertThreshold;
+        // bar.sound = alertSound;
+        // bar.repeat = alertSound != null;
+        // bar.RepeatRate = 1f;
+        
+        // // 设置初始值
+        // bar.BarValue = maxValue;
     }
 
     public void UpdateHP(int hp)
     {
-        stringBuilder.Length = 0;
-        stringBuilder.AppendFormat(HP_FORMAT, hp);
-        HP.text = stringBuilder.ToString();
+        if (hpBar != null)
+        {
+            hpBar.BarValue = hp;
+        }
     }
 
     public void UpdateArmor(int armor)
     {
-        stringBuilder.Length = 0;
-        stringBuilder.AppendFormat(ARMOR_FORMAT, armor);
-        Armor.text = stringBuilder.ToString();
+        if (armorBar != null)
+        {
+            armorBar.BarValue = armor;
+        }
     }
 
     public void UpdateMag(int mag)
     {
-        stringBuilder.Length = 0;
-        stringBuilder.AppendFormat(Mag_FORMAT, mag);
-        Mag.text = stringBuilder.ToString();
+        if (magBar != null)
+        {
+            magBar.BarValue = mag;
+        }
+    }
+
+    protected override void OnOpen()
+    {
+        // 确保打开时所有进度条都可见
+        if (hpBar) hpBar.gameObject.SetActive(true);
+        if (armorBar) armorBar.gameObject.SetActive(true);
+        if (magBar) magBar.gameObject.SetActive(true);
+    }
+
+    protected override void OnClose()
+    {
+        // 关闭时隐藏所有进度条
+        if (hpBar) hpBar.gameObject.SetActive(false);
+        if (armorBar) armorBar.gameObject.SetActive(false);
+        if (magBar) magBar.gameObject.SetActive(false);
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using StargateNet;
@@ -6,10 +7,15 @@ using UnityEngine;
 
 public class BattleManager : NetworkBehavior
 {
+    public GameObject vectorPrefab;
     public GameObject controlPointA;
     public GameObject controlPointB;
     public Vector3 controlPointAPos;
     public Vector3 controlPointBPos;
+    private SgNetworkGalaxy _galaxy;
+    private HashSet<NetworkObjectRef> teamA = new HashSet<NetworkObjectRef>();
+    private HashSet<NetworkObjectRef> teamB = new HashSet<NetworkObjectRef>();
+
     private struct RespawnTimer
     {
         public float TriggerTime;
@@ -25,10 +31,16 @@ public class BattleManager : NetworkBehavior
     public int Minutes { get; set; }
     [Replicated]
     public int Seconds { get; set; }
+    [Replicated]
+    public int TeamAPt {get;set;}
+    [Replicated]
+    public int TeamBPt {get;set;}
+    
     public List<FPSController> pendingRespawnPlayers = new List<FPSController>();
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
+        _galaxy = galaxy;
         this.SetAlwaysSync(true);
         if (this.IsServer)
         {
@@ -39,11 +51,25 @@ public class BattleManager : NetworkBehavior
         }
         Minutes = 0;
         Seconds = 0;
+        TeamAPt = 0;
+        TeamBPt = 0;
     }
 
-    public void AddRespawnTimer(float delay, AttributeComponent player)
+    public void AddRespawnTimer(float delay, AttributeComponent player, FPSController killer)
     {
         if (!IsServer) return;
+        if(killer.attributeComponent.TeamTag == player.TeamTag)
+        {
+            if(killer.attributeComponent.TeamTag == 0)
+            {
+                TeamAPt += 1;
+            }
+            else
+            {
+                TeamBPt += 1;
+            }
+        }
+
         var timer = new RespawnTimer
         {
             TriggerTime = _currentTime + delay,
@@ -51,11 +77,12 @@ public class BattleManager : NetworkBehavior
             Player = player
         };
         _respawnHeap.Push(timer);
+        if (killer != null)
+            BoardCastKillInfo(killer.Entity.NetworkId.refValue, player.Entity.NetworkId.refValue);
     }
 
     public override void NetworkFixedUpdate(SgNetworkGalaxy galaxy)
     {
-
         _currentTime += galaxy.FixedDeltaTime;
         _timeAccumulator += galaxy.FixedDeltaTime;
 
@@ -63,7 +90,7 @@ public class BattleManager : NetworkBehavior
         while (_timeAccumulator >= 1f)
         {
             _timeAccumulator -= 1f;  // 减去1秒
-            
+
             Seconds++;
             if (Seconds >= 60)
             {
@@ -100,11 +127,37 @@ public class BattleManager : NetworkBehavior
         UIManager.Instance.GetUIPanel<UIBattleInterface>().SetTime(Minutes, Seconds);
     }
 
+    [NetworkCallBack(nameof(TeamAPt), false)]
+    public void OnTeamAPtChanged(CallbackData callbackData)
+    {
+        if (IsServer) return;
+        UIManager.Instance.GetUIPanel<UIBattleInterface>().SetAPoint(TeamAPt);
+    }
+
+    [NetworkCallBack(nameof(TeamBPt), false)]
+    public void OnTeamBPtChanged(CallbackData callbackData)
+    {
+        if (IsServer) return;
+        UIManager.Instance.GetUIPanel<UIBattleInterface>().SetBPoint(TeamBPt);
+    }
+
     // 添加重置时间的方法
     public void ResetTime()
     {
         Minutes = 0;
         Seconds = 0;
         _timeAccumulator = 0f;
+    }
+
+    [NetworkRPC(NetworkRPCFrom.ServerCall)]
+    public void BoardCastKillInfo(int killer, int victim)
+    {
+
+    }
+
+    internal NetworkObject RequireWeapon(AttributeComponent attributeComponent)
+    {
+        NetworkObject networkWeapon = _galaxy.NetworkSpawn(vectorPrefab, attributeComponent.transform.position, Quaternion.identity);
+        return networkWeapon;
     }
 }

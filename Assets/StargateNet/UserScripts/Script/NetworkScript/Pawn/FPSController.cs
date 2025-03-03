@@ -1,10 +1,12 @@
 using StargateNet;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class FPSController : NetworkBehavior
 {
     public GameObject deadVfx;
     public GameObject hitVfx;
+    public Transform playerClientView;
     public CharacterController cc;
     public Transform cameraPoint;
     public Transform foot;
@@ -71,7 +73,7 @@ public class FPSController : NetworkBehavior
     public AttributeComponent attributeComponent;
     // ---------------------------------- Component ---------------------------------- //
 
-    private WeaponPresenter _weaponPresenter;
+    public WeaponPresenter weaponPresenter;
 
     public override void NetworkStart(SgNetworkGalaxy galaxy)
     {
@@ -82,28 +84,28 @@ public class FPSController : NetworkBehavior
         if (this.IsLocalPlayer())
         {
             mainCamera = galaxy.FindSceneComponent<Camera>();
+            var view = playerClientView.AddComponent<AllyEnemyTagFiliter>();
+            view.Init(mainCamera);
+            weaponPresenter = new WeaponPresenter(handPoint)
+            {
+                sway = sway,
+                smooth = smooth,
+                step = step,
+                maxStepDistance = maxStepDistance,
+                swayRotation = swayRotation,
+                smoothRot = smoothRot,
+                rotationStep = rotationStep,
+                maxRotationStep = maxRotationStep,
+                bobOffset = bobOffset,
+                speedCurveMultiplier = speedCurveMultiplier,
+                travelLimit = travelLimit,
+                bobLimit = bobLimit,
+                bobSway = bobSway,
+                multiplier = multiplier
+            };
         }
 
         HandleRespawn();
-
-        _weaponPresenter = new WeaponPresenter(handPoint)
-        {
-            sway = sway,
-            smooth = smooth,
-            step = step,
-            maxStepDistance = maxStepDistance,
-            swayRotation = swayRotation,
-            smoothRot = smoothRot,
-            rotationStep = rotationStep,
-            maxRotationStep = maxRotationStep,
-            bobOffset = bobOffset,
-            speedCurveMultiplier = speedCurveMultiplier,
-            travelLimit = travelLimit,
-            bobLimit = bobLimit,
-            bobSway = bobSway,
-            multiplier = multiplier
-        };
-
         IsDead = false;
     }
 
@@ -159,7 +161,7 @@ public class FPSController : NetworkBehavior
 
                     if (IsServer && hit.collider.gameObject.TryGetComponent(out AttributeComponent targetAttribute))
                     {
-                        targetAttribute.HPoint -= 10;
+                        targetAttribute.ChangeHp(-19, this);
                     }
                 }
             }
@@ -200,10 +202,29 @@ public class FPSController : NetworkBehavior
     public override void NetworkUpdate(SgNetworkGalaxy galaxy)
     {
         if (!this.IsLocalPlayer() || IsDead) return;
+
         Inputs inputs = GetInput(galaxy);
         Vector2 deltaYawPitchInput = inputs.a;
         Vector2 deltaMove = inputs.b;
-        _weaponPresenter.UpdatePresentation(deltaYawPitchInput, deltaMove, cc.velocity.magnitude, IsGrounded);
+
+        // 检查是否正在换弹
+        if (attributeComponent.networkWeapon != null && attributeComponent.networkWeapon.IsReloading)
+        {
+            float reloadProgress = (galaxy.tick.tickValue - attributeComponent.networkWeapon.LastReloadTick)
+                * galaxy.FixedDeltaTime / attributeComponent.networkWeapon.loadTime;
+
+            if (reloadProgress <= 1.0f)
+            {
+                float rotationAngle = 360f * reloadProgress;
+                weaponPresenter.SetReloadRotation(rotationAngle);
+            }
+        }
+        else
+        {
+            weaponPresenter.SetReloadRotation(0);
+        }
+
+        weaponPresenter.UpdatePresentation(deltaYawPitchInput, deltaMove, cc.velocity.magnitude, IsGrounded);
     }
 
     public override void NetworkRender(SgNetworkGalaxy galaxy)
@@ -283,16 +304,6 @@ public class FPSController : NetworkBehavior
         return new Inputs { a = deltaRawPitchInput, b = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")) };
     }
 
-    public void OnDead()
-    {
-        if (IsClient)
-        {
-            RemoveFPSCamera();
-            UIManager.Instance.GetUIPanel<UIPlayerInterface>().Close();
-        }
-        this.gameObject.SetActive(false);
-    }
-
     private void SetFPSCamera()
     {
         if (cameraPoint != null && mainCamera != null)
@@ -347,11 +358,12 @@ public class FPSController : NetworkBehavior
         {
             RemoveFPSCamera();
             UIManager.Instance.GetUIPanel<UIPlayerInterface>().Close();
-            UIManager.Instance.GetUIPanel<UIBattleInterface>().Close();
+            UIManager.Instance.GetUIPanel<UIAllyPanel>().Close();
         }
-        else if(IsClient)
+        else if (IsClient)
         {
             Instantiate(deadVfx, transform.position, Quaternion.identity);
+            UIManager.Instance.GetUIPanel<UIKillPointHint>().PlayKillAnimation("Kill", 1);
         }
         gameObject.SetActive(false);
     }
@@ -364,6 +376,7 @@ public class FPSController : NetworkBehavior
             SetFPSCamera();
             UIManager.Instance.GetUIPanel<UIPlayerInterface>().Open();
             UIManager.Instance.GetUIPanel<UIBattleInterface>().Open();
+            UIManager.Instance.GetUIPanel<UIAllyPanel>().Open();
         }
     }
 

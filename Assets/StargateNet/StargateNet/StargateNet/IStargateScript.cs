@@ -7,6 +7,7 @@ namespace StargateNet
     {
         Entity Entity { get; }
         void NetworkStart(SgNetworkGalaxy galaxy);
+        void NetworkLaterStart(SgNetworkGalaxy galaxy);
         void NetworkUpdate(SgNetworkGalaxy galaxy);
         void NetworkFixedUpdate(SgNetworkGalaxy galaxy);
         void NetworkRender(SgNetworkGalaxy galaxy);

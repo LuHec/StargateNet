@@ -84,6 +84,37 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &2253149078877039847
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8108356427994658292}
+  m_Layer: 0
+  m_Name: View
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8108356427994658292
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2253149078877039847}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2942176371875200917}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3261059568882292177
 GameObject:
   m_ObjectHideFlags: 0
@@ -345,6 +376,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   deadVfx: {fileID: 1834194341294532, guid: 731b509a656c50a4583503672bc1a9f8, type: 3}
   hitVfx: {fileID: 3077343761403282166, guid: 4e040dd3fc40fb54b9320acbd33f7903, type: 3}
+  playerClientView: {fileID: 8108356427994658292}
   cc: {fileID: 5574289517947133850}
   cameraPoint: {fileID: 2942176371875200917}
   foot: {fileID: 5762399165700279374}
@@ -386,6 +418,7 @@ MonoBehaviour:
   owner: {fileID: 0}
   networkWeapon: {fileID: 0}
   weaponModel: {fileID: 0}
+  killer: {fileID: 0}
 --- !u!143 &5574289517947133850
 CharacterController:
   m_ObjectHideFlags: 0
@@ -474,6 +507,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5347739045762566522}
+  - {fileID: 8108356427994658292}
   m_Father: {fileID: 3063326188549370508}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &610722302350948979

@@ -96,6 +96,11 @@ namespace StargateNet
             {
                 script.NetworkStart(this.engine.SgNetworkGalaxy);
             }
+
+            foreach (var script in entityObject.NetworkScripts)
+            {
+                script.NetworkLaterStart(this.engine.SgNetworkGalaxy);
+            }
         }
 
         internal void SetAlwaysSync(bool alwaysSync)

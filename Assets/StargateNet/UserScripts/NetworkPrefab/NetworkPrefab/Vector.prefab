@@ -1109,6 +1109,7 @@ GameObject:
   - component: {fileID: 8415101746974425420}
   - component: {fileID: 8544034581204158230}
   - component: {fileID: 5421382638982640578}
+  - component: {fileID: -8125376120319513558}
   m_Layer: 9
   m_Name: Vector
   m_TagString: Untagged
@@ -1176,9 +1177,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   weaponModel: {fileID: 7729773817608672209, guid: 79b02dee71e0e8f43b2018ce7536f482,
     type: 3}
-  maxAmmo: 31
+  maxAmmo: 21
   rpm: 850
-  loadTime: 2
+  loadTime: 1.2
   isRifile: 1
 --- !u!54 &8544034581204158230
 Rigidbody:
@@ -1228,6 +1229,19 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.4173541, y: 1, z: 2.1904364}
   m_Center: {x: 0.040207744, y: 0, z: 0.5484589}
+--- !u!114 &-8125376120319513558
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7729773817608672209}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe494abb9820947418df1003aec46f53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lifeTime: 20
 --- !u!1 &7835017714353900888
 GameObject:
   m_ObjectHideFlags: 0

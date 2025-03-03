@@ -6,7 +6,7 @@ using UnityEngine;
 public class AttributeComponent : NetworkBehavior
 {
     [Replicated]
-    public int Team { get; set; }
+    public int TeamTag { get; set; }
 
     [Replicated]
     public int HPoint { get; set; }
@@ -32,9 +32,13 @@ public class AttributeComponent : NetworkBehavior
         }
     }
 
-    public void ChangeHp(int value)
+    public FPSController killer;
+    public bool ChangeHp(int value, FPSController damager)
     {
+        int temp = HPoint;
+        killer = damager;
         HPoint = Mathf.Clamp(HPoint + value, 0, 100);
+        return false;
     }
     public void SetNetworkWeapon(NetworkObject networkObject)
     {
@@ -87,6 +91,11 @@ public class AttributeComponent : NetworkBehavior
         if (networkWeapon == null) return;
 
         weaponModel = Instantiate(networkWeapon.weaponModel, owner.handPoint).GetComponent<WeaponModel>();
+        // 设置武器模型引用
+        if (owner.IsLocalPlayer())
+        {
+            owner.weaponPresenter.SetWeaponModel(weaponModel.transform);
+        }
         networkWeapon.OnEquip(this);
         networkObject.gameObject.SetActive(false);
     }
@@ -117,7 +126,8 @@ public class AttributeComponent : NetworkBehavior
         {
             ThrowWeapon();
             owner.SetDead(true);
-            battleManager.AddRespawnTimer(3.0f, this);
+            battleManager.AddRespawnTimer(3.0f, this, killer);
+            this.killer = null;
         }
     }
 
@@ -129,6 +139,7 @@ public class AttributeComponent : NetworkBehavior
         if (IsServer)
         {
             owner.SetDead(false);
+            RequireWeapon();
         }
     }
 
@@ -143,5 +154,11 @@ public class AttributeComponent : NetworkBehavior
         {
 
         }
+    }
+
+    public void RequireWeapon()
+    {
+        NetworkObject networkWeapon = battleManager.RequireWeapon(this);
+        SetNetworkWeapon(networkWeapon);
     }
 }
