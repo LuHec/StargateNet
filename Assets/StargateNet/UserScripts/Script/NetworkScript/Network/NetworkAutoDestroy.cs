@@ -24,7 +24,6 @@ public class NetworkAutoDestroy : NetworkBehavior
     {
         if (IsClient || destroyed || !countDown) return;
         timer += galaxy.FixedDeltaTime;
-        Debug.LogWarning($"timer: {timer}");
         if(timer >= lifeTime)
         {
             galaxy.NetworkDestroy(this.gameObject);

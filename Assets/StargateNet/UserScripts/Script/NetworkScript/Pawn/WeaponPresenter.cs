@@ -34,6 +34,26 @@ using UnityEngine;
         public Vector3 multiplier;
         private Vector3 _bobRotation;
 
+        [Header("Visual Recoil")]
+        public float visualRecoilPosStrength = 0.5f;
+        public float visualRecoilRotStrength = 15f;
+        public float visualRecoilPosReturnSpeed = 8f;
+        public float visualRecoilRotReturnSpeed = 15f;
+        public float visualRecoilMaxPos = 0.5f;
+        public float visualRecoilMaxRot = 30f;
+        public Vector2 visualRecoilBackwardRange = new Vector2(-0.8f, -0.5f);
+        public Vector2 visualRecoilUpwardRange = new Vector2(0.2f, 0.4f);
+
+        [Header("Visual Recoil Rotation")]
+        public Vector2 recoilRotationRangeX = new Vector2(-20f, -15f);  // X轴旋转范围(上抬)
+        public Vector2 recoilRotationRangeY = new Vector2(-7f, 7f);     // Y轴旋转范围(左右)
+        public Vector2 recoilRotationRangeZ = new Vector2(-10f, 10f);   // Z轴旋转范围(倾斜)
+    
+        private Vector3 _targetRecoilPos;
+        private Vector3 _currentRecoilPos;
+        private Vector3 _targetRecoilRot;
+        private Vector3 _currentRecoilRot;
+
         private float _reloadRotation;
         private Vector3 _originalRotation;
 
@@ -77,6 +97,56 @@ using UnityEngine;
             Vector3 finalRotation = _handPoint.localEulerAngles;
             finalRotation.z = _reloadRotation;
             _handPoint.localEulerAngles = finalRotation;
+
+            UpdateVisualRecoil();
+
+            // 在CompositePositionRotation中应用视觉后坐力
+            _handPoint.localPosition = Vector3.Lerp(_handPoint.localPosition, 
+                _swayPos + _bobPosition + _currentRecoilPos, 
+                Time.deltaTime * smooth);
+
+            _handPoint.localRotation = Quaternion.Slerp(_handPoint.localRotation,
+                Quaternion.Euler(_swayEulerRot + _currentRecoilRot) * Quaternion.Euler(_bobRotation),
+                Time.deltaTime * smoothRot);
+        }
+
+        public void ApplyVisualRecoil()
+        {
+            // 增强的位移后坐力
+            _targetRecoilPos += new Vector3(
+                Random.Range(-0.1f, 0.1f),
+                Random.Range(visualRecoilUpwardRange.x, visualRecoilUpwardRange.y),    // 更强的上移
+                Random.Range(visualRecoilBackwardRange.x, visualRecoilBackwardRange.y)  // 更强的后移
+            ) * visualRecoilPosStrength;
+
+            // 使用配置的旋转范围
+            _targetRecoilRot += new Vector3(
+                Random.Range(recoilRotationRangeX.x, recoilRotationRangeX.y),   // 上抬角度
+                Random.Range(recoilRotationRangeY.x, recoilRotationRangeY.y),   // 左右摇摆
+                Random.Range(recoilRotationRangeZ.x, recoilRotationRangeZ.y)    // 倾斜角度
+            ) * visualRecoilRotStrength;
+
+            // 使用二阶阻尼来模拟更真实的后坐力
+            float dampingFactor = 0.8f;
+            _currentRecoilPos = Vector3.Lerp(_currentRecoilPos, _targetRecoilPos, 
+                Time.deltaTime * visualRecoilPosReturnSpeed * dampingFactor);
+            _currentRecoilRot = Vector3.Lerp(_currentRecoilRot, _targetRecoilRot, 
+                Time.deltaTime * visualRecoilRotReturnSpeed * dampingFactor);
+
+            // 限制最大位移和旋转
+            _targetRecoilPos = Vector3.ClampMagnitude(_targetRecoilPos, visualRecoilMaxPos);
+            _targetRecoilRot = Vector3.ClampMagnitude(_targetRecoilRot, visualRecoilMaxRot);
+        }
+
+        private void UpdateVisualRecoil()
+        {
+            // 位移回归
+            _targetRecoilPos = Vector3.Lerp(_targetRecoilPos, Vector3.zero, Time.deltaTime * visualRecoilPosReturnSpeed);
+            _currentRecoilPos = Vector3.Lerp(_currentRecoilPos, _targetRecoilPos, Time.deltaTime * visualRecoilPosReturnSpeed);
+
+            // 旋转回归
+            _targetRecoilRot = Vector3.Lerp(_targetRecoilRot, Vector3.zero, Time.deltaTime * visualRecoilRotReturnSpeed);
+            _currentRecoilRot = Vector3.Lerp(_currentRecoilRot, _targetRecoilRot, Time.deltaTime * visualRecoilRotReturnSpeed);
         }
 
         private void Sway(Vector2 input)

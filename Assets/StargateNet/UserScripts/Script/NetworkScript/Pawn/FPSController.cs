@@ -8,7 +8,8 @@ public class FPSController : NetworkBehavior
     public GameObject hitVfx;
     public Transform playerClientView;
     public CharacterController cc;
-    public Transform cameraPoint;
+    public Transform controlAncor; // 玩家控制角色的俯仰角
+    public Transform cameraPoint;  // 相机受后坐力影响，和controlAncor独立。射击时用到这个在localSpace有偏移的方向
     public Transform foot;
     public Transform handPoint;
     private Camera mainCamera;
@@ -21,6 +22,12 @@ public class FPSController : NetworkBehavior
     public float lookSpeedY = 2f;
     public float jumpSpeed = 12f;
     public float gravity = 24;
+    [Header("Recoile")]
+    public float recoilX = 2;
+    public float recoilY = 2;
+    public float recoilZ = 2;
+    public float snappiness = 2;
+    public float returnSpeed = 2;
 
     [Header("Sway")]
     public bool sway = true;
@@ -58,6 +65,23 @@ public class FPSController : NetworkBehavior
     private Vector3 _bobRotation;
 
     private Vector2 _localYawPitch;
+    private Vector3 _currentYawPitchForRecoil;
+    private Vector3 _targetYawPitchForRecoil;
+
+    [Header("Visual Recoil Settings")]
+    [SerializeField] private float visualRecoilPosStrength = 0.5f;
+    [SerializeField] private float visualRecoilRotStrength = 15f;
+    [SerializeField] private float visualRecoilPosReturnSpeed = 8f;
+    [SerializeField] private float visualRecoilRotReturnSpeed = 15f;
+    [SerializeField] private float visualRecoilMaxPos = 0.5f;
+    [SerializeField] private float visualRecoilMaxRot = 30f;
+    [SerializeField] private Vector2 visualRecoilBackwardRange = new Vector2(-0.8f, -0.5f); // 增强后坐力后移
+    [SerializeField] private Vector2 visualRecoilUpwardRange = new Vector2(0.2f, 0.4f);    // 增强上移幅度
+
+    [Header("Visual Recoil Rotation Settings")]
+    [SerializeField] private Vector2 recoilRotationRangeX = new Vector2(-20f, -15f);
+    [SerializeField] private Vector2 recoilRotationRangeY = new Vector2(-7f, 7f);
+    [SerializeField] private Vector2 recoilRotationRangeZ = new Vector2(-10f, 10f);
 
     /// <summary>
     /// 跳跃和重力的速度
@@ -80,7 +104,7 @@ public class FPSController : NetworkBehavior
         attributeComponent = GetComponent<AttributeComponent>();
         attributeComponent.owner = this;
 
-        cameraPoint.forward = transform.forward;
+        controlAncor.forward = transform.forward;
         if (this.IsLocalPlayer())
         {
             mainCamera = galaxy.FindSceneComponent<Camera>();
@@ -101,7 +125,18 @@ public class FPSController : NetworkBehavior
                 travelLimit = travelLimit,
                 bobLimit = bobLimit,
                 bobSway = bobSway,
-                multiplier = multiplier
+                multiplier = multiplier,
+                visualRecoilPosStrength = visualRecoilPosStrength,
+                visualRecoilRotStrength = visualRecoilRotStrength,
+                visualRecoilPosReturnSpeed = visualRecoilPosReturnSpeed,
+                visualRecoilRotReturnSpeed = visualRecoilRotReturnSpeed,
+                visualRecoilMaxPos = visualRecoilMaxPos,
+                visualRecoilMaxRot = visualRecoilMaxRot,
+                visualRecoilBackwardRange = visualRecoilBackwardRange,
+                visualRecoilUpwardRange = visualRecoilUpwardRange,
+                recoilRotationRangeX = recoilRotationRangeX,
+                recoilRotationRangeY = recoilRotationRangeY,
+                recoilRotationRangeZ = recoilRotationRangeZ
             };
         }
 
@@ -123,7 +158,8 @@ public class FPSController : NetworkBehavior
             // 客户端为权威的旋转
             Vector2 yawPitch = input.YawPitch;
             transform.rotation = Quaternion.Euler(0, yawPitch.x, 0);
-            cameraPoint.localRotation = Quaternion.Euler(yawPitch.y, 0, 0);
+            controlAncor.localRotation = Quaternion.Euler(yawPitch.y, 0, 0);
+            cameraPoint.localRotation = Quaternion.Euler(input.CameraPoint);
 
             movement = new Vector3(input.Input.x, 0, input.Input.y) * moveSpeed;
 
@@ -164,13 +200,17 @@ public class FPSController : NetworkBehavior
                         targetAttribute.ChangeHp(-19, this);
                     }
                 }
+
+                if (IsClient && !galaxy.IsResimulation)
+                    // 后坐力
+                    HandleRecoile();
             }
 
             if (input.IsInteract && IsServer)
             {
-                GizmoTimerDrawer.Instance.DrawRayWithTimer(cameraPoint.position, cameraPoint.forward * 20f, 5f,
+                GizmoTimerDrawer.Instance.DrawRayWithTimer(controlAncor.position, controlAncor.forward * 20f, 5f,
                     Color.red);
-                galaxy.NetworkRaycast(cameraPoint.transform.position, cameraPoint.forward, this.InputSource, out RaycastHit hit, 20f, ~0);
+                galaxy.NetworkRaycast(controlAncor.transform.position, controlAncor.forward, this.InputSource, out RaycastHit hit, 20f, ~0);
                 if (hit.collider != null)
                 {
                     attributeComponent.SetNetworkWeapon(hit.collider.GetComponent<NetworkObject>());
@@ -270,9 +310,6 @@ public class FPSController : NetworkBehavior
 
         PlayerInput playerInput = galaxy.GetInput<PlayerInput>();
 
-        // 使用 galaxy.FindSceneComponent 获取相机
-        Camera mainCamera = galaxy.FindSceneComponent<Camera>();
-
         var transform1 = mainCamera.transform;
         Vector3 forward = transform1.forward;
         Vector3 right = transform1.right;
@@ -286,11 +323,18 @@ public class FPSController : NetworkBehavior
         Vector2 deltaRawPitchInput = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
         float mouseX = deltaRawPitchInput.x * lookSpeedX;
         float mouseY = deltaRawPitchInput.y * lookSpeedY;
+        // 后坐力作用于CameraPoint上，不影响角色本身旋转
+        _targetYawPitchForRecoil = Vector3.Lerp(_targetYawPitchForRecoil, Vector3.zero, returnSpeed * Time.deltaTime);
+        _currentYawPitchForRecoil = Vector3.Lerp(_currentYawPitchForRecoil, _targetYawPitchForRecoil, snappiness * Time.deltaTime);
+
+        // 移动视角
         _localYawPitch = ClampAngles(_localYawPitch.x + mouseX, _localYawPitch.y - mouseY);
         // 在Update中旋转，将结果作为Input传入,避免丢包导致视角抽搐
         transform.rotation = Quaternion.Euler(0, _localYawPitch.x, 0);
-        cameraPoint.localRotation = Quaternion.Euler(_localYawPitch.y, 0, 0);
+        controlAncor.localRotation = Quaternion.Euler(_localYawPitch.y, 0, 0);
+        cameraPoint.localEulerAngles = _currentYawPitchForRecoil;
         playerInput.YawPitch = new Vector2(_localYawPitch.x, _localYawPitch.y);
+        playerInput.CameraPoint = cameraPoint.localEulerAngles;
         playerInput.IsJump |= Input.GetKeyDown(KeyCode.Space);
         playerInput.IsFire |= Input.GetMouseButtonDown(0);
         playerInput.IsHoldFire |= Input.GetMouseButton(0);
@@ -306,7 +350,7 @@ public class FPSController : NetworkBehavior
 
     private void SetFPSCamera()
     {
-        if (cameraPoint != null && mainCamera != null)
+        if (controlAncor != null && mainCamera != null)
         {
             mainCamera.fieldOfView = 105f;
             Transform cameraTransform = mainCamera.transform;
@@ -385,5 +429,17 @@ public class FPSController : NetworkBehavior
     {
         var rot = Quaternion.LookRotation(normal);
         Instantiate(hitVfx, position, rot);
+    }
+
+    private void HandleRecoile()
+    {
+        // 相机后坐力
+        _targetYawPitchForRecoil += new Vector3(recoilX, Random.Range(-recoilX, recoilX), Random.Range(-recoilY, recoilY));
+        
+        // 添加武器视觉后坐力
+        if (weaponPresenter != null)
+        {
+            weaponPresenter.ApplyVisualRecoil();
+        }
     }
 }
