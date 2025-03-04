@@ -5,26 +5,32 @@ using UnityEngine;
 
 public class MyNetworkEventManager : NetworkEventManager
 {
+    [SerializeField] private Transform[] spawnPos;
     [SerializeField] private BattleManager battleManager;
     [SerializeField] private GameObject playerPawn;
     private HashSet<int> _playerIds = new HashSet<int>(128);
+    private BattleManager _battleManager;
 
     public override void OnNetworkEngineStart(SgNetworkGalaxy galaxy)
     {
         Camera.main.gameObject.AddComponent<ObsCamera>();
-        if(galaxy.IsServer)
-            galaxy.NetworkSpawn(battleManager.gameObject, Vector3.zero, Quaternion.identity);
+        if (galaxy.IsServer)
+            {
+                _battleManager = galaxy.NetworkSpawn(battleManager.gameObject, Vector3.zero, Quaternion.identity).GetComponent<BattleManager>();
+                _battleManager.PosInit(spawnPos);
+            }
 
         if (galaxy.IsClient)
         {
             UIManager.Instance.ShowUI<UIBattleInterface>();
         }
-    }   
+    }
 
     public override void OnPlayerConnected(SgNetworkGalaxy galaxy, int playerId)
     {
         if (!_playerIds.Add(playerId)) return;
-        galaxy.NetworkSpawn(playerPawn, Vector3.zero, Quaternion.identity, playerId);
+        if (galaxy.IsServer)
+            _battleManager.SpawnPlayer(playerPawn, playerId);
     }
 
     // public override void OnPlayerPawnLoad(SgNetworkGalaxy galaxy, int playerId, NetworkObject networkObject)

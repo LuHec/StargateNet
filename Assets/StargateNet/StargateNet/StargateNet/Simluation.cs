@@ -82,7 +82,10 @@ namespace StargateNet
             int* bitmap = poolData; //bitmap放在首部
             int* state = poolData + stateWordSize;
             entity.Initialize(state, bitmap, stateWordSize, poolId, worldIdx, inputSource, networkBehaviors);
-
+            if(this.engine.IsClient)
+            {
+                this.engine.ClientSimulation.ClientControlledEntity = entity.NetworkId;
+            }
             return entity;
         }
 

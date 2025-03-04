@@ -4,7 +4,7 @@ namespace StargateNet
 {
     public struct PlayerInput : INetworkInput
     {
-        public Vector2 Input;
+        public Vector2 Move;
         public Vector2 YawPitch;
         public Vector3 CameraPoint;
         public bool IsJump;

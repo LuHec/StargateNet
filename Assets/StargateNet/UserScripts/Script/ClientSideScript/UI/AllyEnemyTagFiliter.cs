@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using StargateNet;
+using System;
 
 public class AllyEnemyTagFiliter : MonoBehaviour
 {
@@ -13,6 +14,7 @@ public class AllyEnemyTagFiliter : MonoBehaviour
     private UIAllyPanel uiAllyPanel;
     private HashSet<int> visiblePlayers;
     private HashSet<int> newVisiblePlayers;
+    private FPSController owner;
     private float updateTimer;
 
     // 缓存组件引用
@@ -27,9 +29,10 @@ public class AllyEnemyTagFiliter : MonoBehaviour
         newVisiblePlayers = new HashSet<int>(32);
     }
 
-    public void Init(Camera camera)
+    public void Init(Camera camera, FPSController fpsController)
     {
         mainCamera = camera;
+        owner = fpsController;
     }
 
     private void Update()
@@ -118,9 +121,7 @@ public class AllyEnemyTagFiliter : MonoBehaviour
 
     private bool IsAlly(FPSController player)
     {
-        // 根据你的游戏逻辑判断是否是队友
-        // 这里只是示例，你需要根据实际情况实现
-        return false;
+        return owner.attributeComponent.TeamTag == player.attributeComponent.TeamTag;
     }
 
     private void OnDrawGizmosSelected()

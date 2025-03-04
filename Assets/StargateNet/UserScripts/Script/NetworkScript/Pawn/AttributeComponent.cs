@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using StargateNet;
 using UnityEngine;
 
-public class AttributeComponent : NetworkBehavior
+public class AttributeComponent : NetworkBehavior, IHitable
 {
     [Replicated]
     public int TeamTag { get; set; }
@@ -32,14 +32,7 @@ public class AttributeComponent : NetworkBehavior
         }
     }
 
-    public FPSController killer;
-    public bool ChangeHp(int value, FPSController damager)
-    {
-        int temp = HPoint;
-        killer = damager;
-        HPoint = Mathf.Clamp(HPoint + value, 0, 100);
-        return false;
-    }
+
     public void SetNetworkWeapon(NetworkObject networkObject)
     {
         if (networkObject == null) return;
@@ -53,7 +46,7 @@ public class AttributeComponent : NetworkBehavior
         WeaponRef = -1;
     }
 
-    [NetworkCallBack(nameof(WeaponRef), true)]
+    [NetworkCallBack(nameof(WeaponRef), false)]
     public void OnWeaponRefChanged(CallbackData callbackData)
     {
         Debug.LogWarning($"ChangeWeapon To {WeaponRef}");
@@ -87,6 +80,7 @@ public class AttributeComponent : NetworkBehavior
         // 再生成新的武器
         if (WeaponRef == -1) return;
         NetworkObject networkObject = Entity.Engine.GetNetworkObject(new NetworkObjectRef(WeaponRef));
+        if (networkObject == null) return;
         networkWeapon = networkObject.GetComponent<NetworkWeapon>();
         if (networkWeapon == null) return;
 
@@ -98,6 +92,10 @@ public class AttributeComponent : NetworkBehavior
         }
         networkWeapon.OnEquip(this);
         networkObject.gameObject.SetActive(false);
+        if (IsClient)
+        {
+            UIManager.Instance.GetUIPanel<UIPlayerInterface>().UpdateMag(networkWeapon.AmmoCount);
+        }
     }
 
     /// <summary>
@@ -114,7 +112,7 @@ public class AttributeComponent : NetworkBehavior
             OnDead();
         }
 
-        if (IsClient)
+        if (IsClient && HPoint < callbackData.GetPreviousData<int>())
         {
             PlayClientDamageVFX();
         }
@@ -126,7 +124,7 @@ public class AttributeComponent : NetworkBehavior
         {
             ThrowWeapon();
             owner.SetDead(true);
-            battleManager.AddRespawnTimer(3.0f, this, killer);
+            battleManager.AddRespawnTimer(7.0f, this, killer);
             this.killer = null;
         }
     }
@@ -160,5 +158,14 @@ public class AttributeComponent : NetworkBehavior
     {
         NetworkObject networkWeapon = battleManager.RequireWeapon(this);
         SetNetworkWeapon(networkWeapon);
+    }
+
+    public FPSController killer;
+    public void OnHit(int damage, Vector3 hitPoint, Vector3 hitNormal, FPSController hitter)
+    {
+        if (TeamTag == hitter.attributeComponent.TeamTag) return;
+        int temp = HPoint;
+        killer = hitter;
+        HPoint = Mathf.Clamp(HPoint + damage, 0, 100);
     }
 }

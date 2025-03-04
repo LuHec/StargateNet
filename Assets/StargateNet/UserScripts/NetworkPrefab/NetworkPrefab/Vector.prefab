@@ -1159,7 +1159,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b8c829169586ab48aa128e380751c72, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  renderTransform: {fileID: 0}
+  renderTransform: {fileID: 6530700093778204227}
   needCorrect: 1
   errorMagnitude: 1.8
   correctionMultiplier: 1.28
@@ -1178,7 +1178,7 @@ MonoBehaviour:
   weaponModel: {fileID: 7729773817608672209, guid: 79b02dee71e0e8f43b2018ce7536f482,
     type: 3}
   maxAmmo: 21
-  rpm: 850
+  rpm: 950
   loadTime: 1.2
   isRifile: 1
 --- !u!54 &8544034581204158230
@@ -1241,7 +1241,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe494abb9820947418df1003aec46f53, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  lifeTime: 20
+  lifeTime: 15
 --- !u!1 &7835017714353900888
 GameObject:
   m_ObjectHideFlags: 0

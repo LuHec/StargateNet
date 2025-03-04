@@ -26,7 +26,7 @@ public class UIKillPointHint : UIBase
         killSequence?.Kill();
 
         // 设置文本内容
-        ptText.text = $"+{points}";
+        ptText.text = $"+{points}PT";
         killText.text = killInfo;
 
         // 重置状态

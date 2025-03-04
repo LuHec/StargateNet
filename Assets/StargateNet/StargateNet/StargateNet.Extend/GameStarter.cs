@@ -14,7 +14,7 @@ namespace StargateNet
         private bool _showConnectBtn = true;
         private int mode = 0;
         public GameObject test;
-
+        public Transform testPoint;
         private Queue<GameObject> refs = new();
 
         public void StartBotClient()
@@ -81,7 +81,7 @@ namespace StargateNet
 
             if (!_showConnectBtn && mode == 2 && GUI.Button(new Rect(80, 200, 100, 90), "Spawn"))
             {
-                refs.Enqueue(SgNetwork.Instance.galaxies[0].NetworkSpawn(test, Vector3.zero, Quaternion.identity)
+                refs.Enqueue(SgNetwork.Instance.galaxies[0].NetworkSpawn(test, testPoint.position, Quaternion.identity)
                     .gameObject);
             }
 

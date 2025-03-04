@@ -23,12 +23,12 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 60b6754a030c5e14a80370dce74ea6f2
-    m_Address: UIPostProcessing
+    m_Address: 0UIPostProcessing
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 82c2c641a4eb069439633bce6a23a64b
-    m_Address: UIPPlayerInterface
+    m_Address: UIPlayerInterface
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -49,6 +49,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 0f3135514bf7a0348932a0a639256c49
     m_Address: UIAllyPanel
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 87464efec37781247b86df6d0e90279f
+    m_Address: UIEliminateInfo
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

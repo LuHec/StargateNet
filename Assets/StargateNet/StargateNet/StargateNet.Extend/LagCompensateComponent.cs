@@ -41,6 +41,7 @@ namespace StargateNet
 
                 StartLagCompensation(this._raycastHits, length, inputSource, fromSnapshot, toSnapshot, alpha);
                 var hit = Physics.Raycast(origin, direction, out hitInfo, maxDistance, layerMask);
+                GizmoTimerDrawer.Instance?.DrawWireSphereWithTimer(hitInfo.point, .5f, 3f, Color.red);
                 EndLagCompensation(this._raycastHits, length, inputSource, this.Engine.WorldState.CurrentSnapshot);
                 return hit;
             }
@@ -65,6 +66,7 @@ namespace StargateNet
                 var hitResult = hitResults[i];
                 GameObject compensateTarget = hitResult.collider.gameObject;
                 if (compensateTarget == null) continue;
+                // 
                 GizmoTimerDrawer.Instance?.DrawWireSphereWithTimer(hitResult.point, 1f, 3f, Color.blue);
                 if (!compensateTarget.TryGetComponent(out CompensateCollider compensateCollider)) continue;
                 GameObject target = compensateTarget.transform.parent.gameObject;

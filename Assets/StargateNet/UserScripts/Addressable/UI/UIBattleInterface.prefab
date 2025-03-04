@@ -111,6 +111,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1228058620298057502}
   - component: {fileID: 5327188147886809883}
+  - component: {fileID: 7642536293034893724}
   m_Layer: 5
   m_Name: UIBattleInterface
   m_TagString: Untagged
@@ -158,6 +159,18 @@ MonoBehaviour:
   flag: {fileID: 7557193383742086306}
   aFlag: {fileID: 21300000, guid: be8bff3190735644c92346983728148d, type: 3}
   bFlag: {fileID: 21300000, guid: 1614f9ff502bc7b489eda12bb17944c4, type: 3}
+--- !u!225 &7642536293034893724
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2097217879668307924}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &2809491049654726320
 GameObject:
   m_ObjectHideFlags: 0

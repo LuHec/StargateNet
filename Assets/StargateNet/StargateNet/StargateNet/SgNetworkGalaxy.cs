@@ -20,6 +20,7 @@ namespace StargateNet
         public bool IsServer => this.Engine.IsServer;
         public bool IsClient => this.Engine.IsClient;
         public int PlayerId => this.Engine.IsServer ? -1 : this.Engine.Client.Client.Id;
+        public int PlayerEntityId=>this.Engine.IsServer ? -1 : this.Engine.ClientSimulation.ClientControlledEntity.refValue;
         public Tick tick => this.Engine.Tick;
         public bool IsResimulation => this.Engine.IsResimulation;
         public Scene Scene {get; internal set;}

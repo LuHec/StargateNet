@@ -120,7 +120,7 @@ namespace StargateNet
             }
             interestBlockMap.Clear();
 
-            foreach (var entity in simulationList)
+            foreach (var entity in this.engine.Simulation.entitiesTable.Values)
             {
                 Transform transform = entity.entityObject.transform;
                 // 使用向下取整的方式处理负数坐标

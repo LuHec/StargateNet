@@ -108,8 +108,9 @@ public class FPSController : NetworkBehavior
         if (this.IsLocalPlayer())
         {
             mainCamera = galaxy.FindSceneComponent<Camera>();
+            galaxy.FindSceneComponent<BattleManager>().SetLocalPlayerEntityId(this.Entity.NetworkId.refValue);
             var view = playerClientView.AddComponent<AllyEnemyTagFiliter>();
-            view.Init(mainCamera);
+            view.Init(mainCamera, this);
             weaponPresenter = new WeaponPresenter(handPoint)
             {
                 sway = sway,
@@ -161,7 +162,7 @@ public class FPSController : NetworkBehavior
             controlAncor.localRotation = Quaternion.Euler(yawPitch.y, 0, 0);
             cameraPoint.localRotation = Quaternion.Euler(input.CameraPoint);
 
-            movement = new Vector3(input.Input.x, 0, input.Input.y) * moveSpeed;
+            movement = new Vector3(input.Move.x, 0, input.Move.y) * moveSpeed;
 
             if (input.IsJump && IsGrounded && VerticalSpeed <= 0)
             {
@@ -179,25 +180,23 @@ public class FPSController : NetworkBehavior
                 GizmoTimerDrawer.Instance.DrawRayWithTimer(cameraPoint.position, cameraPoint.forward * 50f, 5f, Color.green);
                 galaxy.NetworkRaycast(cameraPoint.position, cameraPoint.forward, this.InputSource, out RaycastHit hit,
                     50f, ~0);
+                GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hit.point, .5f, 5f, Color.green);
 
                 if (hit.collider != null)
                 {
                     // GizmoTimerDrawer.Instance.DrawWireSphereWithTimer(hit.point, .5f, 5f, Color.red);
-                    Debug.LogWarning(hit.collider.gameObject.name);
-                    if (IsClient && !galaxy.IsResimulation)
+                    // Debug.LogWarning(hit.collider.gameObject.name);
+                    if (hit.collider.gameObject.TryGetComponent(out IHitable hitable))
                     {
-                        UIManager.Instance.GetUIPanel<UIHitmarker>().HitToShowMarker();
-                    }
-
-                    if (IsServer)
-                    {
-                        AddHitVfx(hit.point, hit.normal);
-                        Debug.LogWarning($"Hit {hit.point}");
-                    }
-
-                    if (IsServer && hit.collider.gameObject.TryGetComponent(out AttributeComponent targetAttribute))
-                    {
-                        targetAttribute.ChangeHp(-19, this);
+                        if (IsServer)
+                        {
+                            hitable.OnHit(-19, hit.point, hit.normal, this);
+                            AddHitVfx(hit.point, hit.normal);
+                        }
+                        if (IsClient && !galaxy.IsResimulation)
+                        {
+                            UIManager.Instance.GetUIPanel<UIHitmarker>().HitToShowMarker();
+                        }
                     }
                 }
 
@@ -318,7 +317,7 @@ public class FPSController : NetworkBehavior
         forward.Normalize();
         right.Normalize();
         Vector3 moveDirection = forward * Input.GetAxis("Vertical") + right * Input.GetAxis("Horizontal");
-        playerInput.Input = new Vector2(moveDirection.x, moveDirection.z);
+        playerInput.Move = new Vector2(moveDirection.x, moveDirection.z);
 
         Vector2 deltaRawPitchInput = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
         float mouseX = deltaRawPitchInput.x * lookSpeedX;
@@ -333,17 +332,20 @@ public class FPSController : NetworkBehavior
         transform.rotation = Quaternion.Euler(0, _localYawPitch.x, 0);
         controlAncor.localRotation = Quaternion.Euler(_localYawPitch.y, 0, 0);
         cameraPoint.localEulerAngles = _currentYawPitchForRecoil;
+        bool isFiring = Input.GetMouseButtonDown(0);
+        bool isHoldFiring = Input.GetMouseButton(0);
+
         playerInput.YawPitch = new Vector2(_localYawPitch.x, _localYawPitch.y);
         playerInput.CameraPoint = cameraPoint.localEulerAngles;
         playerInput.IsJump |= Input.GetKeyDown(KeyCode.Space);
-        playerInput.IsFire |= Input.GetMouseButtonDown(0);
-        playerInput.IsHoldFire |= Input.GetMouseButton(0);
+        playerInput.IsFire |= isFiring;
+        playerInput.IsHoldFire |= isHoldFiring;
         playerInput.IsInteract |= Input.GetKeyDown(KeyCode.E);
         playerInput.IsThrowing |= Input.GetKeyDown(KeyCode.G);
         playerInput.Reload |= Input.GetKeyDown(KeyCode.R);
         // 处理延迟补偿
         //TODO:暂时这么写！！还在想办法解决怎么把这个狗屎延迟补偿输入给提取出用户代码
-        galaxy.SetInput(playerInput, Input.GetMouseButtonDown(0));
+        galaxy.SetInput(playerInput, isHoldFiring || isFiring);
 
         return new Inputs { a = deltaRawPitchInput, b = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")) };
     }
@@ -352,7 +354,7 @@ public class FPSController : NetworkBehavior
     {
         if (controlAncor != null && mainCamera != null)
         {
-            mainCamera.fieldOfView = 105f;
+            mainCamera.fieldOfView = 95f;
             Transform cameraTransform = mainCamera.transform;
             cameraTransform.forward = transform.forward;
             cameraTransform.SetParent(cameraPoint);
@@ -415,12 +417,31 @@ public class FPSController : NetworkBehavior
     private void HandleRespawn()
     {
         gameObject.SetActive(true);
+
+        // 重置旋转和后坐力
+        _localYawPitch = Vector2.zero;
+        _currentYawPitchForRecoil = Vector3.zero;
+        _targetYawPitchForRecoil = Vector3.zero;
+
+        // 重置控制点的旋转
+        transform.rotation = Quaternion.identity;
+        controlAncor.localRotation = Quaternion.identity;
+        cameraPoint.localRotation = Quaternion.identity;
+
         if (IsLocalPlayer())
         {
             SetFPSCamera();
             UIManager.Instance.GetUIPanel<UIPlayerInterface>().Open();
+            UIManager.Instance.GetUIPanel<UIPlayerInterface>().UpdateHP(attributeComponent.HPoint);
             UIManager.Instance.GetUIPanel<UIBattleInterface>().Open();
             UIManager.Instance.GetUIPanel<UIAllyPanel>().Open();
+            UIManager.Instance.GetUIPanel<UIEliminateInfo>().Open();
+
+            // 如果有武器系统，也需要重置
+            if (weaponPresenter != null)
+            {
+                weaponPresenter.ResetAll();
+            }
         }
     }
 
@@ -435,7 +456,7 @@ public class FPSController : NetworkBehavior
     {
         // 相机后坐力
         _targetYawPitchForRecoil += new Vector3(recoilX, Random.Range(-recoilX, recoilX), Random.Range(-recoilY, recoilY));
-        
+
         // 添加武器视觉后坐力
         if (weaponPresenter != null)
         {

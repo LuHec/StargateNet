@@ -66,4 +66,12 @@ MonoBehaviour:
     type: 3}
   controlPointAPos: {x: 17.43716, y: -2.250164, z: -4.8458385}
   controlPointBPos: {x: -1.0728388, y: -4.290165, z: -4.73584}
+  initialRadius: 5
+  maxRadius: 20
+  radiusIncrement: 5
+  pointsPerCircle: 8
+  playerHeight: 2
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 0
   pendingRespawnPlayers: []

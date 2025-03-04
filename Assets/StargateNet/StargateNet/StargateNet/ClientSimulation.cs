@@ -17,6 +17,7 @@ namespace StargateNet
         internal List<SimulationInput> inputs = new(128);
         internal double serverInputRcvTimeAvg; // 服务端算出来的input接收平均时间
         internal bool IsResimulation { private set; get; }
+        internal NetworkObjectRef ClientControlledEntity { get; set; }
         private readonly int _maxPredictedTicks;
         private List<Entity> _predictedEntities = new(32);
         private List<IClientSimulationCallbacks> _clientSimulationCallbacksList = new(128);
@@ -213,7 +214,7 @@ namespace StargateNet
                 for (int i = 0; i < this.inputs.Count; i++)
                 {
                     this.currentInput = this.inputs[i];
-                    this.ExecuteNetworkFixedUpdate(); 
+                    this.ExecuteNetworkFixedUpdate();
                     this.SerializeToNetcode();
                     this.currentTick++;
                 }
@@ -223,7 +224,7 @@ namespace StargateNet
                 this.remoteCallbacks.Clear();
                 this.needRollback = false;
             }
-            else {this.needRollback = true;}
+            else { this.needRollback = true; }
 
             this.engine.Monitor.resims = this.currentTick - this.authoritativeTick;
             this.engine.Monitor.inputCount = this.inputs.Count;
@@ -282,7 +283,7 @@ namespace StargateNet
                     this.OnEntityStateRemoteChanged(entity, dataIdx, false);
                     predictedData[dataIdx] = authorData[dataIdx];
                 }
-            
+
             }
         }
 

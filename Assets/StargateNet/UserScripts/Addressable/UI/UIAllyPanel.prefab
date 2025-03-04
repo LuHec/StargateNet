@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5157300234271261746}
   - component: {fileID: 5317585075158679876}
+  - component: {fileID: -2459682831241618651}
   m_Layer: 5
   m_Name: UIAllyPanel
   m_TagString: Untagged
@@ -52,3 +53,15 @@ MonoBehaviour:
     type: 3}
   enemyTagPrefab: {fileID: 5306593409040169273, guid: 69273a35492c9c749a45a246dc23fc61,
     type: 3}
+--- !u!225 &-2459682831241618651
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4408879643607210548}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0

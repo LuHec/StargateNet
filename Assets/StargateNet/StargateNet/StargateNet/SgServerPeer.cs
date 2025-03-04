@@ -239,9 +239,11 @@ namespace StargateNet
             bool clientLossPacket = msg.GetBool();
             int clientLastAuthorTick = msg.GetInt();
             int inputCount = msg.GetShort();
-            // RiptideLogger.Log(LogType.Warning, $"client send input count: {inputCount}");
             if (!this._clinetIdToGuidMap.TryGetValue(args.FromConnection.Id, out int guid)) return;
             int playerId = this._guidToIdMap[guid];
+            if (playerId >= this.clientConnections.Count) return;
+            ClientConnection connection = this.clientConnections[playerId];
+            if (connection == null || connection.clientData == null) return;
             ClientData clientData = this.clientConnections[playerId].clientData;
             clientData.deltaPakTime = this.Engine.SimulationClock.Time - clientData.lastPakTime;
             clientData.lastPakTime = this.Engine.SimulationClock.Time;
@@ -293,6 +295,7 @@ namespace StargateNet
         private void OnDisConnect(object sender, ServerDisconnectedEventArgs args)
         {
             Connection connection = args.Client;
+            if (connection.Id >= this.clientConnections.Count) return;
             ClientData clientData = this.Engine.ServerSimulation.clientDatas[connection.Id];
             ClientConnection clientConnection = clientConnections[connection.Id];
             clientData.Reset();
@@ -315,13 +318,14 @@ namespace StargateNet
             int guid = msg.GetString().GetHashCode();
             if (this._guidToIdMap.TryGetValue(guid, out int playerId))
             {
+                
                 ClientConnection clientConnection = this.clientConnections[playerId];
                 ClientData clientData = this.Engine.ServerSimulation.clientDatas[playerId];
                 if (clientConnection.connected && clientConnection.connection.Id != pendingConnection.Id) // 防止重复连接，直接把原来的连接踢掉
                 {
-                    this.Server.DisconnectClient(clientConnection.connection);
+                    // this.Server.DisconnectClient(clientConnection.connection);
                 }
-
+                // Debug.LogError($"Same Id{playerId}, befor{clientConnection.connection.Id}, now{pendingConnection.Id}"); 
                 clientData.Reset();
                 clientConnection.connected = true;
                 clientConnection.connection = pendingConnection;
@@ -345,6 +349,7 @@ namespace StargateNet
             replyMsg.AddUInt((uint)ToClientProtocol.ConnectReply);
             pendingConnection.Send(replyMsg);
             this.Engine.NetworkEventManager.OnPlayerConnected(this.Engine.SgNetworkGalaxy, playerId);
+            _pendingConnectionIds.Remove(pendingConnection.Id);
             CalculateClientCount();
         }
 
