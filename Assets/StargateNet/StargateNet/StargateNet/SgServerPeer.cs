@@ -330,7 +330,7 @@ namespace StargateNet
                 clientConnection.connected = true;
                 clientConnection.connection = pendingConnection;
                 clientConnection.clientData = clientData;
-                pendingConnection.TimeoutTime = 10 * 1000;
+                // pendingConnection.TimeoutTime = 3 * 1000;
             }
             else
             {
@@ -341,7 +341,7 @@ namespace StargateNet
                 ClientConnection clientConnection = new ClientConnection(this.Engine)
                 { connected = true, connection = pendingConnection, clientData = clientData };
                 clientConnections.Add(clientConnection);
-                pendingConnection.TimeoutTime = 10 * 1000;
+                // pendingConnection.TimeoutTime = 3 * 1000;
             }
 
             this._clinetIdToGuidMap[pendingConnection.Id] = guid;

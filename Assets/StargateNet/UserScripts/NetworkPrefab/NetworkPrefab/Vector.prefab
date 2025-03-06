@@ -1178,7 +1178,7 @@ MonoBehaviour:
   weaponModel: {fileID: 7729773817608672209, guid: 79b02dee71e0e8f43b2018ce7536f482,
     type: 3}
   maxAmmo: 21
-  rpm: 950
+  rpm: 800
   loadTime: 1.2
   isRifile: 1
 --- !u!54 &8544034581204158230

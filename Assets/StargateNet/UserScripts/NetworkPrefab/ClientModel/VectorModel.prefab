@@ -1091,6 +1091,10 @@ MonoBehaviour:
   firePoint: {fileID: 8988509858593118693}
   muzzleFlashVfx: {fileID: 7980029976762078213, guid: 1f58a1dea6bbd9347843e4935585e6a2,
     type: 3}
+  bulletPrefab: {fileID: 621264002214264565, guid: 41af98a9579bb4442b96cd759b80544c,
+    type: 3}
+  bulletSpeed: 200
+  bulletLifeTime: 3
 --- !u!1 &7835017714353900888
 GameObject:
   m_ObjectHideFlags: 0

@@ -408,6 +408,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   deadVfx: {fileID: 1834194341294532, guid: 731b509a656c50a4583503672bc1a9f8, type: 3}
+  hitWallVfx: {fileID: 3077343761403282166, guid: 4e040dd3fc40fb54b9320acbd33f7903,
+    type: 3}
   hitVfx: {fileID: 2170372819716132641, guid: 406e44acf195d4e4e92f3664e4696583, type: 3}
   playerClientView: {fileID: 8108356427994658292}
   cc: {fileID: 5574289517947133850}
@@ -446,11 +448,11 @@ MonoBehaviour:
   visualRecoilPosReturnSpeed: 25
   visualRecoilRotReturnSpeed: 15
   visualRecoilMaxPos: 1
-  visualRecoilMaxRot: 15
+  visualRecoilMaxRot: 30
   visualRecoilBackwardRange: {x: -2, y: -1.2}
   visualRecoilUpwardRange: {x: 0.5, y: 0.8}
-  recoilRotationRangeX: {x: -10, y: 15}
-  recoilRotationRangeY: {x: -10, y: 5}
+  recoilRotationRangeX: {x: -20, y: -15}
+  recoilRotationRangeY: {x: -10, y: 7}
   recoilRotationRangeZ: {x: -10, y: 15}
   attributeComponent: {fileID: 0}
 --- !u!114 &175026183076793298

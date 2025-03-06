@@ -5,6 +5,7 @@ using UnityEngine;
 public class FPSController : NetworkBehavior
 {
     public GameObject deadVfx;
+    public GameObject hitWallVfx;
     public GameObject hitVfx;
     public Transform playerClientView;
     public CharacterController cc;
@@ -191,12 +192,16 @@ public class FPSController : NetworkBehavior
                         if (IsServer)
                         {
                             hitable.OnHit(-19, hit.point, hit.normal, this);
-                            AddHitVfx(hit.point, hit.normal);
                         }
                         if (IsClient && !galaxy.IsResimulation)
                         {
                             UIManager.Instance.GetUIPanel<UIHitmarker>().HitToShowMarker();
                         }
+                    }
+
+                    if(IsServer)
+                    {
+                        AddHitVfx(hit.point, hit.normal, hitable != null);
                     }
                 }
 
@@ -446,10 +451,12 @@ public class FPSController : NetworkBehavior
     }
 
     [NetworkRPC(NetworkRPCFrom.ServerCall)]
-    public void AddHitVfx(Vector3 position, Vector3 normal)
+    public void AddHitVfx(Vector3 position, Vector3 normal, bool isPlayer)
     {
         var rot = Quaternion.LookRotation(normal);
-        Instantiate(hitVfx, position, rot);
+        if (isPlayer)
+            Instantiate(hitVfx, position, rot);
+        else Instantiate(hitWallVfx, position, rot);
     }
 
     private void HandleRecoile()

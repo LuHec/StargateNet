@@ -83,7 +83,7 @@ public class BattleManager : NetworkBehavior
     public void AddRespawnTimer(float delay, AttributeComponent player, FPSController killer)
     {
         if (!IsServer) return;
-        if (killer.attributeComponent.TeamTag == player.TeamTag)
+        if (killer.attributeComponent.TeamTag != player.TeamTag)
         {
             if (killer.attributeComponent.TeamTag == 0)
             {

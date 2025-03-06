@@ -85,9 +85,11 @@ public class AttributeComponent : NetworkBehavior, IHitable
         if (networkWeapon == null) return;
 
         weaponModel = Instantiate(networkWeapon.weaponModel, owner.handPoint).GetComponent<WeaponModel>();
+        
         // 设置武器模型引用
         if (owner.IsLocalPlayer())
         {
+            weaponModel.Init(owner);
             owner.weaponPresenter.SetWeaponModel(weaponModel.transform);
         }
         networkWeapon.OnEquip(this);
@@ -124,7 +126,7 @@ public class AttributeComponent : NetworkBehavior, IHitable
         {
             ThrowWeapon();
             owner.SetDead(true);
-            battleManager.AddRespawnTimer(7.0f, this, killer);
+            battleManager.AddRespawnTimer(3.5f, this, killer);
             this.killer = null;
         }
     }
